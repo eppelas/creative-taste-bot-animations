@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Viewer — Creative Taste Bot</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+
+      html, body {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: #000;
+        font-family: 'Outfit', sans-serif;
+      }
+
+      /* Full-screen iframe */
+      #frame {
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        border: none;
+        display: block;
+      }
+
+      /* ── Top bar: back + toggle ── */
+      #top-bar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 100;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px 20px;
+        pointer-events: none;
+      }
+
+      #top-bar > * {
+        pointer-events: all;
+      }
+
+      .top-btn {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: rgba(0, 0, 0, 0.45);
+        border: 1px solid rgba(255,255,255,0.12);
+        color: rgba(255,255,255,0.8);
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.72rem;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        text-decoration: none;
+        padding: 8px 14px;
+        border-radius: 100px;
+        cursor: pointer;
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        transition: background 0.2s, color 0.2s, border-color 0.2s;
+      }
+
+      .top-btn:hover {
+        background: rgba(0,0,0,0.65);
+        color: #fff;
+        border-color: rgba(255,255,255,0.25);
+      }
+
+      .top-btn svg {
+        flex-shrink: 0;
+      }
+
+      /* ── Bottom info panel ── */
+      #info-panel {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        z-index: 100;
+        padding: 20px 28px 24px;
+        background: linear-gradient(to top, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.5) 60%, transparent 100%);
+        backdrop-filter: blur(2px);
+        -webkit-backdrop-filter: blur(2px);
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 24px;
+        transition: opacity 0.4s ease, transform 0.4s ease;
+      }
+
+      #info-panel.hidden {
+        opacity: 0;
+        transform: translateY(12px);
+        pointer-events: none;
+      }
+
+      .info-text {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .info-id {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.72rem;
+        color: #ff4d4d;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        margin-bottom: 4px;
+      }
+
+      .info-title {
+        font-size: 1.4rem;
+        font-weight: 600;
+        color: #fff;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin-bottom: 5px;
+      }
+
+      .info-branch {
+        font-size: 0.85rem;
+        color: rgba(255,255,255,0.55);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .info-date {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.72rem;
+        color: rgba(255,255,255,0.35);
+        white-space: nowrap;
+        flex-shrink: 0;
+        align-self: flex-end;
+        padding-bottom: 2px;
+      }
+
+      /* ── Top bar hidden state ── */
+      #top-bar.hidden {
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.4s ease;
+      }
+
+      #top-bar {
+        transition: opacity 0.4s ease;
+      }
+
+      /* ── Hint toast ── */
+      #hint {
+        position: fixed;
+        bottom: 100px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 200;
+        background: rgba(0,0,0,0.6);
+        border: 1px solid rgba(255,255,255,0.1);
+        color: rgba(255,255,255,0.6);
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.68rem;
+        letter-spacing: 0.08em;
+        padding: 7px 14px;
+        border-radius: 100px;
+        backdrop-filter: blur(12px);
+        opacity: 0;
+        transition: opacity 0.5s ease;
+        pointer-events: none;
+        white-space: nowrap;
+      }
+
+      #hint.show {
+        opacity: 1;
+      }
+    </style>
+  </head>
+  <body>
+
+    <iframe id="frame" src="about:blank" allowfullscreen></iframe>
+
+    <!-- Top controls -->
+    <div id="top-bar">
+      <a id="back-btn" class="top-btn" href="index.html">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <path d="M9 2L4 7L9 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Gallery
+      </a>
+      <button id="toggle-btn" class="top-btn" title="Toggle UI (H)">
+        <svg id="icon-show" width="15" height="15" viewBox="0 0 15 15" fill="none" style="display:none">
+          <path d="M1 7.5C1 7.5 3.5 3 7.5 3C11.5 3 14 7.5 14 7.5C14 7.5 11.5 12 7.5 12C3.5 12 1 7.5 1 7.5Z" stroke="currentColor" stroke-width="1.4"/>
+          <circle cx="7.5" cy="7.5" r="1.8" stroke="currentColor" stroke-width="1.4"/>
+          <path d="M3 3L12 12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+        </svg>
+        <svg id="icon-hide" width="15" height="15" viewBox="0 0 15 15" fill="none">
+          <path d="M1 7.5C1 7.5 3.5 3 7.5 3C11.5 3 14 7.5 14 7.5C14 7.5 11.5 12 7.5 12C3.5 12 1 7.5 1 7.5Z" stroke="currentColor" stroke-width="1.4"/>
+          <circle cx="7.5" cy="7.5" r="1.8" stroke="currentColor" stroke-width="1.4"/>
+        </svg>
+        <span id="toggle-label">Hide UI</span>
+      </button>
+    </div>
+
+    <!-- Bottom info panel -->
+    <div id="info-panel">
+      <div class="info-text">
+        <div class="info-id" id="info-id"></div>
+        <div class="info-title" id="info-title"></div>
+        <div class="info-branch" id="info-branch"></div>
+      </div>
+      <div class="info-date" id="info-date"></div>
+    </div>
+
+    <!-- Hint toast -->
+    <div id="hint">Press H to show UI</div>
+
+    <script>
+      const params = new URLSearchParams(location.search);
+      const src = params.get('src');
+      const frame = document.getElementById('frame');
+      const infoPanel = document.getElementById('info-panel');
+      const topBar = document.getElementById('top-bar');
+      const toggleBtn = document.getElementById('toggle-btn');
+      const toggleLabel = document.getElementById('toggle-label');
+      const iconShow = document.getElementById('icon-show');
+      const iconHide = document.getElementById('icon-hide');
+      const hint = document.getElementById('hint');
+
+      let uiVisible = true;
+
+      function setUI(visible) {
+        uiVisible = visible;
+        infoPanel.classList.toggle('hidden', !visible);
+        topBar.classList.toggle('hidden', !visible);
+        toggleLabel.textContent = visible ? 'Hide UI' : 'Show UI';
+        iconShow.style.display = visible ? 'none' : 'block';
+        iconHide.style.display = visible ? 'block' : 'none';
+
+        if (!visible) {
+          hint.classList.add('show');
+          setTimeout(() => hint.classList.remove('show'), 2500);
+        }
+      }
+
+      toggleBtn.addEventListener('click', () => setUI(!uiVisible));
+
+      document.addEventListener('keydown', e => {
+        if (e.key === 'h' || e.key === 'H') setUI(!uiVisible);
+        if (e.key === 'Escape' && !uiVisible) setUI(true);
+      });
+
+      // Populate info from manifest or URL params
+      async function init() {
+        if (!src) {
+          document.getElementById('info-title').textContent = 'No animation selected';
+          return;
+        }
+
+        frame.src = src;
+
+        // Try to load from manifest for full data
+        try {
+          const res = await fetch('manifest.json', { cache: 'no-store' });
+          const manifest = await res.json();
+          const item = manifest.animations.find(a => a.path === src);
+          if (item) {
+            const num = item.id.split('-')[0];
+            document.getElementById('info-id').textContent = `Nº ${num}`;
+            document.getElementById('info-title').textContent = item.title;
+            document.getElementById('info-branch').textContent = item.branch || '';
+            document.getElementById('info-date').textContent = item.date || '';
+            document.title = `#${num} ${item.title} — Creative Taste Bot`;
+          }
+        } catch (e) {
+          // Fallback to URL params
+          document.getElementById('info-title').textContent = decodeURIComponent(params.get('title') || src);
+        }
+      }
+
+      init();
+    </script>
+  </body>
+</html>
