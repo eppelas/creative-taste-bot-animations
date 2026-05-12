@@ -23,7 +23,7 @@
           <h1>Animation Library</h1>
           <p class="description">A curated archive of browser-native motion studies and generative experiments.</p>
         </div>
-        
+
         <div class="controls">
           <div class="stat">
             <span class="stat-label">Total Studies</span>
@@ -41,7 +41,7 @@
       </header>
 
       <section class="grid" id="grid"></section>
-      
+
       <div id="error" class="error-state" hidden>
         <p>Unable to synchronize with manifest.json</p>
         <small>Please ensure you are running on a local server or via GitHub Pages.</small>
@@ -51,11 +51,15 @@
     <template id="card-template">
       <a class="card" href="">
         <div class="card-preview">
-          <div class="iframe-container">
-             <iframe src="about:blank" scrolling="no" loading="lazy"></iframe>
+          <img class="preview-img" src="" alt="" loading="lazy" />
+          <div class="preview-live" aria-hidden="true">
+            <iframe src="about:blank" scrolling="no" tabindex="-1"></iframe>
           </div>
           <div class="preview-overlay"></div>
-          <div class="card-tag"></div>
+          <div class="live-badge">
+            <svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="3" fill="currentColor"/></svg>
+            live
+          </div>
         </div>
         <div class="card-body">
           <div class="card-meta">
@@ -80,30 +84,51 @@
         return `Nº ${num}`;
       }
 
+      function getPreviewPath(item) {
+        return item.path.replace('index.html', 'preview.png');
+      }
+
       function renderCard(item) {
         const node = template.content.cloneNode(true).querySelector('.card');
+        const img = node.querySelector('.preview-img');
+        const liveDiv = node.querySelector('.preview-live');
         const iframe = node.querySelector('iframe');
         const title = node.querySelector('.title');
         const summary = node.querySelector('.summary');
         const idTag = node.querySelector('.id-tag');
         const dateTag = node.querySelector('.date');
-        const cardTag = node.querySelector('.card-tag');
+        const badge = node.querySelector('.live-badge');
 
         node.href = item.path;
         title.textContent = item.title;
         summary.textContent = item.branch || 'Motion study';
         idTag.textContent = formatId(item.id);
         dateTag.textContent = item.date || '—';
-        
-        // Lazy load iframe on intersection
-        const observer = new IntersectionObserver((entries) => {
-          if (entries[0].isIntersecting) {
+
+        // Load static preview image
+        img.src = getPreviewPath(item);
+        img.alt = item.title;
+
+        // If no preview.png — fall back to iframe thumbnail
+        img.onerror = function () {
+          img.style.display = 'none';
+          badge.style.display = 'none';
+          liveDiv.classList.add('always-visible');
+          iframe.src = item.path;
+        };
+
+        // On hover: load live iframe for a peek
+        let iframeLoaded = false;
+        node.addEventListener('mouseenter', () => {
+          if (!iframeLoaded && img.style.display !== 'none') {
             iframe.src = item.path;
-            observer.unobserve(node);
+            iframeLoaded = true;
           }
-        }, { rootMargin: '100px' });
-        
-        observer.observe(node);
+          liveDiv.classList.add('visible');
+        });
+        node.addEventListener('mouseleave', () => {
+          liveDiv.classList.remove('visible');
+        });
 
         return node;
       }
@@ -114,12 +139,9 @@
           if (!response.ok) throw new Error();
           const manifest = await response.json();
           const items = manifest.animations || [];
-          
+
           grid.innerHTML = '';
-          items.forEach(item => {
-            grid.appendChild(renderCard(item));
-          });
-          
+          items.forEach(item => grid.appendChild(renderCard(item)));
           count.textContent = items.length;
         } catch (err) {
           error.hidden = false;
