@@ -233,6 +233,40 @@
 
       let uiVisible = true;
 
+      // CSS injected into the animation iframe to hide its internal panels/text
+      const CINEMA_CSS = `
+        main, .shell, header, footer, nav,
+        .panel, .sidebar, .hud, .overlay, .ui,
+        a.back, .back-link, .back,
+        [class*="panel"], [class*="sidebar"],
+        [class*="header"], [class*="footer"],
+        [class*="info-bar"], [class*="hud"],
+        [class*="-ui"], [class*="ui-"],
+        [class*="legend"], [class*="stats"],
+        [class*="desc"], [class*="lede"],
+        [class*="eyebrow"], [class*="meter"],
+        [class*="chip"], [class*="scene-head"],
+        [class*="footer-row"], [class*="scene-footer"] {
+          opacity: 0 !important;
+          pointer-events: none !important;
+          transition: opacity 0.35s ease !important;
+        }
+      `;
+
+      function injectCinemaStyle(hide) {
+        try {
+          const doc = frame.contentDocument;
+          if (!doc || !doc.head) return;
+          let style = doc.getElementById('ctb-cinema');
+          if (!style) {
+            style = doc.createElement('style');
+            style.id = 'ctb-cinema';
+            doc.head.appendChild(style);
+          }
+          style.textContent = hide ? CINEMA_CSS : '';
+        } catch (e) { /* cross-origin or not loaded yet */ }
+      }
+
       function setUI(visible) {
         uiVisible = visible;
         infoPanel.classList.toggle('hidden', !visible);
@@ -241,11 +275,19 @@
         iconShow.style.display = visible ? 'none' : 'block';
         iconHide.style.display = visible ? 'block' : 'none';
 
+        // Also hide the animation page's own panels/text
+        injectCinemaStyle(!visible);
+
         if (!visible) {
           hint.classList.add('show');
           setTimeout(() => hint.classList.remove('show'), 2500);
         }
       }
+
+      // Re-apply cinema style after iframe navigates/reloads
+      frame.addEventListener('load', () => {
+        if (!uiVisible) injectCinemaStyle(true);
+      });
 
       toggleBtn.addEventListener('click', () => setUI(!uiVisible));
 
