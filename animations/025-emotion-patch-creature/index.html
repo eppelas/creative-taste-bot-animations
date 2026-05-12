@@ -1,0 +1,763 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>#025 Emotion Patch Creature</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #07080d;
+        --panel: rgba(13, 16, 26, 0.74);
+        --line: rgba(244, 235, 225, 0.14);
+        --text: #f5eee4;
+        --muted: rgba(245, 238, 228, 0.68);
+        --pearl: #f5dec7;
+        --amber: #f2b46e;
+        --rose: #f48cbc;
+        --violet: #988eff;
+        --cyan: #78dee4;
+        --mint: #cde8a8;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        background:
+          radial-gradient(circle at 18% 18%, rgba(120, 222, 228, 0.1), transparent 24%),
+          radial-gradient(circle at 76% 18%, rgba(244, 140, 188, 0.08), transparent 26%),
+          radial-gradient(circle at 50% 82%, rgba(152, 142, 255, 0.12), transparent 24%),
+          linear-gradient(180deg, rgba(255, 248, 240, 0.04), transparent 24%),
+          var(--bg);
+        color: var(--text);
+        font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+      }
+
+      canvas {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        display: block;
+      }
+
+      .hud {
+        position: fixed;
+        inset: 16px;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 16px;
+        pointer-events: none;
+      }
+
+      .panel,
+      .rail,
+      .back {
+        border: 1px solid var(--line);
+        border-radius: 22px;
+        background: var(--panel);
+        backdrop-filter: blur(18px);
+        box-shadow: 0 26px 84px rgba(0, 0, 0, 0.34);
+      }
+
+      .panel,
+      .rail {
+        pointer-events: auto;
+      }
+
+      .panel {
+        width: min(30rem, calc(100vw - 32px));
+        display: grid;
+        gap: 10px;
+        padding: 15px 16px 16px;
+      }
+
+      .rail {
+        width: min(22rem, calc(100vw - 32px));
+        display: grid;
+        gap: 12px;
+        padding: 14px;
+      }
+
+      .back {
+        position: fixed;
+        right: 16px;
+        bottom: 16px;
+        padding: 10px 14px;
+        color: var(--text);
+        text-decoration: none;
+        pointer-events: auto;
+      }
+
+      .eyebrow,
+      .hint,
+      .meta,
+      .small,
+      .label,
+      .value {
+        margin: 0;
+      }
+
+      .eyebrow,
+      .small {
+        font-size: 11px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: rgba(245, 238, 228, 0.52);
+      }
+
+      h1 {
+        margin: 0;
+        font-size: clamp(1.85rem, 4vw, 3.05rem);
+        line-height: 0.92;
+      }
+
+      .hint,
+      .meta,
+      .label {
+        color: var(--muted);
+        line-height: 1.46;
+      }
+
+      .hint {
+        font-size: 0.96rem;
+      }
+
+      .meta,
+      .label {
+        font-size: 0.82rem;
+      }
+
+      .modes,
+      .rows {
+        display: grid;
+        gap: 0.65rem;
+      }
+
+      .mode {
+        width: 100%;
+        padding: 0.82rem 0.9rem;
+        border: 1px solid rgba(245, 238, 228, 0.1);
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.03);
+        color: var(--text);
+        text-align: left;
+        cursor: pointer;
+      }
+
+      .mode strong {
+        display: block;
+        margin-bottom: 0.18rem;
+        font-size: 0.86rem;
+      }
+
+      .mode span {
+        display: block;
+        color: var(--muted);
+        font-size: 0.73rem;
+        line-height: 1.36;
+      }
+
+      .mode.active {
+        border-color: rgba(120, 222, 228, 0.28);
+        box-shadow:
+          inset 0 0 0 1px rgba(120, 222, 228, 0.18),
+          0 0 0 1px rgba(244, 140, 188, 0.08);
+      }
+
+      .row {
+        display: grid;
+        gap: 0.16rem;
+        padding-bottom: 0.45rem;
+        border-bottom: 1px solid rgba(245, 238, 228, 0.08);
+      }
+
+      .value {
+        font-size: 0.98rem;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+      }
+
+      @media (max-width: 920px) {
+        .hud {
+          inset: 14px;
+          flex-direction: column;
+          align-items: stretch;
+        }
+
+        .panel,
+        .rail {
+          width: min(100%, 30rem);
+        }
+
+        .back {
+          right: 14px;
+          bottom: 14px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="scene"></canvas>
+    <div class="hud">
+      <section class="panel">
+        <p class="eyebrow">Code Animation Study #025</p>
+        <h1>Emotion Patch Creature</h1>
+        <p class="hint">
+          A living control surface where visible emotion cards rewire the same
+          creature: face, paws, glow, and orbit traces all shift together
+          instead of sitting beside a separate dashboard.
+        </p>
+        <p class="meta">
+          Move close to pull the gaze and warm the membrane. Press inside the
+          body to make it flinch, wrinkle, or bloom. Swap cards to change the
+          creature’s emotional hardware in place.
+        </p>
+      </section>
+
+      <section class="rail" aria-label="Emotion patch controls">
+        <div>
+          <p class="small">Emotion deck</p>
+          <div class="modes" id="modeGrid"></div>
+        </div>
+        <div class="rows">
+          <div class="row">
+            <p class="label">Expression bus</p>
+            <p class="value" id="expressionValue">warm receiver</p>
+          </div>
+          <div class="row">
+            <p class="label">Membrane pressure</p>
+            <p class="value" id="pressureValue">0.42</p>
+          </div>
+          <div class="row">
+            <p class="label">Paw asymmetry</p>
+            <p class="value" id="pawValue">soft mismatch</p>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <a class="back" href="../../index.html">Index</a>
+    <script src="../../shared/study-notes.js"></script>
+
+    <script>
+      const canvas = document.getElementById("scene");
+      const ctx = canvas.getContext("2d");
+      const modeGrid = document.getElementById("modeGrid");
+      const expressionValue = document.getElementById("expressionValue");
+      const pressureValue = document.getElementById("pressureValue");
+      const pawValue = document.getElementById("pawValue");
+
+      const TAU = Math.PI * 2;
+      const pulses = [];
+      const dust = [];
+
+      let width = 0;
+      let height = 0;
+      let dpr = 1;
+      let frame = 0;
+      let currentModeIndex = 0;
+      let pressure = 0.42;
+
+      const pointer = {
+        x: 0.5,
+        y: 0.5,
+        tx: 0.5,
+        ty: 0.5,
+        active: false,
+        speed: 0,
+        lastX: 0.5,
+        lastY: 0.5,
+      };
+
+      const modes = [
+        {
+          name: "Coax",
+          subtitle: "Warm receiver, low shoulders, slow smile.",
+          face: "warm receiver",
+          paws: "soft mismatch",
+          palette: ["#f5dec7", "#f2b46e", "#f48cbc", "#78dee4"],
+          blush: 0.72,
+          tension: 0.26,
+          pawSpread: 0.82,
+          eyeScale: 1.04,
+          mouthCurve: 0.44,
+          halo: 0.38,
+        },
+        {
+          name: "Alarm",
+          subtitle: "Tight cheeks, split whiskers, quick recoil.",
+          face: "alert recoil",
+          paws: "needle left paw",
+          palette: ["#f7dec4", "#ff8b98", "#86eff2", "#a39bff"],
+          blush: 0.35,
+          tension: 0.88,
+          pawSpread: 1.12,
+          eyeScale: 0.86,
+          mouthCurve: -0.3,
+          halo: 0.65,
+        },
+        {
+          name: "Bloom",
+          subtitle: "Petal cheeks, drifting tags, open rib glow.",
+          face: "petal bloom",
+          paws: "broad right paw",
+          palette: ["#f5dec7", "#f7c688", "#f496cb", "#bfe5a8"],
+          blush: 0.92,
+          tension: 0.34,
+          pawSpread: 0.94,
+          eyeScale: 1.18,
+          mouthCurve: 0.62,
+          halo: 0.24,
+        },
+        {
+          name: "Riddle",
+          subtitle: "Hidden mouth, curious lens, doubled tags.",
+          face: "veiled grin",
+          paws: "strange finger count",
+          palette: ["#f3dec8", "#84e1e5", "#a197ff", "#ef9dc2"],
+          blush: 0.46,
+          tension: 0.58,
+          pawSpread: 1.04,
+          eyeScale: 0.94,
+          mouthCurve: 0.12,
+          halo: 0.54,
+        },
+      ];
+
+      function clamp(value, min, max) {
+        return Math.max(min, Math.min(max, value));
+      }
+
+      function mix(a, b, t) {
+        return a + (b - a) * t;
+      }
+
+      function ease(current, target, speed) {
+        return current + (target - current) * speed;
+      }
+
+      function resize() {
+        width = window.innerWidth;
+        height = window.innerHeight;
+        dpr = Math.min(window.devicePixelRatio || 1, 2);
+        canvas.width = width * dpr;
+        canvas.height = height * dpr;
+        canvas.style.width = `${width}px`;
+        canvas.style.height = `${height}px`;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        buildDust();
+      }
+
+      function buildDust() {
+        dust.length = 0;
+        const count = Math.round((width * height) / 14000);
+        for (let i = 0; i < count; i += 1) {
+          dust.push({
+            x: Math.random(),
+            y: Math.random(),
+            size: Math.random() * 2.3 + 0.5,
+            drift: Math.random() * 0.8 + 0.2,
+            phase: Math.random() * TAU,
+            hue: i % 3,
+          });
+        }
+      }
+
+      function drawRoundedRect(x, y, w, h, radius) {
+        const r = Math.min(radius, w * 0.5, h * 0.5);
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.arcTo(x + w, y, x + w, y + h, r);
+        ctx.arcTo(x + w, y + h, x, y + h, r);
+        ctx.arcTo(x, y + h, x, y, r);
+        ctx.arcTo(x, y, x + w, y, r);
+        ctx.closePath();
+      }
+
+      function spawnPulse(nx, ny, amount) {
+        pulses.push({
+          x: nx,
+          y: ny,
+          radius: 0.04 + amount * 0.14,
+          life: 1,
+          strength: 0.7 + amount * 1.4,
+        });
+      }
+
+      function setMode(index) {
+        currentModeIndex = index;
+        const mode = modes[index];
+        expressionValue.textContent = mode.face;
+        pawValue.textContent = mode.paws;
+        updateButtons();
+      }
+
+      function updateButtons() {
+        [...modeGrid.children].forEach((button, index) => {
+          button.classList.toggle("active", index === currentModeIndex);
+        });
+      }
+
+      function buildButtons() {
+        modes.forEach((mode, index) => {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "mode";
+          button.innerHTML = `<strong>${mode.name}</strong><span>${mode.subtitle}</span>`;
+          button.addEventListener("click", () => setMode(index));
+          modeGrid.appendChild(button);
+        });
+        updateButtons();
+      }
+
+      function drawBackground(mode, proximity) {
+        const gradient = ctx.createRadialGradient(
+          width * 0.5,
+          height * 0.55,
+          width * 0.08,
+          width * 0.5,
+          height * 0.55,
+          width * 0.54
+        );
+        gradient.addColorStop(0, "rgba(245, 222, 199, 0.08)");
+        gradient.addColorStop(0.45, "rgba(120, 222, 228, 0.05)");
+        gradient.addColorStop(1, "rgba(7, 8, 13, 0)");
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, width, height);
+
+        ctx.save();
+        ctx.strokeStyle = `rgba(120, 140, 170, ${0.08 + proximity * 0.06})`;
+        ctx.lineWidth = 1;
+        for (let x = width * 0.1; x < width * 0.92; x += width * 0.08) {
+          ctx.beginPath();
+          ctx.moveTo(x, height * 0.08);
+          ctx.lineTo(x, height * 0.92);
+          ctx.stroke();
+        }
+        for (let y = height * 0.1; y < height * 0.9; y += height * 0.11) {
+          ctx.beginPath();
+          ctx.moveTo(width * 0.08, y);
+          ctx.lineTo(width * 0.92, y);
+          ctx.stroke();
+        }
+        ctx.restore();
+
+        dust.forEach((speck, index) => {
+          const wobble = Math.sin(frame * 0.01 * speck.drift + speck.phase);
+          const dx = (pointer.x - 0.5) * width * 0.02 * (index % 2 ? -1 : 1);
+          const px = speck.x * width + wobble * 8 + dx;
+          const py = speck.y * height + Math.cos(frame * 0.008 + speck.phase) * 6;
+          const alpha = 0.12 + 0.1 * Math.sin(frame * 0.02 + speck.phase);
+          ctx.fillStyle =
+            speck.hue === 0
+              ? `rgba(120, 222, 228, ${alpha})`
+              : speck.hue === 1
+                ? `rgba(244, 140, 188, ${alpha})`
+                : `rgba(245, 222, 199, ${alpha})`;
+          ctx.beginPath();
+          ctx.arc(px, py, speck.size, 0, TAU);
+          ctx.fill();
+        });
+      }
+
+      function drawOrbitals(cx, cy, bodyRadius, mode, proximity) {
+        ctx.save();
+        ctx.translate(cx, cy);
+        for (let i = 0; i < 10; i += 1) {
+          const t = i / 10;
+          const angle = frame * 0.007 * (i % 2 === 0 ? 1 : -1) + t * TAU;
+          const radius = bodyRadius * (1.05 + t * 0.44 + mode.halo * 0.18);
+          const x = Math.cos(angle) * radius;
+          const y = Math.sin(angle) * radius * (0.58 + t * 0.14);
+          ctx.strokeStyle =
+            i % 3 === 0 ? "rgba(120, 222, 228, 0.28)" : "rgba(244, 140, 188, 0.22)";
+          ctx.lineWidth = i % 4 === 0 ? 1.6 : 1;
+          ctx.beginPath();
+          ctx.moveTo(x * 0.8, y * 0.8);
+          ctx.lineTo(x, y);
+          ctx.stroke();
+          drawRoundedRect(x - 4, y - 4, 8, 8, 2);
+          ctx.fillStyle = i % 2 === 0 ? "rgba(245, 222, 199, 0.65)" : "rgba(152, 142, 255, 0.5)";
+          ctx.fill();
+        }
+        ctx.restore();
+
+        pulses.forEach((pulse) => {
+          const px = pulse.x * width;
+          const py = pulse.y * height;
+          const radius = pulse.radius * width * (1 + (1 - pulse.life) * 0.8);
+          ctx.strokeStyle = `rgba(244, 140, 188, ${pulse.life * 0.18})`;
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(px, py, radius, 0, TAU);
+          ctx.stroke();
+        });
+      }
+
+      function drawPaw(baseX, baseY, side, spread, mode, motion) {
+        const pawX = baseX + side * width * 0.16 * spread;
+        const pawY = baseY + height * (0.02 + motion * 0.025);
+        const palmW = width * 0.06;
+        const palmH = height * 0.09;
+        const fingerCount = side > 0 && currentModeIndex === 3 ? 4 : side < 0 && currentModeIndex === 1 ? 2 : 3;
+
+        ctx.save();
+        ctx.translate(pawX, pawY);
+        ctx.rotate(side * (0.2 + mode.tension * 0.24) + motion * 0.06);
+        ctx.fillStyle = "rgba(245, 222, 199, 0.16)";
+        ctx.strokeStyle = "rgba(245, 238, 228, 0.26)";
+        ctx.lineWidth = 1.4;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, palmW * (0.9 + Math.abs(motion) * 0.3), palmH, 0, 0, TAU);
+        ctx.fill();
+        ctx.stroke();
+
+        for (let i = 0; i < fingerCount; i += 1) {
+          const offset = (i - (fingerCount - 1) * 0.5) * palmW * 0.4;
+          ctx.beginPath();
+          ctx.moveTo(offset, -palmH * 0.48);
+          ctx.quadraticCurveTo(
+            offset + side * palmW * 0.1,
+            -palmH * 0.96,
+            offset + side * palmW * (0.22 + 0.04 * i),
+            -palmH * (1.22 + 0.08 * Math.sin(frame * 0.04 + i))
+          );
+          ctx.stroke();
+        }
+        ctx.restore();
+
+        ctx.strokeStyle = side > 0 ? "rgba(120, 222, 228, 0.24)" : "rgba(244, 180, 110, 0.24)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(baseX + side * width * 0.05, baseY - height * 0.02);
+        ctx.quadraticCurveTo(
+          baseX + side * width * 0.11,
+          baseY + height * 0.02 + motion * 10,
+          pawX,
+          pawY
+        );
+        ctx.stroke();
+      }
+
+      function drawCreature(mode) {
+        const focusX = mix(width * 0.5, pointer.x * width, 0.08);
+        const focusY = mix(height * 0.57, pointer.y * height, 0.05);
+        const dx = pointer.x - focusX / width;
+        const dy = pointer.y - focusY / height;
+        const proximity = pointer.active
+          ? 1 - clamp(Math.hypot(pointer.x - 0.5, pointer.y - 0.55) / 0.55, 0, 1)
+          : 0.22;
+        const bodyRadius = Math.min(width, height) * 0.15;
+        const bodyStretchY = 1.14 + mode.tension * 0.08 + Math.sin(frame * 0.03) * 0.02;
+        const bodyStretchX = 0.86 + mode.blush * 0.08 + Math.sin(frame * 0.025 + 1.6) * 0.03;
+        const squishX = 1 + pointer.speed * 0.22;
+        const squishY = 1 - pointer.speed * 0.12;
+        const pulseLift = pulses.reduce((sum, pulse) => {
+          const dist = Math.hypot(pulse.x * width - focusX, pulse.y * height - focusY);
+          return sum + Math.max(0, 1 - dist / (width * 0.28)) * pulse.life * pulse.strength;
+        }, 0);
+        pressure = ease(pressure, clamp(0.26 + mode.tension * 0.42 + proximity * 0.22 + pulseLift * 0.08, 0, 1), 0.08);
+        pressureValue.textContent = pressure.toFixed(2);
+
+        drawOrbitals(focusX, focusY, bodyRadius, mode, proximity);
+
+        const glow = ctx.createRadialGradient(
+          focusX,
+          focusY,
+          bodyRadius * 0.2,
+          focusX,
+          focusY,
+          bodyRadius * 2.2
+        );
+        glow.addColorStop(0, `rgba(244, 180, 110, ${0.14 + mode.blush * 0.12 + proximity * 0.08})`);
+        glow.addColorStop(0.45, `rgba(244, 140, 188, ${0.08 + mode.blush * 0.1})`);
+        glow.addColorStop(1, "rgba(7, 8, 13, 0)");
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.arc(focusX, focusY, bodyRadius * 2.2, 0, TAU);
+        ctx.fill();
+
+        ctx.save();
+        ctx.translate(focusX, focusY);
+        ctx.scale(bodyStretchX * squishX, bodyStretchY * squishY);
+
+        ctx.fillStyle = "rgba(245, 222, 199, 0.14)";
+        ctx.strokeStyle = "rgba(245, 238, 228, 0.34)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, bodyRadius, bodyRadius * 1.2, 0, 0, TAU);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.ellipse(-bodyRadius * 0.22, -bodyRadius * 0.18, bodyRadius * 0.38, bodyRadius * 0.52, -0.7, 0, TAU);
+        ctx.fillStyle = "rgba(120, 222, 228, 0.08)";
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.ellipse(bodyRadius * 0.18, bodyRadius * 0.08, bodyRadius * 0.34, bodyRadius * 0.44, 0.7, 0, TAU);
+        ctx.fillStyle = "rgba(244, 140, 188, 0.08)";
+        ctx.fill();
+
+        for (let i = 0; i < 8; i += 1) {
+          const t = i / 7;
+          const ribY = mix(-bodyRadius * 0.8, bodyRadius * 0.68, t);
+          const ribW = bodyRadius * (0.14 + Math.sin(t * Math.PI) * 0.76 + mode.blush * 0.06);
+          ctx.strokeStyle = i % 2 === 0 ? "rgba(120, 222, 228, 0.2)" : "rgba(244, 180, 110, 0.18)";
+          ctx.lineWidth = 1.2;
+          ctx.beginPath();
+          ctx.moveTo(-ribW, ribY);
+          ctx.quadraticCurveTo(0, ribY + bodyRadius * 0.14 * Math.sin(frame * 0.04 + i), ribW, ribY);
+          ctx.stroke();
+        }
+
+        const eyeOffsetX = bodyRadius * 0.3;
+        const eyeY = -bodyRadius * 0.18;
+        const gazeX = clamp(dx * bodyRadius * 0.38, -bodyRadius * 0.16, bodyRadius * 0.16);
+        const gazeY = clamp(dy * bodyRadius * 0.38, -bodyRadius * 0.12, bodyRadius * 0.12);
+        const eyeRX = bodyRadius * 0.17 * mode.eyeScale;
+        const eyeRY = bodyRadius * 0.22 * (1 - mode.tension * 0.14);
+        const lid = mode.tension * 0.18 + pointer.speed * 0.05;
+
+        [[-eyeOffsetX, 1], [eyeOffsetX, -1]].forEach(([offsetX, side]) => {
+          ctx.beginPath();
+          ctx.ellipse(offsetX, eyeY, eyeRX, eyeRY, side * 0.08, 0, TAU);
+          ctx.fillStyle = "rgba(245, 238, 228, 0.9)";
+          ctx.fill();
+
+          ctx.beginPath();
+          ctx.ellipse(offsetX + gazeX, eyeY + gazeY, eyeRX * 0.46, eyeRY * 0.52, 0, 0, TAU);
+          ctx.fillStyle = side > 0 ? "rgba(152, 142, 255, 0.86)" : "rgba(120, 222, 228, 0.86)";
+          ctx.fill();
+
+          ctx.beginPath();
+          ctx.arc(offsetX + gazeX * 1.1, eyeY + gazeY * 1.1, eyeRX * 0.16, 0, TAU);
+          ctx.fillStyle = "#081018";
+          ctx.fill();
+
+          ctx.strokeStyle = `rgba(8, 16, 24, ${0.7 - lid})`;
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(offsetX - eyeRX * 0.8, eyeY - eyeRY * (0.2 + lid));
+          ctx.quadraticCurveTo(offsetX, eyeY - eyeRY * (0.8 + lid), offsetX + eyeRX * 0.9, eyeY - eyeRY * (0.24 + lid));
+          ctx.stroke();
+        });
+
+        const mouthY = bodyRadius * 0.28;
+        const mouthW = bodyRadius * 0.32;
+        const mouthLift = mode.mouthCurve * bodyRadius * 0.22;
+        ctx.strokeStyle = "rgba(245, 238, 228, 0.76)";
+        ctx.lineWidth = 2.2;
+        ctx.beginPath();
+        ctx.moveTo(-mouthW, mouthY);
+        ctx.quadraticCurveTo(0, mouthY + mouthLift, mouthW, mouthY);
+        ctx.stroke();
+
+        if (currentModeIndex === 3) {
+          ctx.strokeStyle = "rgba(120, 222, 228, 0.38)";
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(-mouthW * 0.74, mouthY + bodyRadius * 0.05);
+          ctx.lineTo(mouthW * 0.78, mouthY + bodyRadius * 0.05);
+          ctx.stroke();
+        }
+
+        const blushAlpha = 0.08 + mode.blush * 0.16 + proximity * 0.09;
+        ctx.fillStyle = `rgba(244, 140, 188, ${blushAlpha})`;
+        ctx.beginPath();
+        ctx.ellipse(-bodyRadius * 0.48, bodyRadius * 0.08, bodyRadius * 0.18, bodyRadius * 0.11, -0.3, 0, TAU);
+        ctx.ellipse(bodyRadius * 0.48, bodyRadius * 0.08, bodyRadius * 0.18, bodyRadius * 0.11, 0.3, 0, TAU);
+        ctx.fill();
+
+        ctx.restore();
+
+        drawPaw(focusX, focusY + bodyRadius * 0.72, -1, mode.pawSpread, mode, Math.sin(frame * 0.03) * 0.4 - pressure * 0.14);
+        drawPaw(focusX, focusY + bodyRadius * 0.74, 1, mode.pawSpread * 0.9, mode, Math.cos(frame * 0.034) * 0.36 + pressure * 0.12);
+
+        ctx.strokeStyle = "rgba(245, 238, 228, 0.18)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(focusX, focusY + bodyRadius * 1.18);
+        ctx.quadraticCurveTo(focusX - width * 0.02, focusY + bodyRadius * 1.48, focusX + width * 0.012, height * 0.92);
+        ctx.stroke();
+
+        return proximity;
+      }
+
+      function updatePulses() {
+        for (let i = pulses.length - 1; i >= 0; i -= 1) {
+          const pulse = pulses[i];
+          pulse.life -= 0.018;
+          if (pulse.life <= 0) {
+            pulses.splice(i, 1);
+          }
+        }
+      }
+
+      function render() {
+        frame += 1;
+        pointer.x = ease(pointer.x, pointer.tx, 0.12);
+        pointer.y = ease(pointer.y, pointer.ty, 0.12);
+        pointer.speed = ease(
+          pointer.speed,
+          Math.hypot(pointer.tx - pointer.lastX, pointer.ty - pointer.lastY) * 10,
+          0.16
+        );
+        pointer.lastX = pointer.tx;
+        pointer.lastY = pointer.ty;
+
+        ctx.clearRect(0, 0, width, height);
+        const mode = modes[currentModeIndex];
+        const proximity = pointer.active
+          ? 1 - clamp(Math.hypot(pointer.x - 0.5, pointer.y - 0.55) / 0.56, 0, 1)
+          : 0.24;
+
+        drawBackground(mode, proximity);
+        drawCreature(mode);
+        updatePulses();
+
+        requestAnimationFrame(render);
+      }
+
+      function updatePointer(event) {
+        const x = event.clientX / width;
+        const y = event.clientY / height;
+        pointer.tx = clamp(x, 0, 1);
+        pointer.ty = clamp(y, 0, 1);
+        pointer.active = true;
+      }
+
+      function poke(event) {
+        const nx = event.clientX / width;
+        const ny = event.clientY / height;
+        spawnPulse(nx, ny, clamp(pointer.speed + 0.3, 0.2, 1.2));
+      }
+
+      window.addEventListener("resize", resize);
+      window.addEventListener("pointermove", updatePointer);
+      window.addEventListener("pointerdown", (event) => {
+        updatePointer(event);
+        poke(event);
+      });
+      window.addEventListener("pointerleave", () => {
+        pointer.active = false;
+        pointer.tx = 0.5;
+        pointer.ty = 0.55;
+      });
+
+      buildButtons();
+      setMode(0);
+      resize();
+      render();
+    </script>
+  </body>
+</html>

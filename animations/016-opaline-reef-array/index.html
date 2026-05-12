@@ -1,0 +1,634 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Opaline Reef Array</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #04060b;
+        --panel: rgba(8, 11, 18, 0.62);
+        --line: rgba(245, 238, 227, 0.12);
+        --text: #f5eee3;
+        --muted: rgba(245, 238, 227, 0.7);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        background: var(--bg);
+        color: var(--text);
+        font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      }
+
+      body {
+        overflow: hidden;
+      }
+
+      canvas {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        display: block;
+      }
+
+      .hud {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 1rem;
+        padding: 1rem;
+      }
+
+      .panel,
+      .chip {
+        pointer-events: auto;
+        backdrop-filter: blur(18px);
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        box-shadow: 0 14px 42px rgba(0, 0, 0, 0.28);
+      }
+
+      .panel {
+        width: min(30rem, 100%);
+        padding: 1rem 1rem 0.95rem;
+      }
+
+      .chip {
+        width: min(16rem, 42vw);
+        padding: 0.9rem;
+      }
+
+      .eyebrow,
+      .label,
+      .small {
+        margin: 0;
+        text-transform: uppercase;
+        letter-spacing: 0.16em;
+        font-size: 0.68rem;
+        color: rgba(245, 238, 227, 0.58);
+      }
+
+      h1 {
+        margin: 0.35rem 0 0.55rem;
+        font-size: clamp(1.8rem, 4vw, 3rem);
+        line-height: 0.95;
+        font-weight: 700;
+      }
+
+      .hint,
+      .meta {
+        margin: 0 0 0.8rem;
+        max-width: 34rem;
+        color: var(--muted);
+        line-height: 1.5;
+        font-size: 0.95rem;
+      }
+
+      .meta {
+        font-size: 0.88rem;
+      }
+
+      .rows {
+        display: grid;
+        gap: 0.6rem;
+      }
+
+      .row {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        padding-bottom: 0.38rem;
+        border-bottom: 1px solid rgba(245, 238, 227, 0.08);
+      }
+
+      .value {
+        margin: 0.15rem 0 0;
+        font-size: 1rem;
+        color: var(--text);
+      }
+
+      .back {
+        display: inline-flex;
+        margin-top: 0.25rem;
+        color: var(--text);
+        text-decoration: none;
+        border-bottom: 1px solid rgba(245, 238, 227, 0.3);
+      }
+
+      @media (max-width: 860px) {
+        .hud {
+          flex-direction: column;
+          align-items: stretch;
+        }
+
+        .chip {
+          width: min(100%, 18rem);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="scene"></canvas>
+    <div class="hud">
+      <section class="panel">
+        <p class="eyebrow">Code Animation Study #016</p>
+        <h1>Opaline Reef Array</h1>
+        <p class="hint">
+          The translucent HTML branch opens into a reef panorama: opaline
+          membrane towers, ladder-like control traces, and shared soft current
+          instead of another centered specimen or literal dashboard.
+        </p>
+        <p class="meta">
+          Drag across the field to brush the reef. Nearby pores bloom open,
+          stems bend, and diagnostic ladders catch the current as if the whole
+          chamber were one touch-reactive organism.
+        </p>
+        <a class="back" href="../../index.html">Index</a>
+      </section>
+
+      <section class="chip" aria-label="Reef readout">
+        <div class="rows">
+          <div class="row">
+            <div>
+              <p class="label">Current state</p>
+              <p class="value" id="stateValue">drifting</p>
+            </div>
+          </div>
+          <div class="row">
+            <div>
+              <p class="label">Pore bloom</p>
+              <p class="value" id="bloomValue">0.26</p>
+            </div>
+          </div>
+          <div class="row">
+            <div>
+              <p class="label">Ladder catch</p>
+              <p class="value" id="ladderValue">soft</p>
+            </div>
+          </div>
+        </div>
+        <p class="small" style="margin-top: 0.75rem">
+          Pointer and touch both work. Idle state keeps a low shared tide
+          moving across the reef.
+        </p>
+      </section>
+    </div>
+    <script src="../../shared/study-notes.js"></script>
+
+    <script>
+      const canvas = document.getElementById("scene");
+      const ctx = canvas.getContext("2d");
+      const stateValue = document.getElementById("stateValue");
+      const bloomValue = document.getElementById("bloomValue");
+      const ladderValue = document.getElementById("ladderValue");
+
+      const TAU = Math.PI * 2;
+      const reefs = [];
+      const motes = [];
+      const wakes = [];
+      const rails = [];
+
+      let width = window.innerWidth;
+      let height = window.innerHeight;
+      let dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+      const pointer = {
+        x: 0.5,
+        y: 0.58,
+        tx: 0.5,
+        ty: 0.58,
+        energy: 0.14,
+        active: false,
+        speed: 0,
+        lastX: 0.5,
+        lastY: 0.58,
+      };
+
+      function rand(min, max) {
+        return min + Math.random() * (max - min);
+      }
+
+      function clamp(value, min, max) {
+        return Math.max(min, Math.min(max, value));
+      }
+
+      function ease(a, b, t) {
+        return a + (b - a) * t;
+      }
+
+      function mixColor(a, b, t) {
+        return [
+          Math.round(a[0] + (b[0] - a[0]) * t),
+          Math.round(a[1] + (b[1] - a[1]) * t),
+          Math.round(a[2] + (b[2] - a[2]) * t),
+        ];
+      }
+
+      function rgba(color, alpha) {
+        return `rgba(${color[0]}, ${color[1]}, ${color[2]}, ${alpha})`;
+      }
+
+      function resize() {
+        width = window.innerWidth;
+        height = window.innerHeight;
+        dpr = Math.min(window.devicePixelRatio || 1, 2);
+        canvas.width = Math.round(width * dpr);
+        canvas.height = Math.round(height * dpr);
+        canvas.style.width = `${width}px`;
+        canvas.style.height = `${height}px`;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        buildScene();
+      }
+
+      function buildScene() {
+        reefs.length = 0;
+        motes.length = 0;
+        wakes.length = 0;
+        rails.length = 0;
+
+        const reefCount = width < 720 ? 6 : 8;
+        const palette = [
+          [245, 182, 210],
+          [122, 224, 222],
+          [156, 144, 255],
+          [205, 242, 197],
+          [246, 225, 203],
+        ];
+
+        for (let i = 0; i < reefCount; i += 1) {
+          const x = ((i + 0.7) / (reefCount + 0.4)) * width + rand(-width * 0.02, width * 0.02);
+          const baseY = height * rand(0.72, 0.88);
+          const stemHeight = height * rand(0.24, 0.45);
+          const stemWidth = width * rand(0.024, 0.05);
+          const segments = [];
+          const segmentCount = width < 720 ? 4 : 5;
+          const tint = palette[i % palette.length];
+          const tint2 = palette[(i + 2) % palette.length];
+          for (let s = 0; s < segmentCount; s += 1) {
+            const t = s / Math.max(segmentCount - 1, 1);
+            segments.push({
+              yOffset: stemHeight * (0.08 + t * 0.9),
+              radiusX: stemWidth * rand(1.2, 1.8) * (1 - t * 0.08),
+              radiusY: stemWidth * rand(1.8, 2.7),
+              phase: rand(0, TAU),
+              blend: rand(0.15, 0.85),
+            });
+          }
+
+          reefs.push({
+            x,
+            baseY,
+            stemHeight,
+            stemWidth,
+            sway: rand(0.6, 1.3),
+            phase: rand(0, TAU),
+            tint,
+            tint2,
+            rungCount: width < 720 ? 6 : 8,
+            segments,
+          });
+        }
+
+        for (let i = 0; i < 24; i += 1) {
+          rails.push({
+            y: height * (0.12 + i * 0.034),
+            phase: rand(0, TAU),
+            amp: width * rand(0.008, 0.02),
+            speed: rand(0.25, 0.8),
+          });
+        }
+
+        for (let i = 0; i < 220; i += 1) {
+          motes.push({
+            x: rand(0, width),
+            y: rand(height * 0.04, height * 0.96),
+            radius: rand(0.9, 2.7),
+            color: i % 7 === 0 ? [245, 182, 210] : i % 5 === 0 ? [122, 224, 222] : [246, 225, 203],
+            drift: rand(0.2, 1.4),
+            phase: rand(0, TAU),
+          });
+        }
+      }
+
+      function spawnWake(x, y, strength) {
+        wakes.push({
+          x,
+          y,
+          r: 8,
+          alpha: clamp(0.34 + strength * 0.18, 0.18, 0.58),
+          growth: 28 + strength * 14,
+        });
+        if (wakes.length > 18) {
+          wakes.shift();
+        }
+      }
+
+      function updatePointer(clientX, clientY, active) {
+        const nx = clientX / width;
+        const ny = clientY / height;
+        const dx = nx - pointer.lastX;
+        const dy = ny - pointer.lastY;
+        pointer.speed = Math.min(Math.hypot(dx, dy) * 24, 1.6);
+        pointer.tx = clamp(nx, 0, 1);
+        pointer.ty = clamp(ny, 0, 1);
+        pointer.lastX = pointer.tx;
+        pointer.lastY = pointer.ty;
+        pointer.active = active;
+        pointer.energy = clamp(pointer.energy + pointer.speed * 0.14 + (active ? 0.04 : 0), 0.1, 1.1);
+        spawnWake(clientX, clientY, pointer.speed + (active ? 0.2 : 0));
+      }
+
+      function handleMove(event) {
+        updatePointer(event.clientX, event.clientY, true);
+      }
+
+      function handleTouch(event) {
+        const touch = event.touches[0];
+        if (!touch) {
+          return;
+        }
+        updatePointer(touch.clientX, touch.clientY, true);
+      }
+
+      function drawBackground(time) {
+        const gradient = ctx.createLinearGradient(0, 0, 0, height);
+        gradient.addColorStop(0, "#06080f");
+        gradient.addColorStop(0.45, "#07101a");
+        gradient.addColorStop(1, "#030408");
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, width, height);
+
+        const skyGlow = ctx.createRadialGradient(width * 0.48, height * 0.12, 0, width * 0.48, height * 0.12, width * 0.32);
+        skyGlow.addColorStop(0, "rgba(158, 147, 255, 0.22)");
+        skyGlow.addColorStop(0.45, "rgba(122, 224, 222, 0.08)");
+        skyGlow.addColorStop(1, "rgba(0, 0, 0, 0)");
+        ctx.fillStyle = skyGlow;
+        ctx.fillRect(0, 0, width, height);
+
+        rails.forEach((rail, index) => {
+          const points = [];
+          for (let step = 0; step <= 28; step += 1) {
+            const t = step / 28;
+            const x = t * width;
+            const pointerWave = Math.exp(-Math.abs(t - pointer.x) * 9) * pointer.energy * width * 0.01;
+            const y =
+              rail.y +
+              Math.sin(t * 6 + time * rail.speed + rail.phase) * rail.amp +
+              Math.cos(t * 14 + rail.phase * 0.7 + time * 0.18) * rail.amp * 0.3 +
+              pointerWave * Math.sin(time * 2.2 + index);
+            points.push([x, y]);
+          }
+          ctx.beginPath();
+          points.forEach(([x, y], idx) => {
+            if (idx === 0) {
+              ctx.moveTo(x, y);
+            } else {
+              ctx.lineTo(x, y);
+            }
+          });
+          ctx.strokeStyle = `rgba(245, 238, 227, ${0.035 + (index % 5) * 0.006})`;
+          ctx.lineWidth = index % 6 === 0 ? 1.6 : 1;
+          ctx.stroke();
+        });
+      }
+
+      function drawMotes(time) {
+        motes.forEach((mote, index) => {
+          const driftX = Math.sin(time * mote.drift + mote.phase) * 10;
+          const driftY = Math.cos(time * 0.8 + mote.phase + index * 0.03) * 14;
+          const px = mote.x + driftX;
+          const py = mote.y + driftY;
+          const distance = Math.hypot(px - pointer.x * width, py - pointer.y * height);
+          const alpha = clamp(0.08 + (1 - distance / (width * 0.4)) * 0.18, 0.04, 0.28);
+          ctx.fillStyle = rgba(mote.color, alpha);
+          ctx.beginPath();
+          ctx.arc(px, py, mote.radius + pointer.energy * 0.2, 0, TAU);
+          ctx.fill();
+        });
+      }
+
+      function drawReef(reef, time, index) {
+        const dx = pointer.x * width - reef.x;
+        const dy = pointer.y * height - (reef.baseY - reef.stemHeight * 0.45);
+        const dist = Math.hypot(dx, dy);
+        const influence = clamp(1 - dist / (width * 0.28), 0, 1);
+        const sway = Math.sin(time * 0.9 + reef.phase) * reef.stemWidth * 0.5 + dx * 0.02 * influence;
+        const bloom = influence * (0.2 + pointer.energy * 0.8);
+
+        const stemPoints = [];
+        const leftPoints = [];
+        const rightPoints = [];
+        const steps = 26;
+
+        for (let step = 0; step <= steps; step += 1) {
+          const t = step / steps;
+          const y = reef.baseY - reef.stemHeight * t;
+          const bend =
+            sway * t +
+            Math.sin(time * 1.1 + reef.phase + t * 4.6) * reef.stemWidth * 0.36 +
+            Math.cos(time * 0.7 + t * 9 + reef.phase) * reef.stemWidth * 0.18;
+          const x = reef.x + bend;
+          const widthLocal = reef.stemWidth * (1.08 - t * 0.34) + bloom * reef.stemWidth * 0.42;
+          stemPoints.push([x, y, widthLocal]);
+          leftPoints.push([x - widthLocal, y]);
+          rightPoints.unshift([x + widthLocal, y]);
+        }
+
+        ctx.beginPath();
+        [...leftPoints, ...rightPoints].forEach(([x, y], pointIndex) => {
+          if (pointIndex === 0) {
+            ctx.moveTo(x, y);
+          } else {
+            ctx.lineTo(x, y);
+          }
+        });
+        ctx.closePath();
+        const stemGradient = ctx.createLinearGradient(reef.x, reef.baseY, reef.x, reef.baseY - reef.stemHeight);
+        stemGradient.addColorStop(0, rgba(reef.tint, 0.18 + bloom * 0.08));
+        stemGradient.addColorStop(0.5, rgba(mixColor(reef.tint, reef.tint2, 0.5), 0.24 + bloom * 0.12));
+        stemGradient.addColorStop(1, rgba(reef.tint2, 0.14 + bloom * 0.08));
+        ctx.fillStyle = stemGradient;
+        ctx.fill();
+        ctx.strokeStyle = `rgba(246, 239, 230, ${0.12 + bloom * 0.12})`;
+        ctx.lineWidth = 1.1;
+        ctx.stroke();
+
+        const innerGradient = ctx.createLinearGradient(reef.x, reef.baseY, reef.x, reef.baseY - reef.stemHeight);
+        innerGradient.addColorStop(0, "rgba(246, 239, 230, 0.04)");
+        innerGradient.addColorStop(1, "rgba(122, 224, 222, 0.14)");
+        ctx.beginPath();
+        stemPoints.forEach(([x, y], pointIndex) => {
+          if (pointIndex === 0) {
+            ctx.moveTo(x, y);
+          } else {
+            ctx.lineTo(x, y);
+          }
+        });
+        ctx.strokeStyle = innerGradient;
+        ctx.lineWidth = Math.max(reef.stemWidth * 0.24, 2);
+        ctx.stroke();
+
+        for (let rung = 0; rung < reef.rungCount; rung += 1) {
+          const t = 0.12 + (rung / Math.max(reef.rungCount - 1, 1)) * 0.72;
+          const indexA = Math.floor(t * steps);
+          const node = stemPoints[indexA];
+          if (!node) {
+            continue;
+          }
+          const [x, y, widthLocal] = node;
+          const catchLight = bloom * 0.22 + Math.sin(time * 1.4 + index + rung) * 0.03 + 0.08;
+          ctx.strokeStyle = `rgba(246, 239, 230, ${catchLight})`;
+          ctx.lineWidth = rung % 2 === 0 ? 1.2 : 1;
+          ctx.beginPath();
+          ctx.moveTo(x - widthLocal * 1.14, y);
+          ctx.lineTo(x + widthLocal * 1.14, y + Math.sin(time * 2 + rung) * 1.4);
+          ctx.stroke();
+
+          if (rung % 2 === 0) {
+            ctx.fillStyle = `rgba(122, 224, 222, ${0.08 + bloom * 0.12})`;
+            ctx.fillRect(x - widthLocal * 0.1, y - 1.5, widthLocal * 0.2, 3);
+          }
+        }
+
+        reef.segments.forEach((segment, segIndex) => {
+          const t = segment.yOffset / reef.stemHeight;
+          const node = stemPoints[Math.floor(t * steps)] || stemPoints[stemPoints.length - 1];
+          const [stemX, stemY] = node;
+          const pulse = 1 + Math.sin(time * 1.7 + segment.phase) * 0.08 + bloom * 0.18;
+          const rx = segment.radiusX * pulse;
+          const ry = segment.radiusY * (1 + bloom * 0.24);
+          const cx = stemX + Math.sin(time * 0.9 + segment.phase) * reef.stemWidth * 0.34;
+          const cy = stemY + Math.cos(time * 1.1 + segment.phase) * 4;
+          const mixed = mixColor(reef.tint, reef.tint2, segment.blend);
+
+          const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, rx * 1.6);
+          glow.addColorStop(0, rgba(mixed, 0.16 + bloom * 0.08));
+          glow.addColorStop(0.58, rgba(reef.tint2, 0.08 + bloom * 0.08));
+          glow.addColorStop(1, "rgba(0, 0, 0, 0)");
+          ctx.fillStyle = glow;
+          ctx.beginPath();
+          ctx.ellipse(cx, cy, rx * 1.45, ry * 1.45, 0, 0, TAU);
+          ctx.fill();
+
+          ctx.fillStyle = rgba(mixed, 0.18 + bloom * 0.08);
+          ctx.beginPath();
+          ctx.ellipse(cx, cy, rx, ry, 0, 0, TAU);
+          ctx.fill();
+          ctx.strokeStyle = `rgba(246, 239, 230, ${0.1 + bloom * 0.1})`;
+          ctx.lineWidth = 1;
+          ctx.stroke();
+
+          ctx.fillStyle = `rgba(248, 244, 236, ${0.06 + bloom * 0.08})`;
+          ctx.beginPath();
+          ctx.ellipse(cx - rx * 0.14, cy - ry * 0.12, rx * 0.26, ry * 0.18, 0, 0, TAU);
+          ctx.fill();
+
+          const poreOpen = 0.24 + bloom * 0.42 + Math.sin(time * 2.2 + segment.phase + segIndex) * 0.05;
+          ctx.strokeStyle = `rgba(120, 225, 223, ${0.16 + bloom * 0.18})`;
+          for (let vein = -1; vein <= 1; vein += 1) {
+            ctx.beginPath();
+            for (let step = 0; step <= 12; step += 1) {
+              const vt = step / 12;
+              const px = cx + vein * rx * 0.24 + Math.sin(vt * TAU + segment.phase + time) * rx * 0.09;
+              const py = cy - ry * 0.66 + vt * ry * 1.32 + Math.cos(vt * TAU * 1.3 + time + segment.phase) * ry * 0.06;
+              if (step === 0) {
+                ctx.moveTo(px, py);
+              } else {
+                ctx.lineTo(px, py);
+              }
+            }
+            ctx.stroke();
+          }
+
+          ctx.fillStyle = `rgba(35, 20, 48, ${0.28 + bloom * 0.14})`;
+          ctx.beginPath();
+          ctx.ellipse(cx + rx * 0.04, cy, rx * 0.18, ry * poreOpen, 0, 0, TAU);
+          ctx.fill();
+          ctx.strokeStyle = `rgba(246, 239, 230, ${0.08 + bloom * 0.08})`;
+          ctx.stroke();
+        });
+
+        return bloom;
+      }
+
+      function drawWakes() {
+        for (let i = wakes.length - 1; i >= 0; i -= 1) {
+          const wake = wakes[i];
+          ctx.strokeStyle = `rgba(246, 239, 230, ${wake.alpha})`;
+          ctx.lineWidth = 1.4;
+          ctx.beginPath();
+          ctx.ellipse(wake.x, wake.y, wake.r * 1.25, wake.r, 0, 0, TAU);
+          ctx.stroke();
+          wake.r += wake.growth * 0.016;
+          wake.alpha *= 0.97;
+          if (wake.alpha < 0.03) {
+            wakes.splice(i, 1);
+          }
+        }
+      }
+
+      function updateHud(bloom, ladder) {
+        const state = bloom > 0.6 ? "listening hard" : bloom > 0.34 ? "answering" : "drifting";
+        const ladderState = ladder > 0.7 ? "bright catch" : ladder > 0.38 ? "rung shimmer" : "soft";
+        stateValue.textContent = state;
+        bloomValue.textContent = bloom.toFixed(2);
+        ladderValue.textContent = ladderState;
+      }
+
+      let lastFrame = performance.now();
+
+      function frame(now) {
+        const dt = Math.min((now - lastFrame) / 1000, 0.033);
+        lastFrame = now;
+        const time = now * 0.001;
+
+        pointer.x = ease(pointer.x, pointer.tx, 0.08);
+        pointer.y = ease(pointer.y, pointer.ty, 0.08);
+        pointer.energy = ease(pointer.energy, pointer.active ? 0.42 + pointer.speed * 0.5 : 0.12, 0.04);
+        pointer.speed *= 0.92;
+
+        drawBackground(time);
+        drawMotes(time);
+
+        let bloomSum = 0;
+        reefs.forEach((reef, index) => {
+          bloomSum += drawReef(reef, time, index);
+        });
+        drawWakes();
+
+        const bloom = bloomSum / reefs.length;
+        const ladder = clamp(bloom + pointer.energy * 0.34, 0, 1);
+        updateHud(bloom, ladder);
+
+        pointer.active = false;
+        requestAnimationFrame(frame);
+      }
+
+      window.addEventListener("resize", resize);
+      window.addEventListener("pointermove", handleMove);
+      window.addEventListener("touchstart", handleTouch, { passive: true });
+      window.addEventListener("touchmove", handleTouch, { passive: true });
+      window.addEventListener("pointerleave", () => {
+        pointer.active = false;
+      });
+
+      resize();
+      requestAnimationFrame((now) => {
+        lastFrame = now;
+        frame(now);
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,619 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>#045 Crimson Sag Weather</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #040509;
+        --panel: rgba(10, 11, 16, 0.72);
+        --line: rgba(169, 212, 225, 0.18);
+        --text: #d9dde4;
+        --muted: rgba(217, 221, 228, 0.66);
+        --crimson: #d72648;
+        --ember: #ff6c66;
+        --rose: #ff9f98;
+        --cyan: #81daf3;
+        --acid: #d0eb63;
+        --sand: #e9c8a4;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background:
+          radial-gradient(circle at 50% 12%, rgba(109, 18, 34, 0.44), transparent 22%),
+          radial-gradient(circle at 18% 22%, rgba(124, 213, 241, 0.08), transparent 24%),
+          radial-gradient(circle at 82% 78%, rgba(255, 108, 102, 0.08), transparent 24%),
+          linear-gradient(180deg, #090a0e 0%, #05060a 46%, #020305 100%);
+        color: var(--text);
+        font-family: "Azeret Mono", "IBM Plex Mono", "SFMono-Regular", monospace;
+      }
+
+      canvas,
+      .noise,
+      .grid {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        display: block;
+        pointer-events: none;
+      }
+
+      .grid {
+        opacity: 0.18;
+        background-image:
+          linear-gradient(rgba(126, 174, 191, 0.1) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(126, 174, 191, 0.1) 1px, transparent 1px);
+        background-size: min(4vw, 40px) min(4vw, 40px);
+        mask-image: radial-gradient(circle at 50% 52%, black 44%, transparent 88%);
+      }
+
+      .noise {
+        opacity: 0.06;
+        background-image:
+          linear-gradient(rgba(255, 255, 255, 0.5) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.5) 1px, transparent 1px);
+        background-size: 3px 3px;
+        mix-blend-mode: soft-light;
+      }
+
+      .hud {
+        position: fixed;
+        inset: 16px;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 16px;
+        pointer-events: none;
+      }
+
+      .panel,
+      .mode,
+      .back {
+        border: 1px solid var(--line);
+        background: var(--panel);
+        backdrop-filter: blur(18px);
+        box-shadow: 0 28px 90px rgba(0, 0, 0, 0.34);
+      }
+
+      .panel,
+      .mode-layer,
+      .back {
+        pointer-events: auto;
+      }
+
+      .panel {
+        width: min(33rem, calc(100vw - 32px));
+        display: grid;
+        gap: 10px;
+        padding: 16px 16px 17px;
+        border-radius: 24px;
+      }
+
+      .eyebrow,
+      .hint,
+      .meta,
+      .label,
+      .value {
+        margin: 0;
+      }
+
+      .eyebrow,
+      .label {
+        font-size: 11px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: rgba(217, 221, 228, 0.52);
+      }
+
+      h1 {
+        margin: 0;
+        font-size: clamp(1.95rem, 4vw, 3.25rem);
+        line-height: 0.92;
+        letter-spacing: -0.06em;
+      }
+
+      .hint,
+      .meta {
+        color: var(--muted);
+        line-height: 1.48;
+      }
+
+      .hint {
+        font-size: 0.94rem;
+      }
+
+      .meta {
+        font-size: 0.81rem;
+      }
+
+      .readout {
+        display: flex;
+        gap: 0.95rem;
+        flex-wrap: wrap;
+      }
+
+      .value {
+        display: block;
+        margin-top: 0.2rem;
+        font-size: 0.96rem;
+        color: var(--text);
+      }
+
+      .mode-layer {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+      }
+
+      .mode {
+        position: absolute;
+        min-width: 132px;
+        padding: 10px 12px;
+        border-radius: 17px;
+        transform: translate(-50%, -50%);
+        color: var(--text);
+        pointer-events: auto;
+        cursor: pointer;
+      }
+
+      .mode strong,
+      .mode span {
+        display: block;
+      }
+
+      .mode strong {
+        font-size: 0.74rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+
+      .mode span {
+        margin-top: 0.24rem;
+        font-size: 0.68rem;
+        color: var(--muted);
+        line-height: 1.32;
+      }
+
+      .mode.active {
+        border-color: rgba(208, 235, 99, 0.42);
+        box-shadow:
+          inset 0 0 0 1px rgba(208, 235, 99, 0.16),
+          0 24px 54px rgba(0, 0, 0, 0.34);
+      }
+
+      .back {
+        position: fixed;
+        right: 16px;
+        bottom: 16px;
+        padding: 10px 14px;
+        border-radius: 999px;
+        color: var(--text);
+        text-decoration: none;
+        font-size: 0.72rem;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+      }
+
+      @media (max-width: 920px) {
+        .hud {
+          inset: 14px;
+        }
+
+        .panel {
+          width: min(100%, 31rem);
+        }
+
+        .mode {
+          min-width: 116px;
+          padding: 8px 10px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="scene"></canvas>
+    <div class="grid"></div>
+    <div class="noise"></div>
+
+    <div class="hud">
+      <section class="panel">
+        <p class="eyebrow">Code Animation Study #045</p>
+        <h1>Crimson Sag Weather</h1>
+        <p class="hint">
+          A governed dark-red poster field of sagging lanes, calibration marks,
+          and ember particles where the motion lives in distributed pressure
+          behavior instead of another single organism or dashboard page.
+        </p>
+        <p class="meta">
+          Move through the field to shear the nearest lanes and thicken the
+          hanging weight. Click one of the floating anchors to retune the whole
+          weather law between sag, braid, and flare.
+        </p>
+        <div class="readout">
+          <p class="label">Field mode<span class="value" id="modeValue">sag</span></p>
+          <p class="label">Drop weight<span class="value" id="dropValue">0.42</span></p>
+          <p class="label">Particle lift<span class="value" id="liftValue">28</span></p>
+        </div>
+      </section>
+    </div>
+
+    <div class="mode-layer" id="modeLayer" aria-label="Weather anchors"></div>
+    <a class="back" href="../../index.html">Back to index</a>
+
+    <script src="../../shared/study-notes.js?v=045"></script>
+    <script>
+      const canvas = document.getElementById("scene");
+      const ctx = canvas.getContext("2d");
+      const modeLayer = document.getElementById("modeLayer");
+      const modeValue = document.getElementById("modeValue");
+      const dropValue = document.getElementById("dropValue");
+      const liftValue = document.getElementById("liftValue");
+      const TAU = Math.PI * 2;
+
+      const pointer = {
+        x: window.innerWidth * 0.5,
+        y: window.innerHeight * 0.5,
+        tx: window.innerWidth * 0.5,
+        ty: window.innerHeight * 0.5,
+        active: false,
+        down: false,
+      };
+
+      const modes = [
+        {
+          id: "sag",
+          label: "Sag",
+          hint: "weighted lanes",
+          accent: "#ff6c66",
+          cool: "#81daf3",
+          grain: 0.92,
+          spread: 0.8,
+          sag: 1.0,
+          swirl: 0.45,
+        },
+        {
+          id: "braid",
+          label: "Braid",
+          hint: "cross-current weave",
+          accent: "#d72648",
+          cool: "#d0eb63",
+          grain: 1.22,
+          spread: 1.25,
+          sag: 0.72,
+          swirl: 1.1,
+        },
+        {
+          id: "flare",
+          label: "Flare",
+          hint: "rising embers",
+          accent: "#ff9f98",
+          cool: "#e9c8a4",
+          grain: 0.66,
+          spread: 0.6,
+          sag: 0.54,
+          swirl: 1.45,
+        },
+      ];
+
+      const anchors = [
+        { mode: "sag", x: 0.17, y: 0.78 },
+        { mode: "braid", x: 0.82, y: 0.24 },
+        { mode: "flare", x: 0.75, y: 0.82 },
+      ];
+
+      let currentMode = modes[0];
+      let width = 1;
+      let height = 1;
+      let dpr = Math.min(window.devicePixelRatio || 1, 2);
+      let lanes = [];
+      let particles = [];
+
+      function resize() {
+        dpr = Math.min(window.devicePixelRatio || 1, 2);
+        width = window.innerWidth;
+        height = window.innerHeight;
+        canvas.width = Math.round(width * dpr);
+        canvas.height = Math.round(height * dpr);
+        canvas.style.width = width + "px";
+        canvas.style.height = height + "px";
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        buildScene();
+        placeAnchors();
+      }
+
+      function buildScene() {
+        lanes = Array.from({ length: 13 }, (_, index) => {
+          const y = height * (0.12 + (index / 12) * 0.76);
+          return {
+            y,
+            seed: index * 0.93 + 0.6,
+            depth: 0.28 + (index / 12) * 0.72,
+            weight: 0.4 + (index % 5) * 0.1,
+          };
+        });
+
+        particles = Array.from({ length: 150 }, (_, index) => ({
+          x: (index % 15) / 15 + Math.random() * 0.015,
+          y: Math.floor(index / 15) / 10 + Math.random() * 0.04,
+          seed: Math.random() * 100,
+          size: 1 + Math.random() * 2.4,
+          drift: 0.4 + Math.random() * 1.3,
+          laneBias: Math.floor(Math.random() * lanes.length),
+        }));
+      }
+
+      function placeAnchors() {
+        modeLayer.innerHTML = "";
+        anchors.forEach((anchor) => {
+          const mode = modes.find((entry) => entry.id === anchor.mode);
+          const button = document.createElement("button");
+          button.className = "mode" + (mode.id === currentMode.id ? " active" : "");
+          button.type = "button";
+          button.style.left = `${anchor.x * 100}%`;
+          button.style.top = `${anchor.y * 100}%`;
+          button.innerHTML = `<strong>${mode.label}</strong><span>${mode.hint}</span>`;
+          button.addEventListener("click", () => {
+            currentMode = mode;
+            placeAnchors();
+          });
+          modeLayer.appendChild(button);
+        });
+      }
+
+      function lerp(a, b, t) {
+        return a + (b - a) * t;
+      }
+
+      function clamp(value, min, max) {
+        return Math.min(max, Math.max(min, value));
+      }
+
+      function distanceToPointer(x, y) {
+        const dx = pointer.x - x;
+        const dy = pointer.y - y;
+        return Math.hypot(dx, dy);
+      }
+
+      function drawBackground(t) {
+        const field = ctx.createLinearGradient(0, 0, 0, height);
+        field.addColorStop(0, "#090b10");
+        field.addColorStop(0.52, "#040509");
+        field.addColorStop(1, "#020305");
+        ctx.fillStyle = field;
+        ctx.fillRect(0, 0, width, height);
+
+        ctx.save();
+        ctx.globalCompositeOperation = "screen";
+        const halo = ctx.createRadialGradient(
+          width * 0.5,
+          height * 0.48,
+          0,
+          width * 0.5,
+          height * 0.48,
+          height * 0.52
+        );
+        halo.addColorStop(0, "rgba(215, 38, 72, 0.22)");
+        halo.addColorStop(0.45, "rgba(129, 218, 243, 0.05)");
+        halo.addColorStop(1, "rgba(0, 0, 0, 0)");
+        ctx.fillStyle = halo;
+        ctx.fillRect(0, 0, width, height);
+        ctx.restore();
+
+        ctx.strokeStyle = "rgba(128, 157, 169, 0.1)";
+        ctx.lineWidth = 1;
+        for (let i = 0; i < 9; i += 1) {
+          const y = height * (0.1 + i * 0.1);
+          ctx.beginPath();
+          ctx.moveTo(width * 0.06, y + Math.sin(t * 0.08 + i) * 4);
+          ctx.lineTo(width * 0.94, y);
+          ctx.stroke();
+        }
+      }
+
+      function drawLane(lane, index, t) {
+        const samples = 44;
+        const baseSag = height * 0.028 * currentMode.sag * lane.weight;
+        const pointerDistance = distanceToPointer(width * 0.5, lane.y);
+        const pointerInfluence = clamp(1 - pointerDistance / (height * 0.54), 0, 1);
+        const localShift = (pointer.x / width - 0.5) * 110 * pointerInfluence * currentMode.spread;
+        const laneAlpha = 0.12 + lane.depth * 0.18;
+
+        ctx.save();
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+        ctx.strokeStyle = `rgba(215, 38, 72, ${laneAlpha})`;
+        ctx.lineWidth = 1.5 + lane.depth * 2.8;
+        ctx.beginPath();
+
+        for (let step = 0; step <= samples; step += 1) {
+          const u = step / samples;
+          const x = width * 0.08 + u * width * 0.84;
+          const centerBias = Math.sin(u * Math.PI);
+          const wave =
+            Math.sin(u * TAU * (1.2 + currentMode.grain) + t * (0.45 + lane.depth * 0.2) + lane.seed) *
+            8 *
+            currentMode.swirl;
+          const secondary =
+            Math.sin(u * TAU * 3.4 - t * 0.28 + lane.seed * 1.7) * 4.2 * currentMode.spread;
+          const pointerPull =
+            Math.exp(-Math.abs(pointer.x - x) / (width * 0.18)) *
+            (pointer.y - lane.y) *
+            0.15 *
+            (0.35 + Number(pointer.down) * 0.7);
+          const y = lane.y + centerBias * baseSag + wave + secondary + pointerPull;
+          const px = x + localShift * centerBias;
+
+          if (step === 0) ctx.moveTo(px, y);
+          else ctx.lineTo(px, y);
+        }
+
+        ctx.stroke();
+
+        ctx.strokeStyle = `rgba(255, 159, 152, ${0.06 + lane.depth * 0.08})`;
+        ctx.lineWidth = 0.9 + lane.depth * 0.6;
+        ctx.beginPath();
+        for (let step = 0; step <= samples; step += 1) {
+          const u = step / samples;
+          const x = width * 0.08 + u * width * 0.84;
+          const centerBias = Math.sin(u * Math.PI);
+          const y =
+            lane.y +
+            centerBias * baseSag * 0.78 +
+            Math.sin(u * TAU * 2.1 + t * 0.24 + lane.seed * 1.2) * 5.5 +
+            Math.sin(u * TAU * 5.2 - t * 0.2 + lane.seed) * 2.8;
+          const px = x + localShift * centerBias * 0.46;
+          if (step === 0) ctx.moveTo(px, y);
+          else ctx.lineTo(px, y);
+        }
+        ctx.stroke();
+
+        const ticks = 8;
+        ctx.strokeStyle = `rgba(129, 218, 243, ${0.12 + lane.depth * 0.18})`;
+        ctx.lineWidth = 1;
+        for (let tick = 0; tick < ticks; tick += 1) {
+          const u = (tick + 0.5) / ticks;
+          const x = width * 0.12 + u * width * 0.76 + Math.sin(t * 0.18 + tick + lane.seed) * 14;
+          const y = lane.y + Math.sin(t * 0.3 + lane.seed + tick) * 5;
+          ctx.beginPath();
+          ctx.moveTo(x, y - 8 - lane.depth * 6);
+          ctx.lineTo(x, y + 8 + lane.depth * 6);
+          ctx.stroke();
+        }
+
+        if (index % 3 === 0) {
+          ctx.fillStyle = "rgba(233, 200, 164, 0.34)";
+          for (let dot = 0; dot < 6; dot += 1) {
+            const u = (dot + 0.7) / 6;
+            const x = width * 0.11 + u * width * 0.78 + Math.cos(t * 0.2 + dot + lane.seed) * 16;
+            const y =
+              lane.y +
+              Math.sin(u * TAU * 2 + t * 0.25 + lane.seed) * 11 +
+              Math.sin(t * 0.3 + dot) * 3;
+            ctx.beginPath();
+            ctx.arc(x, y, 1.2 + lane.depth * 1.8, 0, TAU);
+            ctx.fill();
+          }
+        }
+
+        ctx.restore();
+      }
+
+      function drawParticles(t) {
+        ctx.save();
+        ctx.globalCompositeOperation = "screen";
+        particles.forEach((particle, index) => {
+          const lane = lanes[particle.laneBias % lanes.length];
+          const drift = Math.sin(t * 0.24 + particle.seed) * 0.008 * currentMode.spread;
+          const rise = currentMode.id === "flare" ? -0.03 : currentMode.id === "braid" ? -0.012 : -0.006;
+          particle.x = (particle.x + drift * particle.drift + 1) % 1;
+          particle.y = (particle.y + rise * 0.0016 * particle.drift + 1) % 1;
+
+          const x = particle.x * width;
+          const laneDrift = Math.sin(t * 0.36 + particle.seed + index * 0.02) * 18;
+          const y =
+            lane.y +
+            Math.sin(t * 0.44 + particle.seed * 2) * 22 +
+            laneDrift +
+            (particle.y - 0.5) * 90;
+          const dist = distanceToPointer(x, y);
+          const influence = clamp(1 - dist / (width * 0.2), 0, 1);
+          const radius = particle.size + influence * 1.8 + (pointer.down ? influence * 2.1 : 0);
+
+          const glow = ctx.createRadialGradient(x, y, 0, x, y, radius * 8);
+          glow.addColorStop(0, currentMode.accent + "cc");
+          glow.addColorStop(0.32, currentMode.cool + "66");
+          glow.addColorStop(1, "rgba(0, 0, 0, 0)");
+          ctx.fillStyle = glow;
+          ctx.beginPath();
+          ctx.arc(x, y, radius * 8, 0, TAU);
+          ctx.fill();
+
+          ctx.fillStyle = currentMode.cool;
+          ctx.beginPath();
+          ctx.arc(x, y, radius, 0, TAU);
+          ctx.fill();
+        });
+        ctx.restore();
+      }
+
+      function drawCenterBand(t) {
+        ctx.save();
+        ctx.translate(width * 0.5, height * 0.5);
+        const pointerShiftX = (pointer.x / width - 0.5) * 120;
+        const pointerShiftY = (pointer.y / height - 0.5) * 90;
+        ctx.strokeStyle = "rgba(255, 159, 152, 0.16)";
+        ctx.lineWidth = 1;
+        for (let i = -7; i <= 7; i += 1) {
+          const x = i * 34 + pointerShiftX * 0.12;
+          const top = -height * 0.24 + Math.sin(t * 0.2 + i) * 8;
+          const bottom = height * 0.24 + Math.sin(t * 0.18 + i * 0.7) * 10;
+          ctx.beginPath();
+          ctx.moveTo(x, top + pointerShiftY * 0.06);
+          ctx.bezierCurveTo(
+            x + Math.sin(t * 0.3 + i) * 24,
+            -height * 0.06,
+            x - Math.cos(t * 0.28 + i) * 26,
+            height * 0.06,
+            x,
+            bottom
+          );
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      function tick(time) {
+        const t = time * 0.001;
+        pointer.x = lerp(pointer.x, pointer.tx, 0.08);
+        pointer.y = lerp(pointer.y, pointer.ty, 0.08);
+
+        drawBackground(t);
+        lanes.forEach((lane, index) => drawLane(lane, index, t));
+        drawCenterBand(t);
+        drawParticles(t);
+
+        const dropWeight = 0.3 + Math.abs(pointer.y / height - 0.5) * 0.5 + currentMode.sag * 0.12;
+        const lift = Math.round(18 + currentMode.swirl * 12 + (pointer.down ? 8 : 0));
+        modeValue.textContent = currentMode.id;
+        dropValue.textContent = dropWeight.toFixed(2);
+        liftValue.textContent = String(lift);
+
+        requestAnimationFrame(tick);
+      }
+
+      function updatePointer(clientX, clientY) {
+        pointer.tx = clientX;
+        pointer.ty = clientY;
+        pointer.active = true;
+      }
+
+      window.addEventListener("pointermove", (event) => updatePointer(event.clientX, event.clientY));
+      window.addEventListener("pointerdown", (event) => {
+        pointer.down = true;
+        updatePointer(event.clientX, event.clientY);
+      });
+      window.addEventListener("pointerup", () => {
+        pointer.down = false;
+      });
+      window.addEventListener("pointerleave", () => {
+        pointer.down = false;
+      });
+      window.addEventListener("resize", resize);
+
+      resize();
+      requestAnimationFrame(tick);
+    </script>
+  </body>
+</html>

@@ -1,0 +1,643 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>#052 Tender Transit Modules</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --paper: #eee3d3;
+        --paper-bright: #fbf4eb;
+        --paper-deep: #ddccb9;
+        --ink: #2b3741;
+        --muted: rgba(43, 55, 65, 0.62);
+        --line: rgba(43, 55, 65, 0.14);
+        --line-strong: rgba(43, 55, 65, 0.28);
+        --cyan: #80bfd4;
+        --rose: #d78e8b;
+        --amber: #d6a46d;
+        --moss: #92a680;
+        --shadow: 0 30px 90px rgba(111, 84, 58, 0.16);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        background:
+          radial-gradient(circle at 18% 14%, rgba(255, 255, 255, 0.92), transparent 18%),
+          radial-gradient(circle at 82% 18%, rgba(128, 191, 212, 0.14), transparent 22%),
+          radial-gradient(circle at 20% 82%, rgba(215, 142, 139, 0.12), transparent 20%),
+          radial-gradient(circle at 72% 80%, rgba(146, 166, 128, 0.12), transparent 24%),
+          linear-gradient(180deg, #f6eee4 0%, var(--paper) 56%, var(--paper-deep) 100%);
+        color: var(--ink);
+        font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", serif;
+      }
+
+      body {
+        overflow: hidden;
+      }
+
+      body::before,
+      body::after {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+      }
+
+      body::before {
+        opacity: 0.08;
+        background-image:
+          linear-gradient(rgba(43, 55, 65, 0.12) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(43, 55, 65, 0.12) 1px, transparent 1px);
+        background-size: 96px 96px;
+        mask-image: radial-gradient(circle at 50% 48%, black 36%, transparent 90%);
+      }
+
+      body::after {
+        opacity: 0.16;
+        background-image:
+          linear-gradient(rgba(255, 255, 255, 0.8) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.8) 1px, transparent 1px);
+        background-size: 4px 4px;
+        mix-blend-mode: soft-light;
+      }
+
+      canvas {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        display: block;
+      }
+
+      .hud {
+        position: fixed;
+        inset: 16px;
+        display: grid;
+        grid-template-columns: minmax(0, 27rem) minmax(0, 1fr);
+        grid-template-rows: auto 1fr auto;
+        gap: 14px;
+        pointer-events: none;
+      }
+
+      .panel,
+      .notes,
+      .back {
+        pointer-events: auto;
+        border: 1px solid var(--line);
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.76), rgba(253, 247, 239, 0.62)),
+          rgba(255, 250, 243, 0.68);
+        backdrop-filter: blur(18px);
+        box-shadow: var(--shadow);
+      }
+
+      .panel,
+      .notes {
+        border-radius: 28px;
+        padding: 16px 17px 17px;
+      }
+
+      .panel {
+        grid-column: 1;
+        grid-row: 1;
+        display: grid;
+        gap: 10px;
+        align-content: start;
+      }
+
+      .notes {
+        grid-column: 1 / -1;
+        grid-row: 3;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .back {
+        position: fixed;
+        right: 16px;
+        bottom: 16px;
+        border-radius: 999px;
+        padding: 11px 14px;
+        text-decoration: none;
+        color: var(--ink);
+        font-family: "Azeret Mono", "IBM Plex Mono", "SFMono-Regular", monospace;
+        font-size: 0.74rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+
+      h1,
+      h2,
+      p {
+        margin: 0;
+      }
+
+      .eyebrow,
+      .meta,
+      .small {
+        font-family: "Azeret Mono", "IBM Plex Mono", "SFMono-Regular", monospace;
+      }
+
+      .eyebrow,
+      .small {
+        font-size: 11px;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      h1 {
+        font-size: clamp(2rem, 5vw, 4.5rem);
+        line-height: 0.9;
+        letter-spacing: -0.07em;
+        max-width: 8ch;
+      }
+
+      .body {
+        color: rgba(43, 55, 65, 0.78);
+        line-height: 1.56;
+        font-size: 0.97rem;
+      }
+
+      .meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.9rem;
+        color: var(--muted);
+        font-size: 0.72rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .note-card {
+        border: 1px solid rgba(43, 55, 65, 0.1);
+        border-radius: 22px;
+        background: rgba(255, 255, 255, 0.36);
+        padding: 12px 13px;
+      }
+
+      .note-card p {
+        margin-top: 0.5rem;
+        color: rgba(43, 55, 65, 0.78);
+        line-height: 1.48;
+        font-size: 0.9rem;
+      }
+
+      @media (max-width: 980px) {
+        .hud {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .panel {
+          max-width: min(34rem, 100%);
+        }
+
+        .notes {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+
+      @media (max-width: 720px) {
+        .hud {
+          inset: 12px;
+          gap: 12px;
+        }
+
+        .panel,
+        .notes {
+          border-radius: 22px;
+          padding: 14px 15px 15px;
+        }
+
+        .back {
+          right: 12px;
+          bottom: 12px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="scene"></canvas>
+
+    <div class="hud">
+      <section class="panel">
+        <p class="eyebrow">Code Animation Study #052</p>
+        <h1>Tender Transit Modules</h1>
+        <p class="body">
+          A browser-native editorial sheet that answers the recent branch
+          correction by returning to humans instead of another creature or
+          control dossier: several small public-body scenes breathe on one page
+          while rain reflections, route lines, and handwritten notes keep the
+          surface alive.
+        </p>
+        <p class="body">
+          Move across the sheet to bring nearby people into focus and drag their
+          reflection bands sideways. Click anywhere to send a short commute
+          pulse through the notes and figure links.
+        </p>
+        <div class="meta">
+          <span>Human editorial lane</span>
+          <span>Rain-focus interaction</span>
+          <span>Static self-contained page</span>
+        </div>
+      </section>
+
+      <section class="notes">
+        <article class="note-card">
+          <p class="small">Idea</p>
+          <p>
+            Build a design-usable sheet of people fragments and transit moments,
+            so the animation library stops collapsing every branch into strange
+            organisms or glossy interfaces.
+          </p>
+        </article>
+        <article class="note-card">
+          <p class="small">Interaction</p>
+          <p>
+            Pointer proximity works like a moving lens: figures sharpen, labels
+            lean, and watery route reflections shear locally instead of exposing
+            a separate control panel.
+          </p>
+        </article>
+        <article class="note-card">
+          <p class="small">Next</p>
+          <p>
+            This could grow into a larger family of human module pages: editorial
+            street scenes, awkward tender gestures, or more realistic portrait
+            fragments with stronger environmental logic.
+          </p>
+        </article>
+      </section>
+    </div>
+
+    <a class="back" href="../../index.html">Back to index</a>
+
+    <script>
+      const canvas = document.getElementById("scene");
+      const ctx = canvas.getContext("2d");
+
+      const pointer = {
+        x: 0.5,
+        y: 0.45,
+        targetX: 0.5,
+        targetY: 0.45,
+        active: false,
+        pulse: 0
+      };
+
+      const paletteSets = [
+        { accent: "#80bfd4", support: "#d78e8b", field: "#92a680", warm: "#d6a46d" },
+        { accent: "#d6a46d", support: "#80bfd4", field: "#d78e8b", warm: "#92a680" },
+        { accent: "#92a680", support: "#d6a46d", field: "#80bfd4", warm: "#d78e8b" }
+      ];
+
+      let paletteIndex = 0;
+      let commutePulse = 0;
+      let width = 0;
+      let height = 0;
+      let dpr = 1;
+
+      const modules = [
+        { x: 0.16, y: 0.24, w: 0.23, h: 0.23, label: "Platform wait", people: 2, seed: 0.4 },
+        { x: 0.51, y: 0.2, w: 0.29, h: 0.25, label: "Window fog", people: 1, seed: 1.1 },
+        { x: 0.78, y: 0.28, w: 0.17, h: 0.21, label: "Hand note", people: 1, seed: 2.2 },
+        { x: 0.24, y: 0.62, w: 0.24, h: 0.23, label: "Shared umbrella", people: 2, seed: 3.1 },
+        { x: 0.58, y: 0.62, w: 0.22, h: 0.22, label: "Bench drift", people: 2, seed: 4.2 },
+        { x: 0.83, y: 0.7, w: 0.14, h: 0.18, label: "Margin witness", people: 1, seed: 5.1 }
+      ];
+
+      function resize() {
+        dpr = window.devicePixelRatio || 1;
+        width = window.innerWidth;
+        height = window.innerHeight;
+        canvas.width = Math.round(width * dpr);
+        canvas.height = Math.round(height * dpr);
+        canvas.style.width = `${width}px`;
+        canvas.style.height = `${height}px`;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+
+      function lerp(a, b, t) {
+        return a + (b - a) * t;
+      }
+
+      function drawRoundedRect(x, y, w, h, r) {
+        const radius = Math.min(r, w * 0.5, h * 0.5);
+        ctx.beginPath();
+        ctx.moveTo(x + radius, y);
+        ctx.arcTo(x + w, y, x + w, y + h, radius);
+        ctx.arcTo(x + w, y + h, x, y + h, radius);
+        ctx.arcTo(x, y + h, x, y, radius);
+        ctx.arcTo(x, y, x + w, y, radius);
+        ctx.closePath();
+      }
+
+      function drawPaperField(time) {
+        const gradient = ctx.createLinearGradient(0, 0, 0, height);
+        gradient.addColorStop(0, "#f7efe5");
+        gradient.addColorStop(0.54, "#eee3d3");
+        gradient.addColorStop(1, "#deccb8");
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, width, height);
+
+        ctx.save();
+        ctx.globalAlpha = 0.1;
+        for (let x = 0; x < width + 96; x += 96) {
+          ctx.beginPath();
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, height);
+          ctx.strokeStyle = "rgba(43, 55, 65, 0.15)";
+          ctx.stroke();
+        }
+        for (let y = 0; y < height + 96; y += 96) {
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(width, y);
+          ctx.strokeStyle = "rgba(43, 55, 65, 0.15)";
+          ctx.stroke();
+        }
+        ctx.restore();
+
+        for (let i = 0; i < 5; i += 1) {
+          const drift = time * 0.0001 * (i + 1);
+          const x = width * (0.12 + i * 0.18 + Math.sin(drift * 2.2 + i) * 0.02);
+          const y = height * (0.18 + (i % 2) * 0.36);
+          const radius = width * (0.09 + i * 0.01);
+          const halo = ctx.createRadialGradient(x, y, 0, x, y, radius);
+          const set = paletteSets[paletteIndex];
+          const color = [set.accent, set.support, set.field, set.warm][i % 4];
+          halo.addColorStop(0, `${color}20`);
+          halo.addColorStop(1, `${color}00`);
+          ctx.fillStyle = halo;
+          ctx.beginPath();
+          ctx.arc(x, y, radius, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      function drawFigure(cx, floorY, scale, phase, hue, focus) {
+        const bob = Math.sin(phase) * 4 * scale + Math.sin(phase * 0.5) * 2 * scale;
+        const sway = Math.sin(phase * 0.7) * 10 * scale + (pointer.x - cx / width) * focus * 10 * scale;
+        const tilt = Math.sin(phase * 0.4) * 0.06 + focus * 0.08;
+        const headY = floorY - 66 * scale + bob;
+        const neckY = floorY - 50 * scale + bob;
+        const hipY = floorY - 16 * scale + bob;
+        const shoulderY = floorY - 44 * scale + bob;
+        const armReach = 14 * scale + focus * 9 * scale;
+        const legSpread = 9 * scale + Math.sin(phase * 0.6) * 2 * scale;
+
+        ctx.save();
+        ctx.translate(cx + sway, 0);
+        ctx.rotate(tilt);
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+        ctx.strokeStyle = hue;
+        ctx.lineWidth = 2.2 * scale;
+        ctx.globalAlpha = 0.86;
+
+        ctx.beginPath();
+        ctx.arc(0, headY, 10 * scale, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(0, neckY);
+        ctx.quadraticCurveTo(0, shoulderY + 6 * scale, 0, hipY);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(0, shoulderY);
+        ctx.lineTo(-armReach, shoulderY + 16 * scale);
+        ctx.moveTo(0, shoulderY);
+        ctx.lineTo(armReach * 0.82, shoulderY + 14 * scale + Math.sin(phase) * 3 * scale);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(0, hipY);
+        ctx.lineTo(-legSpread, floorY);
+        ctx.moveTo(0, hipY);
+        ctx.lineTo(legSpread, floorY + Math.sin(phase * 0.8) * 2 * scale);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(-6 * scale, headY - 2 * scale);
+        ctx.lineTo(-2 * scale, headY - 2 * scale);
+        ctx.moveTo(2 * scale, headY - 2 * scale);
+        ctx.lineTo(6 * scale, headY - 2 * scale);
+        ctx.stroke();
+
+        ctx.restore();
+
+        ctx.save();
+        ctx.translate(cx, 0);
+        const reflectionHeight = 56 * scale;
+        const reflectionShift = Math.sin(phase * 0.5) * 8 * scale + (pointer.x - cx / width) * focus * 28 * scale;
+        const reflectionColor = hue.startsWith("rgba")
+          ? hue.replace("0.85", "0.22").replace("0.86", "0.22")
+          : "rgba(128, 191, 212, 0.24)";
+        const reflectionGradient = ctx.createLinearGradient(
+          reflectionShift - 18 * scale,
+          floorY + 4 * scale,
+          reflectionShift + 18 * scale,
+          floorY + reflectionHeight
+        );
+        reflectionGradient.addColorStop(0, reflectionColor);
+        reflectionGradient.addColorStop(1, "rgba(255, 255, 255, 0)");
+        ctx.fillStyle = reflectionGradient;
+        ctx.beginPath();
+        ctx.moveTo(-18 * scale + reflectionShift, floorY + 4 * scale);
+        ctx.quadraticCurveTo(0 + reflectionShift, floorY + 18 * scale, 18 * scale + reflectionShift, floorY + 4 * scale);
+        ctx.quadraticCurveTo(8 * scale + reflectionShift, floorY + reflectionHeight, 0 + reflectionShift, floorY + reflectionHeight);
+        ctx.quadraticCurveTo(-8 * scale + reflectionShift, floorY + reflectionHeight, -18 * scale + reflectionShift, floorY + 4 * scale);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      function drawModule(module, time, index) {
+        const x = module.x * width;
+        const y = module.y * height;
+        const w = module.w * width;
+        const h = module.h * height;
+        const centerX = x + w * 0.5;
+        const centerY = y + h * 0.5;
+        const distance = Math.hypot(pointer.x * width - centerX, pointer.y * height - centerY);
+        const focus = Math.max(0, 1 - distance / (Math.min(width, height) * 0.3));
+        const set = paletteSets[paletteIndex];
+        const accent = [set.accent, set.support, set.field, set.warm][index % 4];
+        const phase = time * 0.001 + module.seed * 4;
+
+        ctx.save();
+        ctx.globalAlpha = 0.92;
+        drawRoundedRect(x, y, w, h, 28);
+        const fill = ctx.createLinearGradient(x, y, x, y + h);
+        fill.addColorStop(0, "rgba(255, 255, 255, 0.5)");
+        fill.addColorStop(1, "rgba(255, 248, 240, 0.26)");
+        ctx.fillStyle = fill;
+        ctx.fill();
+        ctx.strokeStyle = focus > 0.08 ? "rgba(43, 55, 65, 0.25)" : "rgba(43, 55, 65, 0.14)";
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
+        ctx.restore();
+
+        ctx.save();
+        ctx.beginPath();
+        drawRoundedRect(x + 2, y + 2, w - 4, h - 4, 26);
+        ctx.clip();
+
+        for (let i = 0; i < 5; i += 1) {
+          const rainY = y + ((time * 0.08 + i * 50 + index * 26) % (h + 80)) - 40;
+          const offset = (pointer.x * width - centerX) * focus * 0.14;
+          ctx.strokeStyle = "rgba(255, 255, 255, 0.2)";
+          ctx.lineWidth = i % 2 === 0 ? 1 : 1.5;
+          ctx.beginPath();
+          ctx.moveTo(x + w * 0.16 + offset + i * 32, rainY);
+          ctx.lineTo(x + w * 0.24 + offset + i * 32, rainY + h * 0.34);
+          ctx.stroke();
+        }
+
+        ctx.strokeStyle = `${accent}55`;
+        ctx.lineWidth = 1.4;
+        ctx.beginPath();
+        ctx.moveTo(x + 18, y + h * 0.24);
+        ctx.bezierCurveTo(
+          x + w * 0.36,
+          y + h * (0.1 + focus * 0.08),
+          x + w * 0.64,
+          y + h * (0.88 - focus * 0.08),
+          x + w - 18,
+          y + h * 0.68
+        );
+        ctx.stroke();
+
+        const floorY = y + h * 0.72;
+        for (let i = 0; i < module.people; i += 1) {
+          const figureX = x + w * (0.32 + (i * 0.34) / Math.max(1, module.people - 1 || 1));
+          const figureScale = Math.min(w, h) / 180 + i * 0.02;
+          const hue = i % 2 === 0 ? "rgba(43, 55, 65, 0.85)" : `${accent}cc`;
+          drawFigure(figureX, floorY, figureScale, phase + i * 1.2, hue, focus);
+        }
+
+        ctx.strokeStyle = `${accent}66`;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(x + 18, y + 18);
+        ctx.lineTo(x + 18, y + h - 18);
+        ctx.moveTo(x + w - 18, y + 18);
+        ctx.lineTo(x + w - 18, y + h - 18);
+        ctx.stroke();
+
+        ctx.restore();
+
+        ctx.save();
+        ctx.fillStyle = "rgba(43, 55, 65, 0.62)";
+        ctx.font = `${Math.max(11, Math.min(14, w * 0.04))}px "Azeret Mono", monospace`;
+        ctx.fillText(module.label.toUpperCase(), x + 18, y + 22);
+
+        ctx.strokeStyle = `${accent}88`;
+        ctx.beginPath();
+        ctx.moveTo(x + 18, y + h - 16);
+        ctx.lineTo(x + Math.min(w - 18, 118 + focus * 48), y + h - 16);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      function drawConnectors(time) {
+        const set = paletteSets[paletteIndex];
+        ctx.save();
+        ctx.globalAlpha = 0.54 + commutePulse * 0.16;
+        ctx.lineWidth = 1.2;
+        ctx.setLineDash([8, 9]);
+
+        for (let i = 0; i < modules.length - 1; i += 1) {
+          const a = modules[i];
+          const b = modules[i + 1];
+          const ax = a.x * width + a.w * width * 0.5;
+          const ay = a.y * height + a.h * height * 0.5;
+          const bx = b.x * width + b.w * width * 0.5;
+          const by = b.y * height + b.h * height * 0.5;
+          ctx.strokeStyle = [set.accent, set.support, set.field, set.warm][i % 4] + "88";
+          ctx.lineDashOffset = -time * 0.01 - i * 6;
+          ctx.beginPath();
+          ctx.moveTo(ax, ay);
+          ctx.bezierCurveTo(
+            lerp(ax, bx, 0.28),
+            ay + Math.sin(time * 0.001 + i) * 18,
+            lerp(ax, bx, 0.72),
+            by - Math.cos(time * 0.0012 + i) * 18,
+            bx,
+            by
+          );
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      function drawMarginalia(time) {
+        const items = [
+          { x: 0.09, y: 0.52, text: "Keep ordinary skin + asymmetry" },
+          { x: 0.44, y: 0.11, text: "No creature leakage" },
+          { x: 0.73, y: 0.54, text: "Use reflection as event" },
+          { x: 0.62, y: 0.89, text: "More editorial than dossier" }
+        ];
+
+        ctx.save();
+        ctx.font = `12px "Azeret Mono", monospace`;
+        ctx.fillStyle = "rgba(43, 55, 65, 0.54)";
+        ctx.strokeStyle = "rgba(43, 55, 65, 0.16)";
+        items.forEach((item, index) => {
+          const x = item.x * width + Math.sin(time * 0.0006 + index) * 6;
+          const y = item.y * height + Math.cos(time * 0.0007 + index) * 4;
+          ctx.beginPath();
+          ctx.moveTo(x, y);
+          ctx.lineTo(x + 24, y - 18);
+          ctx.stroke();
+          ctx.fillText(item.text, x + 28, y - 20);
+        });
+        ctx.restore();
+      }
+
+      function render(time) {
+        pointer.x = lerp(pointer.x, pointer.targetX, 0.08);
+        pointer.y = lerp(pointer.y, pointer.targetY, 0.08);
+        commutePulse *= 0.965;
+
+        drawPaperField(time);
+        drawConnectors(time);
+        modules.forEach((module, index) => drawModule(module, time + commutePulse * 600, index));
+        drawMarginalia(time);
+
+        requestAnimationFrame(render);
+      }
+
+      window.addEventListener("pointermove", (event) => {
+        pointer.targetX = event.clientX / width;
+        pointer.targetY = event.clientY / height;
+        pointer.active = true;
+      });
+
+      window.addEventListener("pointerleave", () => {
+        pointer.targetX = 0.5;
+        pointer.targetY = 0.45;
+        pointer.active = false;
+      });
+
+      window.addEventListener("click", () => {
+        commutePulse = 1;
+        paletteIndex = (paletteIndex + 1) % paletteSets.length;
+      });
+
+      window.addEventListener("resize", resize);
+
+      resize();
+      requestAnimationFrame(render);
+    </script>
+  </body>
+</html>

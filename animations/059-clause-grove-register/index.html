@@ -1,0 +1,1006 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>#059 Clause Grove Register</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #10191a;
+        --mist: #d9d8cb;
+        --paper: rgba(236, 235, 222, 0.1);
+        --paper-strong: rgba(236, 235, 222, 0.17);
+        --line: rgba(236, 235, 222, 0.12);
+        --line-strong: rgba(236, 235, 222, 0.24);
+        --text: #f0eedf;
+        --muted: rgba(240, 238, 223, 0.7);
+        --sage: #9eb99f;
+        --pond: #88b6b8;
+        --amber: #d2a56d;
+        --blush: #d79588;
+        --moss: #6b7f62;
+        --ink: #1d2b2d;
+        --shadow: 0 28px 90px rgba(0, 0, 0, 0.32);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        background:
+          radial-gradient(circle at 18% 18%, rgba(136, 182, 184, 0.18), transparent 22%),
+          radial-gradient(circle at 80% 16%, rgba(215, 149, 136, 0.12), transparent 24%),
+          radial-gradient(circle at 56% 78%, rgba(158, 185, 159, 0.12), transparent 26%),
+          linear-gradient(180deg, #182325 0%, #111a1b 45%, #0d1415 100%);
+        color: var(--text);
+        font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", serif;
+      }
+
+      body {
+        overflow-x: hidden;
+      }
+
+      body::before,
+      body::after {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+      }
+
+      body::before {
+        opacity: 0.13;
+        background-image:
+          linear-gradient(rgba(236, 235, 222, 0.08) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(236, 235, 222, 0.08) 1px, transparent 1px);
+        background-size: 96px 96px;
+        mask-image: radial-gradient(circle at 50% 44%, black 38%, transparent 90%);
+      }
+
+      body::after {
+        opacity: 0.12;
+        background-image:
+          linear-gradient(rgba(255, 255, 255, 0.75) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.75) 1px, transparent 1px);
+        background-size: 4px 4px;
+        mix-blend-mode: soft-light;
+      }
+
+      a {
+        color: inherit;
+      }
+
+      .shell {
+        position: relative;
+        min-height: 100vh;
+        padding: 18px;
+        display: grid;
+        grid-template-columns: minmax(292px, 344px) minmax(0, 1fr);
+        gap: 14px;
+      }
+
+      .panel,
+      .field,
+      .footer-card,
+      .back,
+      .metric,
+      .pill,
+      .sample {
+        border: 1px solid var(--line);
+        background:
+          linear-gradient(180deg, rgba(236, 235, 222, 0.12), rgba(236, 235, 222, 0.05)),
+          rgba(10, 18, 18, 0.28);
+        backdrop-filter: blur(18px);
+        box-shadow: var(--shadow);
+      }
+
+      .panel,
+      .field {
+        position: relative;
+        border-radius: 30px;
+        overflow: hidden;
+      }
+
+      .panel::after,
+      .field::after {
+        content: "";
+        position: absolute;
+        inset: 1px;
+        border-radius: inherit;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        pointer-events: none;
+      }
+
+      .panel {
+        padding: 16px 16px 18px;
+        display: grid;
+        align-content: start;
+        gap: 14px;
+      }
+
+      .back {
+        width: fit-content;
+        padding: 8px 12px;
+        border-radius: 999px;
+        text-decoration: none;
+        font-family: "Azeret Mono", "IBM Plex Mono", monospace;
+        font-size: 11px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--mist);
+      }
+
+      .eyebrow,
+      .small,
+      .label,
+      .metric-key,
+      .sample,
+      .pill,
+      .textarea-note {
+        font-family: "Azeret Mono", "IBM Plex Mono", monospace;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+      }
+
+      .eyebrow,
+      .small,
+      .metric-key,
+      .textarea-note {
+        font-size: 11px;
+        color: var(--muted);
+      }
+
+      h1 {
+        margin: 0;
+        font-size: clamp(2.7rem, 3.8vw, 4.8rem);
+        line-height: 0.94;
+        letter-spacing: -0.04em;
+      }
+
+      .lede,
+      .footer-card p,
+      .metric-value,
+      .textarea-wrap textarea,
+      .legend-copy {
+        font-size: 14px;
+        line-height: 1.5;
+      }
+
+      .lede,
+      .legend-copy,
+      .textarea-note {
+        margin: 0;
+      }
+
+      .legend {
+        display: grid;
+        gap: 8px;
+        padding-top: 2px;
+      }
+
+      .legend-row {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+      }
+
+      .legend-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+        flex: 0 0 auto;
+      }
+
+      .legend-dot.sage {
+        background: var(--sage);
+      }
+
+      .legend-dot.pond {
+        background: var(--pond);
+      }
+
+      .legend-dot.amber {
+        background: var(--amber);
+      }
+
+      .textarea-wrap {
+        display: grid;
+        gap: 8px;
+      }
+
+      textarea {
+        width: 100%;
+        min-height: 170px;
+        resize: vertical;
+        border-radius: 22px;
+        padding: 14px 16px;
+        border: 1px solid var(--line-strong);
+        background:
+          linear-gradient(180deg, rgba(6, 10, 10, 0.58), rgba(24, 35, 37, 0.74)),
+          rgba(0, 0, 0, 0.18);
+        color: var(--text);
+        outline: none;
+        font: inherit;
+      }
+
+      textarea:focus {
+        border-color: rgba(136, 182, 184, 0.44);
+        box-shadow: 0 0 0 1px rgba(136, 182, 184, 0.28);
+      }
+
+      .mode-row,
+      .sample-row,
+      .metrics {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .pill,
+      .sample {
+        appearance: none;
+        color: var(--text);
+        cursor: pointer;
+      }
+
+      .pill {
+        padding: 9px 12px;
+        border-radius: 999px;
+        font-size: 11px;
+      }
+
+      .pill.active {
+        background:
+          linear-gradient(180deg, rgba(210, 165, 109, 0.34), rgba(136, 182, 184, 0.18)),
+          rgba(236, 235, 222, 0.11);
+        border-color: rgba(210, 165, 109, 0.38);
+      }
+
+      .sample {
+        padding: 10px 12px;
+        border-radius: 16px;
+        font-size: 10px;
+      }
+
+      .metrics {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .metric {
+        padding: 12px 12px 13px;
+        border-radius: 20px;
+      }
+
+      .metric-value {
+        margin-top: 6px;
+        color: var(--text);
+      }
+
+      .field {
+        min-height: calc(100vh - 36px);
+      }
+
+      .field canvas {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        display: block;
+      }
+
+      .field-overlay {
+        position: relative;
+        z-index: 1;
+        min-height: 100%;
+        padding: 16px;
+        display: grid;
+        grid-template-rows: auto 1fr auto;
+        gap: 12px;
+      }
+
+      .status-bar,
+      .grove-list,
+      .footer {
+        display: grid;
+        gap: 10px;
+      }
+
+      .status-bar {
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: start;
+      }
+
+      .status-card,
+      .grove-chip,
+      .footer-card {
+        position: relative;
+        border-radius: 22px;
+        border: 1px solid rgba(236, 235, 222, 0.12);
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.02)),
+          rgba(8, 12, 12, 0.2);
+        overflow: hidden;
+      }
+
+      .status-card {
+        padding: 12px 14px;
+      }
+
+      .status-copy {
+        margin: 5px 0 0;
+        max-width: 620px;
+        color: var(--mist);
+        font-size: 13px;
+        line-height: 1.45;
+      }
+
+      .grove-list {
+        align-content: end;
+        justify-items: start;
+        grid-auto-flow: row;
+      }
+
+      .grove-chip {
+        padding: 10px 12px;
+        min-width: min(260px, 44vw);
+        transform: translate3d(0, 0, 0);
+        transition:
+          transform 220ms ease,
+          border-color 220ms ease,
+          background 220ms ease;
+      }
+
+      .grove-chip.active {
+        transform: translate3d(10px, 0, 0);
+        border-color: rgba(136, 182, 184, 0.34);
+        background:
+          linear-gradient(180deg, rgba(136, 182, 184, 0.15), rgba(215, 149, 136, 0.06)),
+          rgba(8, 12, 12, 0.28);
+      }
+
+      .label {
+        font-size: 10px;
+        color: var(--muted);
+        margin-bottom: 5px;
+      }
+
+      .chip-title {
+        margin: 0;
+        font-size: 18px;
+      }
+
+      .chip-copy {
+        margin: 6px 0 0;
+        font-size: 13px;
+        line-height: 1.4;
+        color: var(--mist);
+      }
+
+      .footer {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .footer-card {
+        padding: 14px 14px 15px;
+      }
+
+      .footer-card p {
+        margin: 6px 0 0;
+        color: var(--mist);
+      }
+
+      @media (max-width: 980px) {
+        .shell {
+          grid-template-columns: 1fr;
+        }
+
+        .field {
+          min-height: 74vh;
+        }
+      }
+
+      @media (max-width: 720px) {
+        .shell {
+          padding: 12px;
+        }
+
+        .panel,
+        .field {
+          border-radius: 24px;
+        }
+
+        .field-overlay,
+        .panel {
+          padding: 14px;
+        }
+
+        .footer,
+        .metrics {
+          grid-template-columns: 1fr;
+        }
+
+        .status-bar {
+          grid-template-columns: 1fr;
+        }
+
+        .grove-chip {
+          min-width: 100%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <aside class="panel">
+        <a class="back" href="../../index.html">Back to animation index</a>
+        <div>
+          <div class="eyebrow">Code Animation #059</div>
+          <h1>Clause Grove Register</h1>
+          <p class="lede">
+            A local-first semantic field where each clause becomes one grove
+            with its own pressure, drift, and bloom law instead of turning
+            language into one more generic slider board.
+          </p>
+        </div>
+
+        <div class="legend">
+          <div class="legend-row">
+            <span class="legend-dot sage"></span>
+            <p class="legend-copy">Longer clauses grow denser canopies.</p>
+          </div>
+          <div class="legend-row">
+            <span class="legend-dot pond"></span>
+            <p class="legend-copy">Questioning or soft phrases breathe wider.</p>
+          </div>
+          <div class="legend-row">
+            <span class="legend-dot amber"></span>
+            <p class="legend-copy">Exclamation and contrast inject sparks.</p>
+          </div>
+        </div>
+
+        <div class="textarea-wrap">
+          <label class="small" for="sourceText">Source text</label>
+          <textarea id="sourceText" spellcheck="false">A quiet repair room keeps three moods at once: one pane sweats, one pane reflects, one pane stores a rumor. A second thought arrives more softly, asking whether the grove should open wider when language gets kinder? Then a sharper clause lands and the whole field answers with embers, roots, and a brief misregistered shimmer.</textarea>
+          <p class="textarea-note">
+            Type, paste, or edit. Clauses split on punctuation and line breaks.
+          </p>
+        </div>
+
+        <div>
+          <div class="small">Field modes</div>
+          <div class="mode-row" id="modeRow">
+            <button class="pill active" data-mode="hush">Hush</button>
+            <button class="pill" data-mode="pulse">Pulse</button>
+            <button class="pill" data-mode="glitch">Glitch</button>
+          </div>
+        </div>
+
+        <div>
+          <div class="small">Sample phrases</div>
+          <div class="sample-row">
+            <button class="sample" data-sample="editorial">Editorial threshold</button>
+            <button class="sample" data-sample="garden">Garden log</button>
+            <button class="sample" data-sample="diagram">Relay diagram</button>
+          </div>
+        </div>
+
+        <div class="metrics">
+          <div class="metric">
+            <div class="metric-key">Groves</div>
+            <div class="metric-value" id="metricGroves">0</div>
+          </div>
+          <div class="metric">
+            <div class="metric-key">Shared lexicon</div>
+            <div class="metric-value" id="metricShared">0 repeated stems</div>
+          </div>
+          <div class="metric">
+            <div class="metric-key">Overall weather</div>
+            <div class="metric-value" id="metricWeather">quiet drift</div>
+          </div>
+          <div class="metric">
+            <div class="metric-key">Highlight</div>
+            <div class="metric-value" id="metricHighlight">awaiting bloom</div>
+          </div>
+        </div>
+      </aside>
+
+      <section class="field" id="field">
+        <canvas id="scene"></canvas>
+        <div class="field-overlay">
+          <div class="status-bar">
+            <div class="status-card">
+              <div class="small">Status</div>
+              <p class="status-copy" id="statusCopy">
+                Local parsing is active. Pointer movement bends nearby currents;
+                click plants a temporary warm front into the closest grove.
+              </p>
+            </div>
+          </div>
+
+          <div class="grove-list" id="groveList"></div>
+
+          <div class="footer">
+            <div class="footer-card">
+              <div class="small">Idea</div>
+              <p>
+                The semantic-garden note in the queue asked for clause-scale
+                organisms rather than word-length grass. This page makes each
+                sentence fragment its own grove and lets relation live in the
+                currents between them.
+              </p>
+            </div>
+            <div class="footer-card">
+              <div class="small">Interaction</div>
+              <p>
+                Typing changes the grove schema, pointer proximity shears the
+                local field, and click adds a short-lived heat source instead
+                of exposing another dashboard or detached control rail.
+              </p>
+            </div>
+            <div class="footer-card">
+              <div class="small">Next</div>
+              <p>
+                A later pass could swap the textarea for local speech or
+                Telegram events while keeping the same clause-to-organism motion
+                grammar.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      const canvas = document.getElementById("scene");
+      const ctx = canvas.getContext("2d");
+      const field = document.getElementById("field");
+      const textarea = document.getElementById("sourceText");
+      const groveList = document.getElementById("groveList");
+      const statusCopy = document.getElementById("statusCopy");
+      const metricGroves = document.getElementById("metricGroves");
+      const metricShared = document.getElementById("metricShared");
+      const metricWeather = document.getElementById("metricWeather");
+      const metricHighlight = document.getElementById("metricHighlight");
+
+      const pointer = {
+        x: 0.5,
+        y: 0.5,
+        px: 0.5,
+        py: 0.5,
+        active: false,
+        warmth: 0,
+      };
+
+      const state = {
+        mode: "hush",
+        groves: [],
+        plantedBloom: null,
+        sampleMap: {
+          editorial:
+            "A worker stands behind rippled plastic while amber tape notes collect on the frame. Another clause keeps the room practical, but the reflections make it ceremonial. A final remark asks for more depth, more fog, and less portrait certainty.",
+          garden:
+            "One hanging valve leaks slowly into the lower basin; a second basin stores softer pollen. A stray path cuts diagonally through the room and turns the quiet into navigation. The last note is half inventory, half prayer for a kinder climate.",
+          diagram:
+            "The relay spine forks twice before it reaches the archive edge. A side phrase wants fewer actors and clearer pressure lanes. Then a harder instruction arrives, forcing the signal to shiver, restack, and carry itself as one distributed field.",
+        },
+      };
+
+      const palette = [
+        { stroke: "#9eb99f", glow: "rgba(158, 185, 159, 0.34)", leaf: "#dbe2cf" },
+        { stroke: "#88b6b8", glow: "rgba(136, 182, 184, 0.32)", leaf: "#d4eeea" },
+        { stroke: "#d2a56d", glow: "rgba(210, 165, 109, 0.3)", leaf: "#f3d8b6" },
+        { stroke: "#d79588", glow: "rgba(215, 149, 136, 0.28)", leaf: "#f0c9c0" },
+      ];
+
+      function hashString(input) {
+        let hash = 2166136261;
+        for (let i = 0; i < input.length; i += 1) {
+          hash ^= input.charCodeAt(i);
+          hash = Math.imul(hash, 16777619);
+        }
+        return Math.abs(hash >>> 0);
+      }
+
+      function clamp(value, min, max) {
+        return Math.min(max, Math.max(min, value));
+      }
+
+      function titleize(fragment) {
+        const cleaned = fragment
+          .replace(/[^\p{L}\p{N}\s'-]/gu, " ")
+          .replace(/\s+/g, " ")
+          .trim();
+        if (!cleaned) return "Untitled grove";
+        return cleaned
+          .split(" ")
+          .slice(0, 4)
+          .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+          .join(" ");
+      }
+
+      function stemWord(word) {
+        return word
+          .toLowerCase()
+          .replace(/[^a-zа-я0-9]/gi, "")
+          .replace(/(ing|ed|es|s)$/i, "");
+      }
+
+      function parseText(input) {
+        const rawClauses = input
+          .split(/[\n]+|(?<=[.!?;:])\s+/u)
+          .map((part) => part.trim())
+          .filter(Boolean)
+          .slice(0, 6);
+
+        const fallback = rawClauses.length
+          ? rawClauses
+          : ["A blank register waits for the next clause."];
+
+        const repeated = new Map();
+        const allWords = [];
+
+        fallback.forEach((clause) => {
+          clause
+            .split(/\s+/)
+            .map(stemWord)
+            .filter((word) => word.length > 2)
+            .forEach((word) => {
+              repeated.set(word, (repeated.get(word) || 0) + 1);
+              allWords.push(word);
+            });
+        });
+
+        const repeatedWords = [...repeated.entries()]
+          .filter(([, count]) => count > 1)
+          .sort((a, b) => b[1] - a[1]);
+
+        const groves = fallback.map((clause, index) => {
+          const words = clause.split(/\s+/).filter(Boolean);
+          const vowels = (clause.match(/[aeiouауоыиэяюёе]/gi) || []).length;
+          const emphatic = (clause.match(/[!?]/g) || []).length;
+          const commas = (clause.match(/[,;]/g) || []).length;
+          const soft = clamp(vowels / Math.max(clause.length, 1) * 9, 0.25, 1.2);
+          const density = clamp(words.length / 18, 0.45, 1.4);
+          const energy = clamp((emphatic * 0.34) + (commas * 0.08) + 0.25, 0.22, 1.6);
+          const drift = clamp((index + 1) / (fallback.length + 1), 0.2, 0.9);
+          const hashed = hashString(clause);
+          const paletteIndex = hashed % palette.length;
+          const posX = 0.18 + ((index % 3) * 0.29) + ((hashed % 17) / 100);
+          const posY = 0.24 + (Math.floor(index / 3) * 0.34) + (((hashed >> 3) % 19) / 120);
+          const repeatedLocal = words
+            .map(stemWord)
+            .filter((word) => word && (repeated.get(word) || 0) > 1);
+
+          return {
+            clause,
+            label: titleize(clause),
+            words: words.length,
+            softness: soft,
+            density,
+            energy,
+            drift,
+            repeatedLocal: [...new Set(repeatedLocal)].slice(0, 3),
+            punctuation: emphatic,
+            paletteIndex,
+            x: clamp(posX, 0.12, 0.88),
+            y: clamp(posY, 0.18, 0.84),
+            seed: hashed,
+          };
+        });
+
+        return {
+          groves,
+          repeatedWords,
+          overallDensity:
+            groves.reduce((sum, grove) => sum + grove.density, 0) / groves.length,
+          overallEnergy:
+            groves.reduce((sum, grove) => sum + grove.energy, 0) / groves.length,
+        };
+      }
+
+      function updateState() {
+        const parsed = parseText(textarea.value);
+        state.groves = parsed.groves;
+
+        groveList.innerHTML = "";
+        parsed.groves.forEach((grove, index) => {
+          const chip = document.createElement("article");
+          chip.className = `grove-chip${index === 0 ? " active" : ""}`;
+          chip.innerHTML = `
+            <div class="label">Grove ${String(index + 1).padStart(2, "0")}</div>
+            <h2 class="chip-title">${grove.label}</h2>
+            <p class="chip-copy">${grove.words} words, ${grove.repeatedLocal.length ? grove.repeatedLocal.join(", ") : "fresh lexicon"}, energy ${grove.energy.toFixed(2)}</p>
+          `;
+          groveList.appendChild(chip);
+        });
+
+        metricGroves.textContent = String(parsed.groves.length).padStart(2, "0");
+        metricShared.textContent = parsed.repeatedWords.length
+          ? `${parsed.repeatedWords.length} repeated stems`
+          : "no repeated stems";
+
+        const weather =
+          parsed.overallEnergy > 0.8
+            ? "charged shimmer"
+            : parsed.overallDensity > 1
+              ? "dense canopy"
+              : "quiet drift";
+        metricWeather.textContent = weather;
+        metricHighlight.textContent = parsed.groves.length
+          ? parsed.groves.reduce((best, grove) => (grove.energy > best.energy ? grove : best)).label
+          : "awaiting bloom";
+
+        statusCopy.textContent =
+          state.mode === "glitch"
+            ? "Glitch mode is active. Clause boundaries misregister slightly while the pointer tears short fault-lines through the nearest grove."
+            : state.mode === "pulse"
+              ? "Pulse mode is active. The field inhales on a slower shared beat and click heat travels further before fading."
+              : "Local parsing is active. Pointer movement bends nearby currents; click plants a temporary warm front into the closest grove.";
+      }
+
+      function resize() {
+        const rect = field.getBoundingClientRect();
+        const ratio = window.devicePixelRatio || 1;
+        canvas.width = Math.round(rect.width * ratio);
+        canvas.height = Math.round(rect.height * ratio);
+        canvas.style.width = `${rect.width}px`;
+        canvas.style.height = `${rect.height}px`;
+        ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+      }
+
+      function drawBackground(width, height, time) {
+        const gradient = ctx.createLinearGradient(0, 0, 0, height);
+        gradient.addColorStop(0, "#162223");
+        gradient.addColorStop(0.55, "#10191a");
+        gradient.addColorStop(1, "#0c1314");
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, width, height);
+
+        for (let i = 0; i < 7; i += 1) {
+          const x = width * ((i + 1) / 8);
+          const radius = 120 + ((i % 3) * 40);
+          const glow = ctx.createRadialGradient(
+            x,
+            height * (0.2 + (i % 4) * 0.16),
+            0,
+            x,
+            height * (0.2 + (i % 4) * 0.16),
+            radius
+          );
+          glow.addColorStop(0, i % 2 ? "rgba(136, 182, 184, 0.09)" : "rgba(215, 149, 136, 0.07)");
+          glow.addColorStop(1, "rgba(0, 0, 0, 0)");
+          ctx.fillStyle = glow;
+          ctx.fillRect(x - radius, 0, radius * 2, height);
+        }
+
+        ctx.strokeStyle = "rgba(236, 235, 222, 0.05)";
+        ctx.lineWidth = 1;
+        for (let x = 36; x < width; x += 72) {
+          ctx.beginPath();
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, height);
+          ctx.stroke();
+        }
+        for (let y = 32; y < height; y += 72) {
+          ctx.beginPath();
+          ctx.moveTo(0, y + Math.sin(time * 0.0002 + y * 0.02) * 4);
+          ctx.lineTo(width, y + Math.sin(time * 0.0002 + y * 0.02) * 4);
+          ctx.stroke();
+        }
+      }
+
+      function pointerForce(grove, width, height) {
+        const gx = grove.x * width;
+        const gy = grove.y * height;
+        const dx = pointer.x * width - gx;
+        const dy = pointer.y * height - gy;
+        const dist = Math.hypot(dx, dy);
+        const influence = pointer.active ? clamp(1 - dist / 260, 0, 1) : 0;
+        return {
+          dx,
+          dy,
+          dist,
+          influence,
+        };
+      }
+
+      function drawRoots(grove, width, height, time, index) {
+        const theme = palette[grove.paletteIndex];
+        const rootX = grove.x * width;
+        const rootY = grove.y * height;
+        const force = pointerForce(grove, width, height);
+        const pulse =
+          state.mode === "pulse"
+            ? 0.5 + 0.5 * Math.sin(time * 0.002 + index)
+            : state.mode === "glitch"
+              ? 0.55 + 0.45 * Math.sin(time * 0.008 + index * 17)
+              : 0.45 + 0.55 * Math.sin(time * 0.0014 + index);
+        const branchCount = 4 + Math.round(grove.density * 5);
+        const canopy = 28 + grove.words * 3.2 + pulse * 18;
+        const sway = force.influence * 28;
+
+        ctx.save();
+        ctx.translate(rootX, rootY);
+
+        ctx.strokeStyle = theme.glow;
+        ctx.lineWidth = 18 + grove.energy * 7;
+        ctx.beginPath();
+        ctx.arc(0, 0, canopy * 1.05, 0, Math.PI * 2);
+        ctx.stroke();
+
+        for (let i = 0; i < branchCount; i += 1) {
+          const angle = ((Math.PI * 2) / branchCount) * i + (grove.seed % 13) * 0.04;
+          const outer = canopy * (0.6 + ((i % 3) * 0.18));
+          const bend = Math.sin(time * 0.0018 + i + grove.seed * 0.00004) * (18 + grove.softness * 10);
+          const drift = state.mode === "glitch" ? Math.sin(time * 0.012 + i * 5) * 8 : 0;
+
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.bezierCurveTo(
+            Math.cos(angle) * (outer * 0.34) + sway * 0.22 - force.dx * 0.05,
+            Math.sin(angle) * (outer * 0.12) + bend * 0.2,
+            Math.cos(angle) * (outer * 0.68) + sway * 0.52,
+            Math.sin(angle) * (outer * 0.7) + bend,
+            Math.cos(angle) * outer + sway * 0.9 + drift,
+            Math.sin(angle) * outer + bend * 1.15
+          );
+          ctx.strokeStyle = theme.stroke;
+          ctx.lineWidth = 1.4 + grove.softness * 1.4;
+          ctx.stroke();
+
+          ctx.fillStyle = theme.leaf;
+          const leafCount = 3 + Math.round(grove.energy * 4);
+          for (let j = 0; j < leafCount; j += 1) {
+            const t = j / leafCount;
+            const lx = Math.cos(angle) * outer * (0.38 + t * 0.54) + sway * t * 0.7;
+            const ly = Math.sin(angle) * outer * (0.32 + t * 0.58) + bend * (0.35 + t);
+            const size = 2.4 + grove.softness * 4.6 * (1 - t * 0.3);
+            ctx.beginPath();
+            ctx.ellipse(lx, ly, size, size * (0.42 + grove.energy * 0.12), angle, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+
+        const sparkCount = state.mode === "glitch" ? 7 + grove.punctuation * 3 : 4 + grove.punctuation * 2;
+        for (let i = 0; i < sparkCount; i += 1) {
+          const angle = ((Math.PI * 2) / sparkCount) * i + time * 0.0002 * (0.4 + grove.energy);
+          const orbit = canopy * (1.08 + (i % 3) * 0.14) + Math.sin(time * 0.002 + i + grove.seed) * 5;
+          const sx = Math.cos(angle) * orbit;
+          const sy = Math.sin(angle) * orbit * (0.76 + grove.softness * 0.2);
+          ctx.fillStyle = i % 3 === 0 ? theme.stroke : i % 2 ? "rgba(236, 235, 222, 0.72)" : "#d2a56d";
+          ctx.beginPath();
+          ctx.arc(sx, sy, 1.2 + grove.energy * 2.1, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        ctx.fillStyle = "rgba(236, 235, 222, 0.9)";
+        ctx.font = '11px "Azeret Mono", "IBM Plex Mono", monospace';
+        ctx.textTransform = "uppercase";
+        ctx.fillText(grove.label.toUpperCase(), -canopy, canopy + 26);
+
+        ctx.restore();
+      }
+
+      function drawCurrents(width, height, time) {
+        ctx.save();
+        ctx.lineWidth = 1;
+        state.groves.forEach((grove, index) => {
+          const theme = palette[grove.paletteIndex];
+          ctx.strokeStyle = theme.glow;
+          const startX = grove.x * width;
+          const startY = grove.y * height;
+
+          for (let lane = 0; lane < 3; lane += 1) {
+            ctx.beginPath();
+            for (let step = 0; step <= 24; step += 1) {
+              const t = step / 24;
+              const wave = Math.sin(time * 0.0011 + t * 7 + index * 1.7 + lane) * (12 + grove.energy * 14);
+              const drift = Math.cos(time * 0.0009 + t * 9 + grove.seed * 0.00004) * (10 + grove.softness * 18);
+              const x = startX + (t - 0.5) * width * 0.78 + drift;
+              const y = startY + Math.sin(t * Math.PI * 2 + lane) * (24 + lane * 12) + wave;
+              if (step === 0) ctx.moveTo(x, y);
+              else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+          }
+        });
+        ctx.restore();
+      }
+
+      function drawPlantedBloom(width, height, time) {
+        if (!state.plantedBloom) return;
+        const age = time - state.plantedBloom.time;
+        if (age > 3600) {
+          state.plantedBloom = null;
+          return;
+        }
+        const alpha = 1 - age / 3600;
+        const radius = 18 + age * 0.05;
+        const x = state.plantedBloom.x * width;
+        const y = state.plantedBloom.y * height;
+        const bloom = ctx.createRadialGradient(x, y, 0, x, y, radius * 1.8);
+        bloom.addColorStop(0, `rgba(210, 165, 109, ${0.32 * alpha})`);
+        bloom.addColorStop(0.5, `rgba(136, 182, 184, ${0.18 * alpha})`);
+        bloom.addColorStop(1, "rgba(0, 0, 0, 0)");
+        ctx.fillStyle = bloom;
+        ctx.beginPath();
+        ctx.arc(x, y, radius * 1.8, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      function render(time) {
+        const width = field.clientWidth;
+        const height = field.clientHeight;
+        drawBackground(width, height, time);
+        drawCurrents(width, height, time);
+        drawPlantedBloom(width, height, time);
+        state.groves.forEach((grove, index) => drawRoots(grove, width, height, time, index));
+
+        const closestIndex = state.groves.reduce(
+          (best, grove, index) => {
+            const force = pointerForce(grove, width, height);
+            return force.dist < best.dist ? { dist: force.dist, index } : best;
+          },
+          { dist: Infinity, index: 0 }
+        ).index;
+
+        [...groveList.children].forEach((chip, index) => {
+          chip.classList.toggle("active", index === closestIndex);
+        });
+
+        requestAnimationFrame(render);
+      }
+
+      textarea.addEventListener("input", updateState);
+
+      document.getElementById("modeRow").addEventListener("click", (event) => {
+        const button = event.target.closest("[data-mode]");
+        if (!button) return;
+        state.mode = button.dataset.mode;
+        [...document.querySelectorAll(".pill")].forEach((pill) => {
+          pill.classList.toggle("active", pill === button);
+        });
+        updateState();
+      });
+
+      document.querySelector(".sample-row").addEventListener("click", (event) => {
+        const button = event.target.closest("[data-sample]");
+        if (!button) return;
+        textarea.value = state.sampleMap[button.dataset.sample];
+        updateState();
+      });
+
+      field.addEventListener("pointermove", (event) => {
+        const rect = field.getBoundingClientRect();
+        pointer.x = clamp((event.clientX - rect.left) / rect.width, 0, 1);
+        pointer.y = clamp((event.clientY - rect.top) / rect.height, 0, 1);
+        pointer.active = true;
+      });
+
+      field.addEventListener("pointerleave", () => {
+        pointer.active = false;
+      });
+
+      field.addEventListener("click", (event) => {
+        const rect = field.getBoundingClientRect();
+        state.plantedBloom = {
+          x: clamp((event.clientX - rect.left) / rect.width, 0, 1),
+          y: clamp((event.clientY - rect.top) / rect.height, 0, 1),
+          time: performance.now(),
+        };
+      });
+
+      window.addEventListener("resize", resize);
+
+      resize();
+      updateState();
+      requestAnimationFrame(render);
+    </script>
+  </body>
+</html>

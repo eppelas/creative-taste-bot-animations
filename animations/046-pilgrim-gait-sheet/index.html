@@ -1,0 +1,662 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>#046 Pilgrim Gait Sheet</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --paper: #efe2cf;
+        --paper-deep: #dcc5aa;
+        --paper-warm: #f7eee3;
+        --ink: #21303a;
+        --muted: rgba(33, 48, 58, 0.58);
+        --line: rgba(33, 48, 58, 0.14);
+        --cyan: #73bfd0;
+        --coral: #db7f69;
+        --acid: #c7d457;
+        --navy: #2b5369;
+        --shadow: 0 26px 76px rgba(97, 73, 44, 0.14);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        width: 100%;
+        min-height: 100%;
+        overflow: hidden;
+        background:
+          radial-gradient(circle at 18% 16%, rgba(115, 191, 208, 0.16), transparent 24%),
+          radial-gradient(circle at 80% 18%, rgba(219, 127, 105, 0.14), transparent 28%),
+          radial-gradient(circle at 56% 84%, rgba(199, 212, 87, 0.12), transparent 28%),
+          linear-gradient(180deg, #f8f0e5 0%, var(--paper) 56%, var(--paper-deep) 100%);
+        color: var(--ink);
+        font-family: "Avenir Next", "Trebuchet MS", sans-serif;
+      }
+
+      canvas {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        display: block;
+      }
+
+      .hud {
+        position: fixed;
+        inset: 16px;
+        display: grid;
+        grid-template-columns: minmax(0, 30rem) minmax(18rem, 24rem);
+        justify-content: space-between;
+        align-items: start;
+        gap: 16px;
+        pointer-events: none;
+      }
+
+      .note,
+      .control-panel,
+      .chip,
+      .back {
+        pointer-events: auto;
+      }
+
+      .note,
+      .control-panel,
+      .back {
+        border: 1px solid var(--line);
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.78), rgba(255, 246, 236, 0.64)),
+          rgba(255, 253, 248, 0.68);
+        backdrop-filter: blur(18px);
+        box-shadow: var(--shadow);
+      }
+
+      .note,
+      .control-panel {
+        border-radius: 24px;
+        padding: 15px 16px 16px;
+        display: grid;
+        gap: 10px;
+      }
+
+      .control-panel {
+        justify-self: end;
+        width: min(24rem, 100%);
+        gap: 14px;
+      }
+
+      h1,
+      p {
+        margin: 0;
+      }
+
+      .eyebrow,
+      .label,
+      .small,
+      .value,
+      .chip {
+        font-family: "Azeret Mono", "IBM Plex Mono", "SFMono-Regular", monospace;
+      }
+
+      .eyebrow,
+      .label,
+      .small {
+        font-size: 11px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      h1 {
+        font-size: clamp(2rem, 4.4vw, 3.8rem);
+        line-height: 0.92;
+        letter-spacing: -0.06em;
+      }
+
+      .hint,
+      .meta {
+        color: rgba(33, 48, 58, 0.78);
+        line-height: 1.48;
+      }
+
+      .hint {
+        font-size: 0.98rem;
+      }
+
+      .meta,
+      .small {
+        font-size: 0.8rem;
+      }
+
+      .readout {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .value {
+        display: block;
+        margin-top: 0.24rem;
+        font-size: 0.96rem;
+        color: var(--ink);
+      }
+
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .chip {
+        border: 1px solid rgba(43, 83, 105, 0.16);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.5);
+        color: var(--ink);
+        padding: 10px 12px;
+        cursor: pointer;
+        transition:
+          transform 180ms ease,
+          border-color 180ms ease,
+          background 180ms ease;
+        font-size: 0.74rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .chip:hover,
+      .chip:focus-visible {
+        transform: translateY(-1px);
+        border-color: rgba(43, 83, 105, 0.34);
+        outline: none;
+      }
+
+      .chip.active {
+        border-color: rgba(43, 83, 105, 0.34);
+        background:
+          linear-gradient(90deg, rgba(115, 191, 208, 0.16), rgba(219, 127, 105, 0.16)),
+          rgba(255, 255, 255, 0.66);
+      }
+
+      .back {
+        position: fixed;
+        right: 16px;
+        bottom: 16px;
+        border-radius: 999px;
+        padding: 11px 14px;
+        text-decoration: none;
+        color: var(--ink);
+        font-family: "Azeret Mono", "IBM Plex Mono", "SFMono-Regular", monospace;
+        font-size: 0.74rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+
+      @media (max-width: 1080px) {
+        .hud {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .control-panel {
+          justify-self: start;
+          width: min(28rem, 100%);
+        }
+      }
+
+      @media (max-width: 720px) {
+        .hud {
+          inset: 12px;
+          gap: 12px;
+        }
+
+        .note,
+        .control-panel {
+          padding: 13px 14px 14px;
+          border-radius: 20px;
+        }
+
+        .readout {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .back {
+          right: 12px;
+          bottom: 12px;
+          padding: 10px 12px;
+          font-size: 0.68rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="scene"></canvas>
+
+    <div class="hud">
+      <section class="note">
+        <p class="eyebrow">Code Animation Study #046</p>
+        <h1>Pilgrim Gait Sheet</h1>
+        <p class="hint">
+          A design-usable illustrated poster for one grounded three-dot species:
+          several gait snapshots share the same page so the anatomy reads as
+          believable, reusable, and alive instead of another detached manual or
+          vague concept world.
+        </p>
+        <p class="meta">
+          Move across the sheet to push weight through the nearest body. Press
+          or drag to make the walkers brace harder, widen their root stance, and
+          wake the bead-thread crowns.
+        </p>
+      </section>
+
+      <section class="control-panel" aria-label="Live gait controls">
+        <p class="small">Gait laws</p>
+        <div class="chips" id="chips"></div>
+        <div class="readout">
+          <p class="label">Active<span class="value" id="modeValue">brace</span></p>
+          <p class="label">Root span<span class="value" id="spanValue">0.52</span></p>
+          <p class="label">Halo sway<span class="value" id="swayValue">18%</span></p>
+        </div>
+        <p class="small">
+          This page stays mostly poster-like. The interaction only redistributes
+          stance, pressure, and head-thread attention inside the same anatomy.
+        </p>
+      </section>
+    </div>
+
+    <a class="back" href="../../index.html">Back to index</a>
+
+    <script src="../../shared/study-notes.js?v=046"></script>
+    <script>
+      const canvas = document.getElementById("scene");
+      const ctx = canvas.getContext("2d");
+      const chips = document.getElementById("chips");
+      const modeValue = document.getElementById("modeValue");
+      const spanValue = document.getElementById("spanValue");
+      const swayValue = document.getElementById("swayValue");
+      const TAU = Math.PI * 2;
+
+      const pointer = {
+        x: 0.5,
+        y: 0.5,
+        tx: 0.5,
+        ty: 0.5,
+        down: false,
+        pressure: 0,
+      };
+
+      const modes = [
+        {
+          id: "brace",
+          label: "Brace",
+          hint: "stable load",
+          root: 0.52,
+          lean: 0.08,
+          sway: 0.32,
+          lift: 0.24,
+        },
+        {
+          id: "survey",
+          label: "Survey",
+          hint: "forward search",
+          root: 0.42,
+          lean: 0.2,
+          sway: 0.62,
+          lift: 0.38,
+        },
+        {
+          id: "thread",
+          label: "Thread",
+          hint: "soft tether",
+          root: 0.58,
+          lean: -0.04,
+          sway: 0.82,
+          lift: 0.3,
+        },
+      ];
+
+      let currentMode = modes[0];
+
+      const walkers = [
+        { x: 0.25, y: 0.62, scale: 0.88, seed: 0.2, hue: "#73bfd0", warm: "#db7f69" },
+        { x: 0.54, y: 0.46, scale: 1.06, seed: 1.4, hue: "#2b5369", warm: "#db7f69" },
+        { x: 0.76, y: 0.71, scale: 0.94, seed: 2.6, hue: "#c7d457", warm: "#2b5369" },
+      ].map((walker) => ({
+        ...walker,
+        rootPulse: 0,
+        stance: 0.5,
+        attention: 0,
+        touch: 0,
+        sway: 0,
+      }));
+
+      function setMode(mode) {
+        currentMode = mode;
+        modeValue.textContent = mode.id;
+        document.querySelectorAll(".chip").forEach((chip) => {
+          chip.classList.toggle("active", chip.dataset.mode === mode.id);
+        });
+      }
+
+      modes.forEach((mode) => {
+        const chip = document.createElement("button");
+        chip.type = "button";
+        chip.className = "chip";
+        chip.dataset.mode = mode.id;
+        chip.textContent = `${mode.label} / ${mode.hint}`;
+        chip.addEventListener("click", () => setMode(mode));
+        chips.appendChild(chip);
+      });
+      setMode(currentMode);
+
+      function resize() {
+        const ratio = window.devicePixelRatio || 1;
+        canvas.width = Math.round(window.innerWidth * ratio);
+        canvas.height = Math.round(window.innerHeight * ratio);
+        canvas.style.width = window.innerWidth + "px";
+        canvas.style.height = window.innerHeight + "px";
+        ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+      }
+
+      function pointerFromEvent(event) {
+        const point = event.touches ? event.touches[0] : event;
+        pointer.tx = point.clientX / window.innerWidth;
+        pointer.ty = point.clientY / window.innerHeight;
+      }
+
+      function addEvents() {
+        window.addEventListener("resize", resize);
+        window.addEventListener("mousemove", (event) => {
+          pointerFromEvent(event);
+        });
+        window.addEventListener("touchstart", (event) => {
+          pointer.down = true;
+          pointerFromEvent(event);
+        }, { passive: true });
+        window.addEventListener("touchmove", (event) => {
+          pointerFromEvent(event);
+        }, { passive: true });
+        window.addEventListener("touchend", () => {
+          pointer.down = false;
+        });
+        window.addEventListener("mousedown", (event) => {
+          pointer.down = true;
+          pointerFromEvent(event);
+        });
+        window.addEventListener("mouseup", () => {
+          pointer.down = false;
+        });
+      }
+
+      function dist(ax, ay, bx, by) {
+        return Math.hypot(ax - bx, ay - by);
+      }
+
+      function lerp(a, b, t) {
+        return a + (b - a) * t;
+      }
+
+      function drawPaperNoise(width, height, time) {
+        ctx.save();
+        ctx.globalAlpha = 0.08;
+        for (let i = 0; i < 160; i += 1) {
+          const x = (i * 137.5) % width;
+          const y = ((i * 83.1) + time * 0.002 * (i % 7 + 1)) % height;
+          ctx.fillStyle = i % 4 === 0 ? "rgba(255,255,255,0.4)" : "rgba(33,48,58,0.3)";
+          ctx.fillRect(x, y, 1.2, 1.2);
+        }
+        ctx.restore();
+      }
+
+      function drawGuideMarks(width, height, time) {
+        ctx.save();
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = "rgba(33, 48, 58, 0.09)";
+        ctx.setLineDash([8, 10]);
+
+        const paths = [
+          [0.14, 0.24, 0.82, 0.28],
+          [0.18, 0.52, 0.72, 0.44],
+          [0.24, 0.82, 0.88, 0.74],
+        ];
+
+        paths.forEach(([x1, y1, x2, y2], index) => {
+          ctx.beginPath();
+          ctx.moveTo(width * x1, height * y1);
+          ctx.quadraticCurveTo(
+            width * lerp(x1, x2, 0.5),
+            height * (lerp(y1, y2, 0.5) + Math.sin(time * 0.0005 + index) * 0.03),
+            width * x2,
+            height * y2,
+          );
+          ctx.stroke();
+        });
+
+        ctx.setLineDash([]);
+
+        for (let i = 0; i < 18; i += 1) {
+          const x = width * (0.08 + i * 0.048);
+          const y = height * (0.9 - (i % 4) * 0.025);
+          ctx.beginPath();
+          ctx.moveTo(x, y);
+          ctx.lineTo(x, y + 10 + (i % 3) * 4);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      function drawWalker(walker, time) {
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+        const px = pointer.x * width;
+        const py = pointer.y * height;
+        const cx = walker.x * width;
+        const cy = walker.y * height;
+        const influence = Math.max(0, 1 - dist(px, py, cx, cy) / (220 * walker.scale));
+
+        walker.attention = lerp(walker.attention, influence, 0.08);
+        walker.touch = lerp(walker.touch, pointer.down ? influence : 0, 0.12);
+        walker.rootPulse = lerp(
+          walker.rootPulse,
+          currentMode.root + walker.touch * 0.38 + Math.sin(time * 0.0012 + walker.seed) * 0.04,
+          0.06,
+        );
+        walker.stance = lerp(
+          walker.stance,
+          currentMode.lean + (pointer.x - walker.x) * 0.4 * influence,
+          0.06,
+        );
+        walker.sway = lerp(
+          walker.sway,
+          currentMode.sway * 0.5 + walker.touch * 0.44 + Math.sin(time * 0.0018 + walker.seed) * 0.12,
+          0.08,
+        );
+
+        const scale = Math.min(width, height) * 0.16 * walker.scale;
+        const bodyW = scale * 0.72;
+        const bodyH = scale * 1.08;
+        const lean = walker.stance;
+        const rootSpan = scale * (0.9 + walker.rootPulse * 0.8);
+        const baseY = cy + scale * 0.84;
+        const headY = cy - bodyH * 0.58;
+        const bodyX = cx + lean * scale * 0.16;
+        const threadLift = scale * (0.14 + currentMode.lift * 0.28 + walker.touch * 0.12);
+
+        ctx.save();
+        ctx.translate(bodyX, cy);
+
+        ctx.strokeStyle = "rgba(33, 48, 58, 0.16)";
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(-bodyW * 0.9, bodyH * 1.15);
+        ctx.quadraticCurveTo(-bodyW * 0.2, bodyH * 1.02, bodyW * 0.84, bodyH * 1.2);
+        ctx.stroke();
+
+        ctx.restore();
+
+        const legs = [
+          { x: -rootSpan * 0.42, bend: 0.12 + walker.sway * 0.12 },
+          { x: 0, bend: -0.06 + walker.touch * 0.08 },
+          { x: rootSpan * 0.4, bend: -0.12 - walker.sway * 0.1 },
+        ];
+
+        legs.forEach((leg, index) => {
+          const footX = cx + leg.x;
+          const jointX = bodyX + leg.x * 0.22 + lean * scale * 0.18;
+          const jointY = cy + bodyH * (0.32 + index * 0.03);
+          ctx.strokeStyle = index === 1 ? "rgba(33, 48, 58, 0.42)" : "rgba(43, 83, 105, 0.3)";
+          ctx.lineWidth = 3.2 - index * 0.5;
+          ctx.lineCap = "round";
+          ctx.beginPath();
+          ctx.moveTo(bodyX + leg.x * 0.08, cy + bodyH * 0.14);
+          ctx.quadraticCurveTo(jointX, jointY, footX, baseY + Math.sin(time * 0.001 + index + walker.seed) * 3);
+          ctx.stroke();
+
+          ctx.lineWidth = 1.4;
+          ctx.strokeStyle = "rgba(199, 212, 87, 0.3)";
+          ctx.beginPath();
+          ctx.moveTo(footX, baseY + 1);
+          ctx.lineTo(footX - 12, baseY + 12 + leg.bend * 8);
+          ctx.moveTo(footX, baseY + 1);
+          ctx.lineTo(footX + 12, baseY + 10 - leg.bend * 5);
+          ctx.stroke();
+        });
+
+        ctx.save();
+        ctx.translate(bodyX, cy);
+        ctx.rotate(lean * 0.1);
+
+        ctx.fillStyle = "rgba(255, 248, 236, 0.95)";
+        ctx.strokeStyle = "rgba(33, 48, 58, 0.22)";
+        ctx.lineWidth = 1.4;
+        ctx.beginPath();
+        ctx.moveTo(0, -bodyH * 0.72);
+        ctx.bezierCurveTo(bodyW * 0.64, -bodyH * 0.76, bodyW * 0.66, -bodyH * 0.16, bodyW * 0.46, bodyH * 0.46);
+        ctx.bezierCurveTo(bodyW * 0.24, bodyH * 0.82, -bodyW * 0.34, bodyH * 0.82, -bodyW * 0.54, bodyH * 0.28);
+        ctx.bezierCurveTo(-bodyW * 0.72, -bodyH * 0.1, -bodyW * 0.62, -bodyH * 0.74, 0, -bodyH * 0.72);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = "rgba(115, 191, 208, 0.09)";
+        ctx.beginPath();
+        ctx.ellipse(-bodyW * 0.08, -bodyH * 0.06, bodyW * 0.4, bodyH * 0.3, -0.4, 0, TAU);
+        ctx.fill();
+
+        ctx.strokeStyle = "rgba(43, 83, 105, 0.26)";
+        ctx.lineWidth = 1.2;
+        for (let i = 0; i < 4; i += 1) {
+          const y = -bodyH * 0.18 + i * bodyH * 0.18;
+          ctx.beginPath();
+          ctx.moveTo(-bodyW * 0.4, y);
+          ctx.quadraticCurveTo(0, y + Math.sin(time * 0.0016 + walker.seed + i) * 6, bodyW * 0.34, y - 3);
+          ctx.stroke();
+        }
+
+        const dots = [
+          { x: -bodyW * 0.1, y: -bodyH * 0.48, r: bodyW * 0.06 },
+          { x: bodyW * 0.08, y: -bodyH * 0.46, r: bodyW * 0.06 },
+          { x: -bodyW * 0.01, y: -bodyH * 0.31, r: bodyW * 0.05 },
+        ];
+
+        dots.forEach((dot, index) => {
+          const glow = walker.attention * 0.7 + (index === 2 ? walker.touch * 0.5 : 0);
+          ctx.fillStyle = index === 2 ? `rgba(219, 127, 105, ${0.48 + glow * 0.4})` : `rgba(43, 83, 105, ${0.74 + glow * 0.2})`;
+          ctx.beginPath();
+          ctx.arc(dot.x, dot.y, dot.r + glow * 2.6, 0, TAU);
+          ctx.fill();
+        });
+
+        ctx.restore();
+
+        ctx.save();
+        ctx.strokeStyle = "rgba(43, 83, 105, 0.34)";
+        ctx.lineWidth = 1.1;
+        for (let i = 0; i < 6; i += 1) {
+          const spread = (i - 2.5) * scale * 0.1;
+          ctx.beginPath();
+          ctx.moveTo(bodyX, headY);
+          ctx.quadraticCurveTo(
+            bodyX + spread * 0.4,
+            headY - threadLift * 0.5,
+            bodyX + spread + Math.sin(time * 0.0016 + i + walker.seed) * scale * 0.04 * (0.4 + walker.sway),
+            headY - threadLift - Math.cos(time * 0.0013 + i + walker.seed) * scale * 0.04,
+          );
+          ctx.stroke();
+
+          ctx.fillStyle = i % 2 === 0 ? "rgba(115, 191, 208, 0.92)" : "rgba(219, 127, 105, 0.9)";
+          const beadX = bodyX + spread + Math.sin(time * 0.0016 + i + walker.seed) * scale * 0.04 * (0.4 + walker.sway);
+          const beadY = headY - threadLift - Math.cos(time * 0.0013 + i + walker.seed) * scale * 0.04;
+          ctx.beginPath();
+          ctx.arc(beadX, beadY, scale * 0.026 + walker.touch * 1.4, 0, TAU);
+          ctx.fill();
+        }
+        ctx.restore();
+
+        ctx.save();
+        ctx.strokeStyle = "rgba(33, 48, 58, 0.16)";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(cx - scale * 0.72, cy - scale * 0.98);
+        ctx.lineTo(cx - scale * 0.3, cy - scale * 0.98);
+        ctx.lineTo(cx - scale * 0.3, cy - scale * 0.5);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(cx + scale * 0.66, cy + scale * 0.1);
+        ctx.lineTo(cx + scale * 1.02, cy + scale * 0.1);
+        ctx.lineTo(cx + scale * 1.02, cy + scale * 0.42);
+        ctx.stroke();
+        ctx.restore();
+
+        return {
+          rootSpan: rootSpan / (Math.min(width, height) * 0.16),
+          sway: walker.sway,
+        };
+      }
+
+      function drawScene(time) {
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+
+        pointer.x = lerp(pointer.x, pointer.tx, 0.12);
+        pointer.y = lerp(pointer.y, pointer.ty, 0.12);
+        pointer.pressure = lerp(pointer.pressure, pointer.down ? 1 : 0, 0.14);
+
+        ctx.clearRect(0, 0, width, height);
+        drawPaperNoise(width, height, time);
+        drawGuideMarks(width, height, time);
+
+        ctx.save();
+        ctx.strokeStyle = "rgba(255,255,255,0.42)";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(width * 0.08, height * 0.17);
+        ctx.lineTo(width * 0.92, height * 0.17);
+        ctx.moveTo(width * 0.1, height * 0.87);
+        ctx.lineTo(width * 0.9, height * 0.87);
+        ctx.stroke();
+        ctx.restore();
+
+        let spanTotal = 0;
+        let swayTotal = 0;
+        walkers.forEach((walker) => {
+          const info = drawWalker(walker, time);
+          spanTotal += info.rootSpan;
+          swayTotal += info.sway;
+        });
+
+        spanValue.textContent = (spanTotal / walkers.length).toFixed(2);
+        swayValue.textContent = Math.round((swayTotal / walkers.length) * 42) + "%";
+
+        requestAnimationFrame(drawScene);
+      }
+
+      resize();
+      addEvents();
+      requestAnimationFrame(drawScene);
+    </script>
+  </body>
+</html>

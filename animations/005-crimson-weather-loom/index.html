@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>#005 Crimson Weather Loom</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --text: #f1ece1;
+        --muted: #908982;
+        --panel: rgba(5, 5, 5, 0.38);
+        --line: rgba(241, 236, 225, 0.16);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        background:
+          radial-gradient(circle at 48% 42%, rgba(138, 12, 30, 0.22), transparent 36%),
+          radial-gradient(circle at 78% 76%, rgba(182, 92, 44, 0.11), transparent 24%),
+          #020202;
+        color: var(--text);
+        font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+      }
+
+      canvas {
+        position: fixed;
+        inset: 0;
+        display: block;
+        width: 100vw;
+        height: 100vh;
+      }
+
+      .hud {
+        position: fixed;
+        inset: auto 18px 18px 18px;
+        display: flex;
+        justify-content: space-between;
+        align-items: end;
+        gap: 18px;
+        pointer-events: none;
+      }
+
+      .title {
+        display: grid;
+        gap: 4px;
+      }
+
+      h1,
+      p {
+        margin: 0;
+      }
+
+      h1 {
+        font-size: 13px;
+        font-weight: 560;
+      }
+
+      p {
+        max-width: 560px;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.42;
+      }
+
+      .back {
+        pointer-events: auto;
+        color: var(--text);
+        text-decoration: none;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 8px 11px;
+        font-size: 12px;
+        background: var(--panel);
+        backdrop-filter: blur(14px);
+      }
+
+      @media (max-width: 720px) {
+        .hud {
+          top: 14px;
+          bottom: auto;
+          flex-direction: column;
+          align-items: start;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="scene"></canvas>
+    <div class="hud">
+      <div class="title">
+        <h1>#005 Crimson Weather Loom</h1>
+        <p>
+          Crimson particle weather moves through a woven pressure field: local
+          currents, contour fronts, calibration ticks, and signal grit keep the
+          motion internal rather than camera-driven.
+        </p>
+      </div>
+      <a class="back" href="../../index.html">Index</a>
+    </div>
+    <script src="../../shared/study-notes.js"></script>
+
+    <script>
+      const canvas = document.getElementById("scene");
+      const ctx = canvas.getContext("2d", { alpha: false });
+
+      const TAU = Math.PI * 2;
+      const particles = [];
+      const cells = [];
+      const markers = [];
+
+      let width = 0;
+      let height = 0;
+      let dpr = 1;
+      let start = performance.now();
+
+      const rand = (min, max) => min + Math.random() * (max - min);
+      const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+
+      function field(x, y, t) {
+        const nx = x / width - 0.5;
+        const ny = y / height - 0.5;
+        const r = Math.hypot(nx * 1.2, ny);
+        const angle =
+          Math.atan2(ny, nx) +
+          Math.sin(nx * 8.0 + t * 0.58) * 0.72 +
+          Math.cos(ny * 7.0 - t * 0.42) * 0.58 +
+          Math.sin((nx + ny) * 9.0 + r * 4.0 - t * 0.5) * 0.35;
+        const speed = 0.52 + Math.sin(r * 9.0 - t * 0.8) * 0.18;
+        return {
+          x: Math.cos(angle) * speed + Math.sin(ny * 14.0 + t) * 0.12,
+          y: Math.sin(angle) * speed + Math.cos(nx * 12.0 - t) * 0.12,
+        };
+      }
+
+      function seed() {
+        particles.length = 0;
+        cells.length = 0;
+        markers.length = 0;
+
+        const particleCount = clamp(Math.floor((width * height) / 1100), 420, 1400);
+        for (let i = 0; i < particleCount; i++) {
+          particles.push({
+            x: rand(0, width),
+            y: rand(0, height),
+            px: 0,
+            py: 0,
+            age: rand(0, 1),
+            life: rand(0.38, 1.0),
+            speed: rand(0.34, 1.18),
+            weight: rand(0.45, 1.55),
+            tone: Math.random(),
+            lane: Math.random() > 0.72,
+          });
+        }
+
+        const cols = width < 760 ? 5 : 8;
+        const rows = width < 760 ? 7 : 9;
+        for (let y = 0; y < rows; y++) {
+          for (let x = 0; x < cols; x++) {
+            cells.push({
+              x: (x + 0.5) / cols,
+              y: (y + 0.5) / rows,
+              radius: rand(32, 110),
+              phase: rand(0, TAU),
+              tilt: rand(-0.9, 0.9),
+              intensity: rand(0.12, 0.48),
+            });
+          }
+        }
+
+        for (let i = 0; i < 34; i++) {
+          markers.push({
+            x: rand(0.06, 0.94),
+            y: rand(0.08, 0.92),
+            size: rand(5, 18),
+            phase: rand(0, TAU),
+          });
+        }
+      }
+
+      function resize() {
+        dpr = Math.min(window.devicePixelRatio || 1, 2);
+        width = Math.floor(window.innerWidth);
+        height = Math.floor(window.innerHeight);
+        canvas.width = Math.floor(width * dpr);
+        canvas.height = Math.floor(height * dpr);
+        canvas.style.width = width + "px";
+        canvas.style.height = height + "px";
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        seed();
+        ctx.fillStyle = "#020202";
+        ctx.fillRect(0, 0, width, height);
+      }
+
+      function drawBackground(t) {
+        ctx.fillStyle = "rgba(2, 2, 2, 0.18)";
+        ctx.fillRect(0, 0, width, height);
+
+        const glow = ctx.createRadialGradient(
+          width * 0.48,
+          height * 0.46,
+          0,
+          width * 0.48,
+          height * 0.46,
+          Math.max(width, height) * 0.66,
+        );
+        glow.addColorStop(0, "rgba(96, 9, 24, 0.32)");
+        glow.addColorStop(0.5, "rgba(22, 3, 6, 0.18)");
+        glow.addColorStop(1, "rgba(0, 0, 0, 0)");
+        ctx.fillStyle = glow;
+        ctx.fillRect(0, 0, width, height);
+
+        ctx.lineWidth = 1;
+        for (let y = 0; y < height; y += 11) {
+          const a = 0.018 + Math.sin(y * 0.035 + t * 0.7) * 0.01;
+          ctx.strokeStyle = `rgba(168, 178, 152, ${a})`;
+          ctx.beginPath();
+          ctx.moveTo(0, y + Math.sin(t + y * 0.02) * 2);
+          ctx.lineTo(width, y + Math.cos(t * 0.8 + y * 0.018) * 2);
+          ctx.stroke();
+        }
+      }
+
+      function drawCells(t) {
+        for (const cell of cells) {
+          const x = cell.x * width + Math.sin(t * 0.25 + cell.phase) * 18;
+          const y = cell.y * height + Math.cos(t * 0.2 + cell.phase) * 14;
+          const radius = cell.radius * (0.8 + Math.sin(t * 0.7 + cell.phase) * 0.2);
+          ctx.save();
+          ctx.translate(x, y);
+          ctx.rotate(cell.tilt + Math.sin(t * 0.18 + cell.phase) * 0.18);
+          ctx.scale(1.6, 0.52);
+          ctx.strokeStyle = `rgba(255, 70, 64, ${cell.intensity})`;
+          ctx.lineWidth = 1;
+          for (let i = 0; i < 3; i++) {
+            ctx.beginPath();
+            ctx.ellipse(0, 0, radius + i * 18, radius + i * 18, 0, 0, TAU);
+            ctx.stroke();
+          }
+          ctx.restore();
+        }
+      }
+
+      function drawParticles(t) {
+        ctx.globalCompositeOperation = "lighter";
+        for (const particle of particles) {
+          particle.px = particle.x;
+          particle.py = particle.y;
+          const v = field(particle.x, particle.y, t + particle.tone * 2.0);
+          const pulse = 0.7 + Math.sin(t * 2.0 + particle.tone * TAU) * 0.3;
+          particle.x += v.x * particle.speed * (particle.lane ? 2.3 : 1.1) * pulse;
+          particle.y += v.y * particle.speed * (particle.lane ? 2.3 : 1.1) * pulse;
+          particle.age += 0.004 + particle.speed * 0.002;
+
+          if (
+            particle.x < -30 ||
+            particle.x > width + 30 ||
+            particle.y < -30 ||
+            particle.y > height + 30 ||
+            particle.age > particle.life
+          ) {
+            particle.x = rand(width * 0.18, width * 0.82);
+            particle.y = rand(height * 0.14, height * 0.86);
+            particle.px = particle.x;
+            particle.py = particle.y;
+            particle.age = 0;
+            particle.life = rand(0.38, 1.0);
+          }
+
+          const alpha = (1 - particle.age / particle.life) * (particle.lane ? 0.32 : 0.14);
+          const red = particle.tone > 0.18 ? 255 : 238;
+          const green = particle.tone > 0.74 ? 168 : 58;
+          const blue = particle.tone > 0.74 ? 82 : 54;
+          ctx.strokeStyle = `rgba(${red}, ${green}, ${blue}, ${alpha})`;
+          ctx.lineWidth = particle.weight;
+          ctx.beginPath();
+          ctx.moveTo(particle.px, particle.py);
+          ctx.lineTo(particle.x, particle.y);
+          ctx.stroke();
+        }
+        ctx.globalCompositeOperation = "source-over";
+      }
+
+      function drawMarkers(t) {
+        ctx.lineWidth = 1;
+        for (const marker of markers) {
+          const x = marker.x * width + Math.sin(t * 0.22 + marker.phase) * 5;
+          const y = marker.y * height + Math.cos(t * 0.18 + marker.phase) * 5;
+          const alpha = 0.16 + Math.sin(t * 1.7 + marker.phase) * 0.08;
+          ctx.strokeStyle = `rgba(241, 236, 225, ${alpha})`;
+          ctx.beginPath();
+          ctx.rect(x - marker.size / 2, y - marker.size / 2, marker.size, marker.size);
+          ctx.stroke();
+          ctx.fillStyle = `rgba(241, 236, 225, ${alpha * 0.45})`;
+          ctx.fillRect(x - 1, y - 1, 2, 2);
+        }
+      }
+
+      function draw() {
+        const t = (performance.now() - start) / 1000;
+        drawBackground(t);
+        drawCells(t);
+        drawParticles(t);
+        drawMarkers(t);
+        requestAnimationFrame(draw);
+      }
+
+      window.addEventListener("resize", resize);
+      resize();
+      draw();
+    </script>
+  </body>
+</html>

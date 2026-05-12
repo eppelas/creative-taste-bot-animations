@@ -1,0 +1,995 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>#051 Rack Focus Switchyard</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #06080b;
+        --panel: rgba(9, 13, 17, 0.8);
+        --panel-strong: rgba(12, 16, 22, 0.94);
+        --line: rgba(133, 176, 196, 0.22);
+        --line-strong: rgba(133, 176, 196, 0.5);
+        --text: #d8dee3;
+        --muted: #81909a;
+        --cyan: #82d7ea;
+        --magenta: #ff6e9d;
+        --amber: #efbf7e;
+        --acid: #d7ef6d;
+        --crimson: #7f2435;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        background:
+          radial-gradient(circle at 28% 16%, rgba(42, 66, 76, 0.4), transparent 28%),
+          radial-gradient(circle at 74% 30%, rgba(127, 36, 53, 0.24), transparent 24%),
+          radial-gradient(circle at 42% 84%, rgba(28, 78, 91, 0.18), transparent 28%),
+          linear-gradient(180deg, #0c1014 0%, #06080b 50%, #020305 100%);
+        color: var(--text);
+        font-family: "Avenir Next Condensed", "Trebuchet MS", "Arial Narrow", sans-serif;
+      }
+
+      body {
+        overflow-x: hidden;
+      }
+
+      body::before,
+      body::after,
+      #field {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+      }
+
+      body::before {
+        content: "";
+        opacity: 0.18;
+        background-image:
+          linear-gradient(rgba(128, 162, 174, 0.1) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(128, 162, 174, 0.1) 1px, transparent 1px);
+        background-size: min(4.6vw, 42px) min(4.6vw, 42px);
+        mask-image: radial-gradient(circle at 50% 50%, black 34%, transparent 92%);
+      }
+
+      body::after {
+        content: "";
+        opacity: 0.05;
+        background-image:
+          linear-gradient(rgba(255, 255, 255, 0.86) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.86) 1px, transparent 1px);
+        background-size: 3px 3px;
+        mix-blend-mode: screen;
+      }
+
+      #field {
+        width: 100%;
+        height: 100%;
+      }
+
+      main {
+        position: relative;
+        z-index: 1;
+        width: min(1260px, calc(100% - 24px));
+        margin: 0 auto;
+        padding: 18px 0 28px;
+      }
+
+      .topline {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 0 6px 14px;
+        color: var(--muted);
+        font-size: 0.76rem;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+      }
+
+      .board {
+        display: grid;
+        grid-template-columns: minmax(0, 1.3fr) minmax(300px, 0.7fr);
+        gap: 16px;
+        min-height: 78vh;
+      }
+
+      .panel,
+      .stack,
+      .footer-card {
+        position: relative;
+        border: 1px solid rgba(123, 174, 188, 0.18);
+        border-radius: 28px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent 24%),
+          linear-gradient(180deg, rgba(8, 11, 15, 0.84), rgba(6, 9, 12, 0.96));
+        box-shadow:
+          0 26px 80px rgba(0, 0, 0, 0.42),
+          inset 0 0 0 1px rgba(255, 255, 255, 0.025);
+        overflow: hidden;
+      }
+
+      .panel::before,
+      .stack::before,
+      .footer-card::before {
+        content: "";
+        position: absolute;
+        inset: 12px;
+        border: 1px solid rgba(115, 157, 170, 0.12);
+        border-radius: 22px;
+        pointer-events: none;
+      }
+
+      .panel {
+        min-height: 78vh;
+      }
+
+      .hero {
+        position: relative;
+        min-height: 78vh;
+      }
+
+      .hero-copy {
+        position: absolute;
+        inset: 20px 20px auto 20px;
+        display: flex;
+        justify-content: space-between;
+        gap: 14px;
+        z-index: 2;
+        pointer-events: none;
+      }
+
+      .hero-copy h1,
+      .hero-copy p,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+
+      .hero-copy h1 {
+        max-width: 9ch;
+        font-size: clamp(1.6rem, 2.2vw, 2.45rem);
+        line-height: 0.95;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .hero-copy p {
+        max-width: 21rem;
+        color: #b3c0c6;
+        font-size: 0.84rem;
+        line-height: 1.46;
+        text-align: right;
+      }
+
+      .hero-svg {
+        display: block;
+        width: 100%;
+        height: 100%;
+        min-height: 78vh;
+      }
+
+      .eyebrow,
+      .tiny,
+      .label,
+      .chip,
+      .back,
+      button,
+      .meter-value {
+        font-family: "Azeret Mono", "IBM Plex Mono", "SFMono-Regular", monospace;
+      }
+
+      .eyebrow,
+      .tiny,
+      .label {
+        font-size: 0.72rem;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      .stack {
+        display: grid;
+        gap: 16px;
+        align-content: start;
+        padding: 16px;
+      }
+
+      .card {
+        position: relative;
+        z-index: 1;
+        padding: 16px 16px 14px;
+        border: 1px solid rgba(115, 157, 170, 0.16);
+        border-radius: 22px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 24%),
+          var(--panel);
+        backdrop-filter: blur(12px);
+      }
+
+      .card h2,
+      .card h3 {
+        font-size: 0.8rem;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+      }
+
+      .card p {
+        margin-top: 10px;
+        color: #b7c0c5;
+        line-height: 1.5;
+        font-size: 0.94rem;
+      }
+
+      .controls {
+        display: grid;
+        gap: 12px;
+      }
+
+      .chip-row,
+      .meter-list,
+      .legend {
+        display: grid;
+        gap: 10px;
+      }
+
+      .chip-row {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      button {
+        appearance: none;
+        border: 1px solid rgba(123, 174, 188, 0.18);
+        border-radius: 999px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 70%),
+          rgba(17, 24, 32, 0.92);
+        color: #b6c2c9;
+        padding: 10px 12px;
+        font-size: 0.72rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        cursor: pointer;
+        transition:
+          transform 180ms ease,
+          border-color 180ms ease,
+          color 180ms ease,
+          background 180ms ease;
+      }
+
+      button:hover,
+      button[aria-pressed="true"] {
+        border-color: rgba(130, 215, 234, 0.5);
+        color: var(--text);
+        transform: translateY(-1px);
+      }
+
+      button[aria-pressed="true"] {
+        background:
+          linear-gradient(180deg, rgba(130, 215, 234, 0.12), transparent 70%),
+          rgba(21, 31, 41, 0.95);
+      }
+
+      .meter {
+        display: grid;
+        grid-template-columns: 90px 1fr 42px;
+        gap: 10px;
+        align-items: center;
+      }
+
+      .track {
+        position: relative;
+        height: 10px;
+        border-radius: 999px;
+        overflow: hidden;
+        background: rgba(86, 108, 119, 0.18);
+      }
+
+      .fill {
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: 50%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, rgba(255, 255, 255, 0), var(--cyan), var(--magenta));
+      }
+
+      .meter-value {
+        text-align: right;
+        font-size: 0.76rem;
+        color: #b9c7ce;
+      }
+
+      .legend-row {
+        display: grid;
+        grid-template-columns: 40px 1fr;
+        gap: 10px;
+        align-items: center;
+      }
+
+      .swatch {
+        width: 40px;
+        height: 10px;
+        border-radius: 999px;
+      }
+
+      .swatch.cyan {
+        background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+      }
+
+      .swatch.magenta {
+        background: linear-gradient(90deg, transparent, var(--magenta), transparent);
+      }
+
+      .swatch.amber {
+        background: linear-gradient(90deg, transparent, var(--amber), transparent);
+      }
+
+      .swatch.acid {
+        background: linear-gradient(90deg, transparent, var(--acid), transparent);
+      }
+
+      .live-readout {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .badge {
+        padding: 10px 12px;
+        border-radius: 18px;
+        border: 1px solid rgba(115, 157, 170, 0.16);
+        background: rgba(10, 15, 20, 0.72);
+      }
+
+      .badge strong {
+        display: block;
+        margin-top: 6px;
+        font-size: 1rem;
+        letter-spacing: 0.06em;
+      }
+
+      .footer {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 16px;
+        margin-top: 16px;
+      }
+
+      .footer-card {
+        padding: 16px;
+      }
+
+      .footer-card p {
+        margin-top: 10px;
+        color: #b7c0c5;
+        line-height: 1.5;
+        font-size: 0.94rem;
+      }
+
+      .back {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 12px;
+        color: #b8c4cb;
+        font-size: 0.72rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        text-decoration: none;
+      }
+
+      .back::before {
+        content: "←";
+        font-size: 0.84rem;
+      }
+
+      #pane-group {
+        transform-origin: 50% 50%;
+      }
+
+      .pane {
+        fill: rgba(12, 18, 24, 0.46);
+        stroke: rgba(124, 170, 184, 0.22);
+        stroke-width: 1.4;
+      }
+
+      .pane-glow {
+        fill: none;
+        stroke-width: 2.4;
+        mix-blend-mode: screen;
+      }
+
+      .pane-line {
+        fill: none;
+        stroke-width: 1.4;
+        opacity: 0.72;
+      }
+
+      .pane-dot {
+        stroke: none;
+      }
+
+      .focus-band {
+        fill: rgba(255, 255, 255, 0.04);
+        stroke: rgba(255, 255, 255, 0.08);
+        stroke-width: 1.2;
+      }
+
+      .guides {
+        fill: none;
+        stroke: rgba(123, 174, 188, 0.14);
+        stroke-width: 1.2;
+        stroke-dasharray: 5 10;
+      }
+
+      @media (max-width: 980px) {
+        .board,
+        .footer {
+          grid-template-columns: 1fr;
+        }
+
+        .hero,
+        .panel,
+        .hero-svg {
+          min-height: 62vh;
+        }
+
+        .hero-copy {
+          flex-direction: column;
+        }
+
+        .hero-copy p {
+          text-align: left;
+        }
+      }
+
+      @media (max-width: 640px) {
+        main {
+          width: min(100% - 14px, 100%);
+          padding-top: 10px;
+        }
+
+        .stack {
+          padding: 12px;
+        }
+
+        .card,
+        .footer-card {
+          padding: 14px;
+        }
+
+        .live-readout,
+        .chip-row {
+          grid-template-columns: 1fr;
+        }
+
+        .meter {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="field" aria-hidden="true"></canvas>
+    <main>
+      <div class="topline">
+        <span>#051 generated animation</span>
+        <span>browser-native split-focus interface study</span>
+      </div>
+
+      <section class="board">
+        <div class="panel">
+          <div class="hero-copy">
+            <div>
+              <div class="eyebrow">Rack Focus Switchyard</div>
+              <h1>Distributed panes, no mascot center.</h1>
+            </div>
+            <p>
+              Pointer movement pushes branch growth away from itself, tilts the
+              active focus plane, and redistributes which window receives the
+              brightest relay traffic.
+            </p>
+          </div>
+
+          <div class="hero">
+            <svg class="hero-svg" viewBox="0 0 860 760" preserveAspectRatio="xMidYMid slice">
+              <defs>
+                <linearGradient id="cyanStroke" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#82d7ea" stop-opacity="0" />
+                  <stop offset="48%" stop-color="#82d7ea" stop-opacity="0.9" />
+                  <stop offset="100%" stop-color="#82d7ea" stop-opacity="0" />
+                </linearGradient>
+                <linearGradient id="magentaStroke" x1="100%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" stop-color="#ff6e9d" stop-opacity="0" />
+                  <stop offset="50%" stop-color="#ff6e9d" stop-opacity="0.86" />
+                  <stop offset="100%" stop-color="#ff6e9d" stop-opacity="0" />
+                </linearGradient>
+                <linearGradient id="amberStroke" x1="0%" y1="100%" x2="100%" y2="0%">
+                  <stop offset="0%" stop-color="#efbf7e" stop-opacity="0" />
+                  <stop offset="50%" stop-color="#efbf7e" stop-opacity="0.82" />
+                  <stop offset="100%" stop-color="#efbf7e" stop-opacity="0" />
+                </linearGradient>
+                <filter id="softBlur">
+                  <feGaussianBlur stdDeviation="9" />
+                </filter>
+              </defs>
+
+              <g opacity="0.42">
+                <path class="guides" d="M110 168H744" />
+                <path class="guides" d="M90 344H760" />
+                <path class="guides" d="M112 548H742" />
+                <path class="guides" d="M188 104V650" />
+                <path class="guides" d="M432 86V676" />
+                <path class="guides" d="M684 118V650" />
+              </g>
+
+              <g id="pane-group">
+                <g data-pane="0" transform="translate(118 132) rotate(-9 168 114)">
+                  <rect class="pane" x="0" y="0" width="336" height="228" rx="28" />
+                  <rect class="focus-band" x="22" y="24" width="292" height="36" rx="18" />
+                  <path class="pane-glow" stroke="url(#cyanStroke)" d="M30 58C102 78 132 82 188 112C234 136 262 176 306 196" />
+                  <path class="pane-line" stroke="url(#magentaStroke)" d="M38 190C90 176 114 142 170 142C218 142 250 162 294 118" />
+                  <path class="pane-line" stroke="url(#amberStroke)" d="M46 88C94 116 136 136 196 130C242 124 258 96 304 82" />
+                  <circle class="pane-dot" cx="80" cy="90" r="4" fill="#82d7ea" />
+                  <circle class="pane-dot" cx="236" cy="144" r="4" fill="#ff6e9d" />
+                  <circle class="pane-dot" cx="280" cy="84" r="4" fill="#efbf7e" />
+                </g>
+
+                <g data-pane="1" transform="translate(376 96) rotate(7 166 130)">
+                  <rect class="pane" x="0" y="0" width="332" height="260" rx="34" />
+                  <rect class="focus-band" x="26" y="26" width="280" height="42" rx="21" />
+                  <path class="pane-glow" stroke="url(#magentaStroke)" d="M38 202C96 166 116 118 184 108C246 100 278 134 298 202" />
+                  <path class="pane-line" stroke="url(#cyanStroke)" d="M44 74C82 86 124 104 164 152C194 188 212 204 286 220" />
+                  <path class="pane-line" stroke="url(#amberStroke)" d="M62 224C104 188 138 172 184 164C228 156 256 130 278 86" />
+                  <circle class="pane-dot" cx="88" cy="88" r="4" fill="#82d7ea" />
+                  <circle class="pane-dot" cx="196" cy="114" r="4" fill="#ff6e9d" />
+                  <circle class="pane-dot" cx="270" cy="188" r="4" fill="#efbf7e" />
+                </g>
+
+                <g data-pane="2" transform="translate(212 382) rotate(4 214 126)">
+                  <rect class="pane" x="0" y="0" width="428" height="252" rx="30" />
+                  <rect class="focus-band" x="30" y="28" width="366" height="40" rx="20" />
+                  <path class="pane-glow" stroke="url(#amberStroke)" d="M38 210C92 166 122 152 168 148C234 142 254 190 320 176C352 168 374 130 394 84" />
+                  <path class="pane-line" stroke="url(#cyanStroke)" d="M56 92C118 122 130 160 190 174C236 184 290 170 356 120" />
+                  <path class="pane-line" stroke="url(#magentaStroke)" d="M74 214C122 186 172 86 224 84C286 82 314 142 370 152" />
+                  <circle class="pane-dot" cx="104" cy="96" r="4" fill="#82d7ea" />
+                  <circle class="pane-dot" cx="206" cy="154" r="4" fill="#ff6e9d" />
+                  <circle class="pane-dot" cx="338" cy="124" r="4" fill="#efbf7e" />
+                </g>
+              </g>
+
+              <g id="focus-echo" opacity="0.36" filter="url(#softBlur)">
+                <ellipse id="focus-a" cx="190" cy="186" rx="88" ry="44" fill="rgba(130, 215, 234, 0.12)" />
+                <ellipse id="focus-b" cx="532" cy="196" rx="108" ry="54" fill="rgba(255, 110, 157, 0.14)" />
+                <ellipse id="focus-c" cx="420" cy="522" rx="132" ry="58" fill="rgba(239, 191, 126, 0.14)" />
+              </g>
+            </svg>
+          </div>
+        </div>
+
+        <aside class="stack">
+          <div class="card">
+            <div class="tiny">Mode driver</div>
+            <h2>Switch laws</h2>
+            <p>
+              Three motion laws bias the same layout: `rack` sharpens one pane,
+              `drift` lets reflections double and lag, and `braid` makes relay
+              lines knot through several windows at once.
+            </p>
+            <div class="controls" style="margin-top: 14px">
+              <div class="chip-row" id="modeRow">
+                <button type="button" data-mode="rack" aria-pressed="true">Rack</button>
+                <button type="button" data-mode="drift" aria-pressed="false">Drift</button>
+                <button type="button" data-mode="braid" aria-pressed="false">Braid</button>
+              </div>
+              <div class="live-readout">
+                <div class="badge">
+                  <div class="tiny">Active pane</div>
+                  <strong id="activePane">A1</strong>
+                </div>
+                <div class="badge">
+                  <div class="tiny">Pointer bias</div>
+                  <strong id="biasReadout">0.42</strong>
+                </div>
+                <div class="badge">
+                  <div class="tiny">Anchors</div>
+                  <strong id="anchorReadout">0</strong>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="tiny">Focus meters</div>
+            <h3>Relay balance</h3>
+            <div class="meter-list" style="margin-top: 14px">
+              <div class="meter">
+                <div class="label">pane a1</div>
+                <div class="track"><div class="fill" id="meterA"></div></div>
+                <div class="meter-value" id="valueA">46</div>
+              </div>
+              <div class="meter">
+                <div class="label">pane b4</div>
+                <div class="track"><div class="fill" id="meterB"></div></div>
+                <div class="meter-value" id="valueB">58</div>
+              </div>
+              <div class="meter">
+                <div class="label">pane c2</div>
+                <div class="track"><div class="fill" id="meterC"></div></div>
+                <div class="meter-value" id="valueC">62</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="tiny">Field legend</div>
+            <h3>Current signals</h3>
+            <div class="legend" style="margin-top: 14px">
+              <div class="legend-row">
+                <div class="swatch cyan"></div>
+                <div>cold route inheritance and stable pane ownership</div>
+              </div>
+              <div class="legend-row">
+                <div class="swatch magenta"></div>
+                <div>double-exposure drift and reflected relay spill</div>
+              </div>
+              <div class="legend-row">
+                <div class="swatch amber"></div>
+                <div>long-exposure traffic and late-pane catchup</div>
+              </div>
+              <div class="legend-row">
+                <div class="swatch acid"></div>
+                <div>brief cursor repulsion seeding new branch angles</div>
+              </div>
+            </div>
+          </div>
+        </aside>
+      </section>
+
+      <section class="footer">
+        <article class="footer-card">
+          <div class="tiny">Idea</div>
+          <h3>Multipane cinematic control surface</h3>
+          <p>
+            This study shifts away from creatures into a page that feels closer
+            to a design-usable interface poster: offset windows, focus-rack
+            echoes, calibration guides, and live signal traffic with no single
+            central emblem.
+          </p>
+        </article>
+        <article class="footer-card">
+          <div class="tiny">Interaction</div>
+          <h3>Repel, retune, plant anchors</h3>
+          <p>
+            Move the pointer to repel new branch growth from the cursor and
+            intensify the nearest pane. Click to plant up to six temporary
+            anchors that keep bending traffic long after the pointer leaves.
+          </p>
+        </article>
+        <article class="footer-card">
+          <div class="tiny">Next</div>
+          <h3>Human trace or live input</h3>
+          <p>
+            A stronger follow-up could introduce a face, hand, or live text
+            event inside one pane while keeping the page logic non-creature and
+            letting realism coexist with the field instead of getting swallowed
+            by it.
+          </p>
+          <a class="back" href="../../index.html">Back to animation index</a>
+        </article>
+      </section>
+    </main>
+
+    <script>
+      const canvas = document.getElementById("field");
+      const ctx = canvas.getContext("2d");
+
+      const pointer = { x: window.innerWidth * 0.56, y: window.innerHeight * 0.44, targetX: 0, targetY: 0, active: false };
+      pointer.targetX = pointer.x;
+      pointer.targetY = pointer.y;
+
+      const panes = [...document.querySelectorAll("[data-pane]")];
+      const focusEchoes = [
+        document.getElementById("focus-a"),
+        document.getElementById("focus-b"),
+        document.getElementById("focus-c"),
+      ];
+
+      const readouts = {
+        activePane: document.getElementById("activePane"),
+        bias: document.getElementById("biasReadout"),
+        anchors: document.getElementById("anchorReadout"),
+        meters: [
+          { fill: document.getElementById("meterA"), value: document.getElementById("valueA") },
+          { fill: document.getElementById("meterB"), value: document.getElementById("valueB") },
+          { fill: document.getElementById("meterC"), value: document.getElementById("valueC") },
+        ],
+      };
+
+      let mode = "rack";
+      let time = 0;
+      const anchors = [];
+      const paneStates = [
+        { x: 190, y: 186, meter: 0.46 },
+        { x: 532, y: 196, meter: 0.58 },
+        { x: 420, y: 522, meter: 0.62 },
+      ];
+
+      const streams = Array.from({ length: 72 }, (_, index) => ({
+        lane: index % 3,
+        seed: Math.random() * 1000,
+        speed: 0.3 + Math.random() * 0.9,
+        offset: Math.random(),
+        width: 1 + Math.random() * 2.6,
+        alpha: 0.16 + Math.random() * 0.34,
+        hue: index % 4,
+      }));
+
+      const particles = Array.from({ length: 180 }, () => ({
+        x: Math.random(),
+        y: Math.random(),
+        size: 1 + Math.random() * 2.4,
+        drift: 0.2 + Math.random() * 0.8,
+        phase: Math.random() * Math.PI * 2,
+        hue: Math.floor(Math.random() * 3),
+      }));
+
+      function resize() {
+        const scale = window.devicePixelRatio || 1;
+        canvas.width = window.innerWidth * scale;
+        canvas.height = window.innerHeight * scale;
+        canvas.style.width = `${window.innerWidth}px`;
+        canvas.style.height = `${window.innerHeight}px`;
+        ctx.setTransform(scale, 0, 0, scale, 0, 0);
+      }
+
+      function clamp(value, min, max) {
+        return Math.min(max, Math.max(min, value));
+      }
+
+      function lerp(a, b, t) {
+        return a + (b - a) * t;
+      }
+
+      function distance(ax, ay, bx, by) {
+        return Math.hypot(ax - bx, ay - by);
+      }
+
+      function setMode(nextMode) {
+        mode = nextMode;
+        document.querySelectorAll("#modeRow button").forEach((button) => {
+          button.setAttribute("aria-pressed", String(button.dataset.mode === nextMode));
+        });
+      }
+
+      document.getElementById("modeRow").addEventListener("click", (event) => {
+        const button = event.target.closest("button[data-mode]");
+        if (!button) {
+          return;
+        }
+        setMode(button.dataset.mode);
+      });
+
+      window.addEventListener("pointermove", (event) => {
+        pointer.active = true;
+        pointer.targetX = event.clientX;
+        pointer.targetY = event.clientY;
+      });
+
+      window.addEventListener("pointerleave", () => {
+        pointer.active = false;
+      });
+
+      window.addEventListener("click", (event) => {
+        anchors.push({
+          x: event.clientX,
+          y: event.clientY,
+          born: time,
+        });
+        while (anchors.length > 6) {
+          anchors.shift();
+        }
+      });
+
+      window.addEventListener("keydown", (event) => {
+        if (event.key === "1") setMode("rack");
+        if (event.key === "2") setMode("drift");
+        if (event.key === "3") setMode("braid");
+      });
+
+      function paneInfluence(pane) {
+        const panePosition = paneStates[pane];
+        const pointerBias = 1 - clamp(distance(pointer.x, pointer.y, panePosition.x, panePosition.y) / 420, 0, 1);
+        const anchorBias = anchors.reduce((sum, anchor) => {
+          const age = (time - anchor.born) / 8;
+          const fade = clamp(1 - age, 0, 1);
+          return sum + (1 - clamp(distance(anchor.x, anchor.y, panePosition.x, panePosition.y) / 300, 0, 1)) * fade;
+        }, 0);
+        const modeOffset = mode === "rack" ? [0.18, 0.04, -0.08][pane] : mode === "drift" ? [0.02, 0.18, -0.04][pane] : [-0.02, 0.06, 0.2][pane];
+        return clamp(0.34 + pointerBias * 0.38 + anchorBias * 0.12 + modeOffset, 0.06, 0.98);
+      }
+
+      function updatePaneTransforms() {
+        let strongest = 0;
+        let strongestValue = -Infinity;
+
+        panes.forEach((pane, index) => {
+          const influence = paneInfluence(index);
+          paneStates[index].meter = lerp(paneStates[index].meter, influence, 0.08);
+          if (paneStates[index].meter > strongestValue) {
+            strongestValue = paneStates[index].meter;
+            strongest = index;
+          }
+
+          const skew = (pointer.x / window.innerWidth - 0.5) * (index === 1 ? 8 : 5);
+          const drift = Math.sin(time * 0.6 + index * 1.7) * (mode === "drift" ? 9 : mode === "braid" ? 5 : 3);
+          const scale = 1 + paneStates[index].meter * 0.04;
+          const translateY = Math.sin(time * 0.9 + index) * (mode === "rack" ? 3 : 6);
+          const existing = index === 0 ? "translate(118 132) rotate(-9 168 114)"
+            : index === 1 ? "translate(376 96) rotate(7 166 130)"
+            : "translate(212 382) rotate(4 214 126)";
+          pane.setAttribute("transform", `${existing} skewX(${skew + drift * 0.16}) scale(${scale}) translate(0 ${translateY})`);
+
+          const echo = focusEchoes[index];
+          const rx = index === 0 ? 88 : index === 1 ? 108 : 132;
+          const ry = index === 0 ? 44 : index === 1 ? 54 : 58;
+          echo.setAttribute("rx", String(rx + paneStates[index].meter * 22));
+          echo.setAttribute("ry", String(ry + paneStates[index].meter * 8));
+          echo.setAttribute("opacity", String(0.16 + paneStates[index].meter * 0.38));
+        });
+
+        readouts.activePane.textContent = strongest === 0 ? "A1" : strongest === 1 ? "B4" : "C2";
+        const bias = clamp((pointer.x / window.innerWidth) * 0.5 + (1 - pointer.y / window.innerHeight) * 0.5, 0, 1);
+        readouts.bias.textContent = bias.toFixed(2);
+        readouts.anchors.textContent = String(anchors.length);
+
+        readouts.meters.forEach((meter, index) => {
+          meter.fill.style.width = `${Math.round(paneStates[index].meter * 100)}%`;
+          meter.value.textContent = String(Math.round(paneStates[index].meter * 100));
+        });
+      }
+
+      function drawBackground() {
+        ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+
+        const background = ctx.createLinearGradient(0, 0, 0, window.innerHeight);
+        background.addColorStop(0, "rgba(8, 12, 18, 0.2)");
+        background.addColorStop(1, "rgba(0, 0, 0, 0.46)");
+        ctx.fillStyle = background;
+        ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
+
+        particles.forEach((particle, index) => {
+          const x = particle.x * window.innerWidth + Math.sin(time * 0.3 + particle.phase) * 18;
+          const y = particle.y * window.innerHeight + Math.cos(time * particle.drift + particle.phase) * 14;
+          const pull = pointer.active ? clamp(1 - distance(x, y, pointer.x, pointer.y) / 180, 0, 1) : 0;
+          const size = particle.size + pull * 1.8;
+          const colors = ["130, 215, 234", "255, 110, 157", "239, 191, 126"];
+          ctx.beginPath();
+          ctx.fillStyle = `rgba(${colors[particle.hue]}, ${0.08 + pull * 0.28})`;
+          ctx.arc(x, y, size, 0, Math.PI * 2);
+          ctx.fill();
+
+          if (index % 8 === 0) {
+            ctx.beginPath();
+            ctx.strokeStyle = `rgba(${colors[particle.hue]}, ${0.04 + pull * 0.16})`;
+            ctx.lineWidth = 1;
+            ctx.moveTo(x - 16, y);
+            ctx.lineTo(x + 16, y);
+            ctx.stroke();
+          }
+        });
+      }
+
+      function streamPoint(stream, t) {
+        const lane = paneStates[stream.lane];
+        const cx = lane.x;
+        const cy = lane.y;
+        const wave = Math.sin(t * 6 + stream.seed) * 18;
+        const repel = pointer.active ? clamp(1 - distance(cx, cy, pointer.x, pointer.y) / 320, 0, 1) : 0;
+        const repelX = pointer.active ? (cx - pointer.x) * 0.08 * repel : 0;
+        const repelY = pointer.active ? (cy - pointer.y) * 0.06 * repel : 0;
+
+        if (stream.lane === 0) {
+          return {
+            x: lerp(76, 418, t) + wave + repelX,
+            y: lerp(118, 302, t) + Math.sin(t * 8 + time * 1.2 + stream.seed) * 26 + repelY,
+          };
+        }
+        if (stream.lane === 1) {
+          return {
+            x: lerp(402, 700, t) + Math.cos(t * 7 + stream.seed) * 24 + repelX,
+            y: lerp(120, 328, t) + wave + repelY,
+          };
+        }
+        return {
+          x: lerp(180, 640, t) + Math.sin(t * 8 + stream.seed) * 28 + repelX,
+          y: lerp(416, 628, t) + Math.cos(t * 6 + time * 1.1 + stream.seed) * 22 + repelY,
+        };
+      }
+
+      function drawStreams() {
+        streams.forEach((stream) => {
+          const paneMeter = paneStates[stream.lane].meter;
+          const steps = mode === "braid" ? 20 : 16;
+          const hueMap = [
+            "130, 215, 234",
+            "255, 110, 157",
+            "239, 191, 126",
+            "215, 239, 109",
+          ];
+
+          ctx.beginPath();
+          for (let step = 0; step <= steps; step += 1) {
+            const t = step / steps;
+            const braidShift = mode === "braid" ? Math.sin(t * Math.PI * 3 + time * 1.8 + stream.seed) * 42 : 0;
+            const driftShift = mode === "drift" ? Math.cos(t * Math.PI * 2 + time * 1.1 + stream.seed) * 18 : 0;
+            const point = streamPoint(stream, t);
+            const x = point.x + braidShift;
+            const y = point.y + driftShift;
+            if (step === 0) {
+              ctx.moveTo(x, y);
+            } else {
+              ctx.lineTo(x, y);
+            }
+          }
+          ctx.strokeStyle = `rgba(${hueMap[stream.hue]}, ${stream.alpha * (0.66 + paneMeter * 0.8)})`;
+          ctx.lineWidth = stream.width * (0.8 + paneMeter * 0.9);
+          ctx.stroke();
+
+          const beadT = (time * 0.07 * stream.speed + stream.offset) % 1;
+          const beadPoint = streamPoint(stream, beadT);
+          const beadSize = 1.8 + paneMeter * 3;
+          ctx.beginPath();
+          ctx.fillStyle = `rgba(${hueMap[stream.hue]}, ${0.44 + paneMeter * 0.42})`;
+          ctx.arc(beadPoint.x, beadPoint.y, beadSize, 0, Math.PI * 2);
+          ctx.fill();
+        });
+      }
+
+      function drawAnchors() {
+        anchors.forEach((anchor, index) => {
+          const age = (time - anchor.born) / 8;
+          const fade = clamp(1 - age, 0, 1);
+          const radius = 22 + (1 - fade) * 44 + Math.sin(time * 5 + index) * 2;
+          ctx.beginPath();
+          ctx.strokeStyle = `rgba(130, 215, 234, ${0.22 * fade})`;
+          ctx.lineWidth = 1.2;
+          ctx.arc(anchor.x, anchor.y, radius, 0, Math.PI * 2);
+          ctx.stroke();
+
+          ctx.beginPath();
+          ctx.fillStyle = `rgba(255, 110, 157, ${0.18 * fade})`;
+          ctx.arc(anchor.x, anchor.y, 4 + fade * 3, 0, Math.PI * 2);
+          ctx.fill();
+        });
+      }
+
+      function step() {
+        time += 0.016;
+        pointer.x = lerp(pointer.x, pointer.targetX, pointer.active ? 0.12 : 0.04);
+        pointer.y = lerp(pointer.y, pointer.targetY, pointer.active ? 0.12 : 0.04);
+
+        drawBackground();
+        drawStreams();
+        drawAnchors();
+        updatePaneTransforms();
+
+        requestAnimationFrame(step);
+      }
+
+      resize();
+      setMode("rack");
+      requestAnimationFrame(step);
+      window.addEventListener("resize", resize);
+    </script>
+  </body>
+</html>

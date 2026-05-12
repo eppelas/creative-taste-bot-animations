@@ -1,0 +1,677 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>#017 Neon Pollen Parallax</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #04050b;
+        --panel: rgba(10, 12, 18, 0.62);
+        --line: rgba(240, 234, 225, 0.12);
+        --text: #f2ece2;
+        --muted: rgba(242, 236, 226, 0.68);
+        --pink: #ff5ea8;
+        --cyan: #62d9ff;
+        --amber: #ffd37b;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        background: var(--bg);
+        color: var(--text);
+        font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+      }
+
+      body {
+        overflow: hidden;
+      }
+
+      canvas {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        display: block;
+      }
+
+      .hud {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 1rem;
+        padding: 1rem;
+        pointer-events: none;
+      }
+
+      .panel,
+      .rail {
+        pointer-events: auto;
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        backdrop-filter: blur(18px);
+        box-shadow: 0 18px 48px rgba(0, 0, 0, 0.28);
+      }
+
+      .panel {
+        width: min(32rem, 100%);
+        padding: 1rem;
+      }
+
+      .rail {
+        width: min(18rem, 42vw);
+        padding: 0.9rem;
+      }
+
+      .eyebrow,
+      .hint,
+      .meta,
+      .label,
+      .value,
+      .small {
+        margin: 0;
+      }
+
+      .eyebrow,
+      .label,
+      .small {
+        font-size: 0.7rem;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: rgba(242, 236, 226, 0.54);
+      }
+
+      h1 {
+        margin: 0.4rem 0 0.55rem;
+        font-size: clamp(1.9rem, 4vw, 3rem);
+        line-height: 0.94;
+      }
+
+      .hint,
+      .meta {
+        color: var(--muted);
+        line-height: 1.48;
+        font-size: 0.93rem;
+      }
+
+      .meta {
+        margin-top: 0.75rem;
+        font-size: 0.85rem;
+      }
+
+      .back {
+        display: inline-flex;
+        margin-top: 0.8rem;
+        color: var(--text);
+        text-decoration: none;
+        border-bottom: 1px solid rgba(242, 236, 226, 0.34);
+      }
+
+      .mode-grid {
+        display: grid;
+        gap: 0.55rem;
+      }
+
+      .mode-button {
+        width: 100%;
+        padding: 0.72rem 0.8rem;
+        border: 1px solid rgba(242, 236, 226, 0.1);
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.03);
+        color: var(--text);
+        text-align: left;
+        cursor: pointer;
+      }
+
+      .mode-button strong {
+        display: block;
+        font-size: 0.88rem;
+        margin-bottom: 0.18rem;
+      }
+
+      .mode-button span {
+        display: block;
+        color: var(--muted);
+        font-size: 0.78rem;
+        line-height: 1.35;
+      }
+
+      .mode-button.active {
+        border-color: rgba(98, 217, 255, 0.28);
+        box-shadow: inset 0 0 0 1px rgba(98, 217, 255, 0.18);
+      }
+
+      .rows {
+        display: grid;
+        gap: 0.7rem;
+        margin-top: 0.8rem;
+      }
+
+      .row {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        padding-bottom: 0.45rem;
+        border-bottom: 1px solid rgba(242, 236, 226, 0.08);
+      }
+
+      .value {
+        font-size: 1rem;
+        color: var(--text);
+      }
+
+      @media (max-width: 860px) {
+        .hud {
+          flex-direction: column;
+          align-items: stretch;
+        }
+
+        .rail {
+          width: min(100%, 19rem);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="scene"></canvas>
+    <div class="hud">
+      <section class="panel">
+        <p class="eyebrow">Code Animation Study #017</p>
+        <h1>Neon Pollen Parallax</h1>
+        <p class="hint">
+          A night-world seen through reflective glass: drifting pollen,
+          suspended relay panes, and long-exposure light seams that sharpen or
+          blur as the point of focus slides through the scene.
+        </p>
+        <p class="meta">
+          Move slowly to change focal depth and reflection angle. Drag faster to
+          bend the field harder. The scene should feel like one coherent
+          environment, not a specimen plate or generic neon noise.
+        </p>
+        <a class="back" href="../../index.html">Index</a>
+      </section>
+
+      <section class="rail" aria-label="Field controls">
+        <p class="small" style="margin-bottom: 0.7rem">Field behavior</p>
+        <div class="mode-grid" id="modeGrid"></div>
+        <div class="rows">
+          <div class="row">
+            <div>
+              <p class="label">Focus plane</p>
+              <p class="value" id="focusValue">mid haze</p>
+            </div>
+          </div>
+          <div class="row">
+            <div>
+              <p class="label">Reflection gain</p>
+              <p class="value" id="reflectionValue">0.42</p>
+            </div>
+          </div>
+          <div class="row">
+            <div>
+              <p class="label">Pollen drift</p>
+              <p class="value" id="driftValue">soft scatter</p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+    <script src="../../shared/study-notes.js"></script>
+
+    <script>
+      const canvas = document.getElementById("scene");
+      const ctx = canvas.getContext("2d");
+      const modeGrid = document.getElementById("modeGrid");
+      const focusValue = document.getElementById("focusValue");
+      const reflectionValue = document.getElementById("reflectionValue");
+      const driftValue = document.getElementById("driftValue");
+
+      const TAU = Math.PI * 2;
+      const pollen = [];
+      const rails = [];
+      const panes = [];
+      const halos = [];
+      const motes = [];
+
+      let width = window.innerWidth;
+      let height = window.innerHeight;
+      let dpr = Math.min(window.devicePixelRatio || 1, 2);
+      let frame = 0;
+
+      const pointer = {
+        x: 0.5,
+        y: 0.56,
+        tx: 0.5,
+        ty: 0.56,
+        energy: 0.12,
+        active: false,
+        speed: 0,
+        lastX: 0.5,
+        lastY: 0.56,
+      };
+
+      const modes = [
+        {
+          id: "hush",
+          title: "Hush bloom",
+          note: "Softer drift, wider blur, quieter relays.",
+          density: 1,
+          streak: 0.85,
+          flow: 0.4,
+        },
+        {
+          id: "relay",
+          title: "Relay glass",
+          note: "Balanced field with clearer pane reflections.",
+          density: 1.15,
+          streak: 1,
+          flow: 0.6,
+        },
+        {
+          id: "storm",
+          title: "Signal storm",
+          note: "Denser pollen and longer light memory.",
+          density: 1.32,
+          streak: 1.26,
+          flow: 0.95,
+        },
+      ];
+
+      let currentMode = modes[1];
+
+      function rand(min, max) {
+        return min + Math.random() * (max - min);
+      }
+
+      function clamp(value, min, max) {
+        return Math.max(min, Math.min(max, value));
+      }
+
+      function ease(a, b, t) {
+        return a + (b - a) * t;
+      }
+
+      function mixColor(a, b, t) {
+        return [
+          Math.round(ease(a[0], b[0], t)),
+          Math.round(ease(a[1], b[1], t)),
+          Math.round(ease(a[2], b[2], t)),
+        ];
+      }
+
+      function colorString(rgb, alpha) {
+        return `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${alpha})`;
+      }
+
+      function seedScene() {
+        pollen.length = 0;
+        rails.length = 0;
+        panes.length = 0;
+        halos.length = 0;
+        motes.length = 0;
+
+        const pollenCount = Math.floor(clamp((width * height) / 5400, 120, 260));
+        for (let i = 0; i < pollenCount; i++) {
+          const depth = Math.pow(Math.random(), 1.45);
+          pollen.push({
+            x: rand(0, 1),
+            y: rand(0, 1),
+            depth,
+            base: rand(0.8, 2.8) + depth * 7.5,
+            drift: rand(0.08, 0.65),
+            phase: rand(0, TAU),
+            hue: Math.random(),
+            skew: rand(-1, 1),
+            flicker: rand(0.4, 1),
+          });
+        }
+
+        const railCount = width < 720 ? 6 : 9;
+        for (let i = 0; i < railCount; i++) {
+          rails.push({
+            y: rand(0.12, 0.9),
+            bend: rand(-0.22, 0.22),
+            width: rand(0.12, 0.4),
+            alpha: rand(0.08, 0.22),
+            speed: rand(0.14, 0.42),
+            phase: rand(0, TAU),
+            warm: Math.random() > 0.72,
+          });
+        }
+
+        const paneCount = width < 720 ? 4 : 6;
+        for (let i = 0; i < paneCount; i++) {
+          panes.push({
+            x: rand(0.12, 0.88),
+            width: rand(0.08, 0.18),
+            lean: rand(-0.08, 0.08),
+            alpha: rand(0.08, 0.18),
+            phase: rand(0, TAU),
+          });
+        }
+
+        for (let i = 0; i < 5; i++) {
+          halos.push({
+            x: rand(0.16, 0.84),
+            y: rand(0.14, 0.74),
+            radius: rand(0.1, 0.24),
+            alpha: rand(0.08, 0.14),
+            color: i % 2 === 0 ? [255, 94, 168] : [98, 217, 255],
+            phase: rand(0, TAU),
+          });
+        }
+
+        const moteCount = Math.floor(clamp((width * height) / 18000, 40, 90));
+        for (let i = 0; i < moteCount; i++) {
+          motes.push({
+            x: rand(0, width),
+            y: rand(0, height),
+            size: rand(0.6, 2.4),
+            drift: rand(0.08, 0.4),
+            phase: rand(0, TAU),
+          });
+        }
+      }
+
+      function resize() {
+        width = window.innerWidth;
+        height = window.innerHeight;
+        dpr = Math.min(window.devicePixelRatio || 1, 2);
+        canvas.width = width * dpr;
+        canvas.height = height * dpr;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        seedScene();
+      }
+
+      function renderModeButtons() {
+        modeGrid.innerHTML = "";
+        for (const mode of modes) {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "mode-button";
+          if (mode.id === currentMode.id) {
+            button.classList.add("active");
+          }
+          button.innerHTML = `<strong>${mode.title}</strong><span>${mode.note}</span>`;
+          button.addEventListener("click", () => {
+            currentMode = mode;
+            renderModeButtons();
+          });
+          modeGrid.appendChild(button);
+        }
+      }
+
+      function updatePointer(clientX, clientY) {
+        const nx = clamp(clientX / Math.max(width, 1), 0, 1);
+        const ny = clamp(clientY / Math.max(height, 1), 0, 1);
+        const dx = nx - pointer.lastX;
+        const dy = ny - pointer.lastY;
+        pointer.speed = Math.min(1, Math.hypot(dx, dy) * 18);
+        pointer.lastX = nx;
+        pointer.lastY = ny;
+        pointer.tx = nx;
+        pointer.ty = ny;
+        pointer.active = true;
+      }
+
+      function drawBackground(t) {
+        const grad = ctx.createLinearGradient(0, 0, 0, height);
+        grad.addColorStop(0, "#070916");
+        grad.addColorStop(0.46, "#06070f");
+        grad.addColorStop(1, "#020307");
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, width, height);
+
+        const topGlow = ctx.createRadialGradient(
+          width * 0.5,
+          height * 0.08,
+          0,
+          width * 0.5,
+          height * 0.08,
+          height * 0.7
+        );
+        topGlow.addColorStop(0, "rgba(101, 82, 255, 0.12)");
+        topGlow.addColorStop(0.32, "rgba(255, 94, 168, 0.06)");
+        topGlow.addColorStop(1, "rgba(0, 0, 0, 0)");
+        ctx.fillStyle = topGlow;
+        ctx.fillRect(0, 0, width, height);
+
+        const horizon = height * (0.58 + (pointer.y - 0.5) * 0.08);
+        ctx.fillStyle = "rgba(255, 220, 150, 0.03)";
+        ctx.fillRect(0, horizon, width, height - horizon);
+
+        for (const halo of halos) {
+          const pulse = 1 + Math.sin(t * 0.7 + halo.phase) * 0.08;
+          const x = halo.x * width + (pointer.x - 0.5) * 42 * (1 - halo.radius);
+          const y = halo.y * height + Math.sin(t * 0.35 + halo.phase) * 16;
+          const r = halo.radius * height * pulse;
+          const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+          g.addColorStop(0, colorString(halo.color, halo.alpha * 1.1));
+          g.addColorStop(0.45, colorString(halo.color, halo.alpha * 0.32));
+          g.addColorStop(1, colorString(halo.color, 0));
+          ctx.fillStyle = g;
+          ctx.beginPath();
+          ctx.arc(x, y, r, 0, TAU);
+          ctx.fill();
+        }
+      }
+
+      function drawRails(t, reflectionGain) {
+        ctx.lineCap = "round";
+        for (const rail of rails) {
+          const y = rail.y * height + Math.sin(t * rail.speed + rail.phase) * 24;
+          const xShift = (pointer.x - 0.5) * width * 0.16;
+          const bend = rail.bend + (pointer.y - 0.5) * 0.22;
+          const length = width * (0.24 + rail.width * currentMode.streak);
+          const startX = width * 0.18 + xShift + Math.sin(t * 0.3 + rail.phase) * 40;
+          const endX = startX + length;
+
+          const color = rail.warm
+            ? "rgba(255, 211, 123, 0.12)"
+            : "rgba(98, 217, 255, 0.11)";
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 1.2 + currentMode.streak * 1.4;
+          ctx.beginPath();
+          ctx.moveTo(startX, y);
+          ctx.bezierCurveTo(
+            startX + length * 0.22,
+            y + bend * height * 0.18,
+            startX + length * 0.7,
+            y - bend * height * 0.12,
+            endX,
+            y + bend * height * 0.06
+          );
+          ctx.stroke();
+
+          ctx.strokeStyle = rail.warm
+            ? `rgba(255, 94, 168, ${0.08 + reflectionGain * 0.08})`
+            : `rgba(98, 217, 255, ${0.08 + reflectionGain * 0.1})`;
+          ctx.lineWidth = 0.65;
+          ctx.beginPath();
+          ctx.moveTo(startX + 18 * reflectionGain, y + 6);
+          ctx.bezierCurveTo(
+            startX + length * 0.2,
+            y + 12 + bend * height * 0.1,
+            startX + length * 0.72,
+            y - 10 - bend * height * 0.07,
+            endX + 22 * reflectionGain,
+            y + 8
+          );
+          ctx.stroke();
+        }
+      }
+
+      function drawPanes(t, reflectionGain) {
+        for (const pane of panes) {
+          const x = pane.x * width + (pointer.x - 0.5) * 80 * pane.width;
+          const w = pane.width * width;
+          const lean = pane.lean * width + Math.sin(t * 0.22 + pane.phase) * 20;
+
+          ctx.fillStyle = `rgba(255, 255, 255, ${pane.alpha})`;
+          ctx.beginPath();
+          ctx.moveTo(x - w * 0.5, 0);
+          ctx.lineTo(x + w * 0.5, 0);
+          ctx.lineTo(x + w * 0.5 + lean, height);
+          ctx.lineTo(x - w * 0.5 + lean, height);
+          ctx.closePath();
+          ctx.fill();
+
+          ctx.strokeStyle = `rgba(98, 217, 255, ${0.08 + reflectionGain * 0.16})`;
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(x - w * 0.35, 0);
+          ctx.lineTo(x - w * 0.35 + lean * 0.92, height);
+          ctx.moveTo(x + w * 0.22, 0);
+          ctx.lineTo(x + w * 0.22 + lean * 1.04, height);
+          ctx.stroke();
+        }
+      }
+
+      function drawPollen(t, focusDepth, reflectionGain) {
+        for (const mote of motes) {
+          const x = (mote.x + Math.sin(t * mote.drift + mote.phase) * 10 + width) % width;
+          const y = (mote.y + Math.cos(t * mote.drift * 0.9 + mote.phase) * 8 + height) % height;
+          ctx.fillStyle = "rgba(255, 247, 228, 0.12)";
+          ctx.beginPath();
+          ctx.arc(x, y, mote.size, 0, TAU);
+          ctx.fill();
+        }
+
+        for (const item of pollen) {
+          const flow = currentMode.flow;
+          const depth = item.depth;
+          const worldX =
+            (item.x * width +
+              Math.sin(t * (0.2 + item.drift * 0.8) + item.phase) * (26 + depth * 70) +
+              Math.cos(t * 0.18 + item.phase * 1.7) * item.skew * 16 +
+              width) %
+            width;
+          const worldY =
+            (item.y * height +
+              Math.cos(t * (0.18 + item.drift * flow) + item.phase) * (18 + depth * 52) +
+              Math.sin(t * 0.24 + item.phase) * 10 +
+              height) %
+            height;
+
+          const parallaxX = (pointer.x - 0.5) * depth * 180;
+          const parallaxY = (pointer.y - 0.5) * depth * 110;
+          const x = worldX + parallaxX;
+          const y = worldY + parallaxY;
+          const focusDelta = Math.abs(depth - focusDepth);
+          const sharpness = 1 - clamp(focusDelta / 0.45, 0, 1);
+          const blur = 1 - sharpness;
+          const radius = item.base * (0.6 + blur * 1.9) * currentMode.density;
+          const alpha = (0.08 + sharpness * 0.34 + blur * 0.12) * item.flicker;
+          const baseColor = item.hue > 0.72
+            ? [255, 211, 123]
+            : item.hue > 0.38
+              ? [255, 94, 168]
+              : [98, 217, 255];
+
+          const smear = reflectionGain * blur * (14 + depth * 34) + pointer.speed * 18;
+          const smearX = smear * (0.22 + (pointer.x - 0.5) * 0.8);
+          const smearY = smear * 0.12;
+          const glow = ctx.createRadialGradient(x, y, 0, x, y, radius * 3.2);
+          glow.addColorStop(0, colorString(baseColor, alpha));
+          glow.addColorStop(0.42, colorString(baseColor, alpha * 0.34));
+          glow.addColorStop(1, colorString(baseColor, 0));
+          ctx.fillStyle = glow;
+          ctx.beginPath();
+          ctx.arc(x, y, radius * 3.2, 0, TAU);
+          ctx.fill();
+
+          if (blur > 0.22) {
+            ctx.fillStyle = colorString(baseColor, alpha * 0.22);
+            ctx.beginPath();
+            ctx.ellipse(x + smearX, y + smearY, radius * 2.4, radius * 1.2, 0, 0, TAU);
+            ctx.fill();
+          }
+
+          ctx.fillStyle = colorString(baseColor, alpha * 0.9);
+          if (sharpness > 0.48) {
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.rotate(item.phase + t * 0.2);
+            ctx.fillRect(-radius * 0.45, -radius * 0.45, radius * 0.9, radius * 0.9);
+            ctx.restore();
+          } else {
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, TAU);
+            ctx.fill();
+          }
+        }
+      }
+
+      function updateReadout(focusDepth, reflectionGain) {
+        focusValue.textContent =
+          focusDepth < 0.28 ? "near glass" : focusDepth < 0.58 ? "mid haze" : "far bloom";
+        reflectionValue.textContent = reflectionGain.toFixed(2);
+        driftValue.textContent =
+          pointer.speed > 0.36
+            ? "hard shear"
+            : currentMode.id === "storm"
+              ? "charged drift"
+              : currentMode.id === "hush"
+                ? "soft scatter"
+                : "relay sweep";
+      }
+
+      function animate(now) {
+        frame = now * 0.001;
+        pointer.x = ease(pointer.x, pointer.tx, 0.06);
+        pointer.y = ease(pointer.y, pointer.ty, 0.06);
+        pointer.energy = ease(
+          pointer.energy,
+          pointer.active ? 0.18 + pointer.speed * 0.52 : 0.1,
+          0.06
+        );
+        pointer.speed *= 0.94;
+        pointer.active = false;
+
+        const t = frame;
+        const focusDepth = clamp(0.08 + pointer.y * 0.92, 0.06, 0.96);
+        const reflectionGain = clamp(
+          0.2 + Math.abs(pointer.x - 0.5) * 1.12 + currentMode.streak * 0.12 + pointer.speed * 0.3,
+          0,
+          1
+        );
+
+        drawBackground(t);
+        drawRails(t, reflectionGain);
+        drawPanes(t, reflectionGain);
+        drawPollen(t, focusDepth, reflectionGain);
+        updateReadout(focusDepth, reflectionGain);
+
+        requestAnimationFrame(animate);
+      }
+
+      window.addEventListener("resize", resize);
+      window.addEventListener("pointermove", (event) => {
+        updatePointer(event.clientX, event.clientY);
+      });
+      window.addEventListener("pointerdown", (event) => {
+        updatePointer(event.clientX, event.clientY);
+      });
+      window.addEventListener("touchmove", (event) => {
+        const touch = event.touches[0];
+        if (touch) {
+          updatePointer(touch.clientX, touch.clientY);
+        }
+      }, { passive: true });
+
+      renderModeButtons();
+      resize();
+      requestAnimationFrame(animate);
+    </script>
+  </body>
+</html>

@@ -1,0 +1,821 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>#019 Pressure Estuary Plate</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #05060a;
+        --panel: rgba(9, 11, 18, 0.68);
+        --line: rgba(240, 234, 226, 0.12);
+        --text: #f3ede3;
+        --muted: rgba(243, 237, 227, 0.68);
+        --cream: #f1e5ce;
+        --crimson: #ff5b73;
+        --wine: #6f1e31;
+        --cyan: #77d9e7;
+        --violet: #8b7ff9;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        background:
+          radial-gradient(circle at 22% 14%, rgba(119, 217, 231, 0.08), transparent 22%),
+          radial-gradient(circle at 80% 78%, rgba(255, 91, 115, 0.08), transparent 24%),
+          linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 18%),
+          var(--bg);
+        color: var(--text);
+        font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+      }
+
+      body {
+        overflow: hidden;
+      }
+
+      canvas {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        display: block;
+      }
+
+      .hud {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 1rem;
+        padding: 1rem;
+        pointer-events: none;
+      }
+
+      .panel,
+      .rail {
+        pointer-events: auto;
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 22px;
+        backdrop-filter: blur(18px);
+        box-shadow: 0 18px 48px rgba(0, 0, 0, 0.28);
+      }
+
+      .panel {
+        width: min(34rem, 100%);
+        padding: 1rem 1rem 0.95rem;
+      }
+
+      .rail {
+        width: min(20rem, 48vw);
+        padding: 0.95rem;
+      }
+
+      .eyebrow,
+      .hint,
+      .meta,
+      .label,
+      .value,
+      .small {
+        margin: 0;
+      }
+
+      .eyebrow,
+      .label,
+      .small {
+        font-size: 0.7rem;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: rgba(243, 237, 227, 0.54);
+      }
+
+      h1 {
+        margin: 0.4rem 0 0.55rem;
+        font-size: clamp(1.95rem, 4vw, 3rem);
+        line-height: 0.94;
+      }
+
+      .hint,
+      .meta {
+        color: var(--muted);
+        line-height: 1.48;
+        font-size: 0.93rem;
+      }
+
+      .meta {
+        margin-top: 0.75rem;
+        font-size: 0.85rem;
+      }
+
+      .back {
+        display: inline-flex;
+        margin-top: 0.8rem;
+        color: var(--text);
+        text-decoration: none;
+        border-bottom: 1px solid rgba(243, 237, 227, 0.34);
+      }
+
+      .stack {
+        display: grid;
+        gap: 0.85rem;
+      }
+
+      .section {
+        display: grid;
+        gap: 0.45rem;
+      }
+
+      .mode-grid {
+        display: grid;
+        gap: 0.5rem;
+      }
+
+      .mode {
+        width: 100%;
+        padding: 0.76rem 0.82rem;
+        border: 1px solid rgba(243, 237, 227, 0.1);
+        border-radius: 15px;
+        background: rgba(255, 255, 255, 0.03);
+        color: var(--text);
+        text-align: left;
+        cursor: pointer;
+      }
+
+      .mode strong,
+      .step strong {
+        display: block;
+        font-size: 0.82rem;
+        margin-bottom: 0.14rem;
+      }
+
+      .mode span,
+      .step span {
+        display: block;
+        color: var(--muted);
+        font-size: 0.72rem;
+        line-height: 1.32;
+      }
+
+      .mode.active {
+        border-color: rgba(119, 217, 231, 0.28);
+        box-shadow: inset 0 0 0 1px rgba(119, 217, 231, 0.18);
+      }
+
+      .steps {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.45rem;
+      }
+
+      .step {
+        padding: 0.72rem 0.5rem;
+        border: 1px solid rgba(243, 237, 227, 0.12);
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.03);
+        color: var(--text);
+        cursor: pointer;
+        text-align: center;
+        font: inherit;
+      }
+
+      .step.active {
+        border-color: rgba(255, 91, 115, 0.28);
+        box-shadow: inset 0 0 0 1px rgba(255, 91, 115, 0.18);
+      }
+
+      .rows {
+        display: grid;
+        gap: 0.65rem;
+      }
+
+      .row {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        padding-bottom: 0.42rem;
+        border-bottom: 1px solid rgba(243, 237, 227, 0.08);
+      }
+
+      .value {
+        font-size: 1rem;
+        color: var(--text);
+      }
+
+      @media (max-width: 920px) {
+        .hud {
+          flex-direction: column;
+          align-items: stretch;
+        }
+
+        .rail {
+          width: min(100%, 20rem);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="scene"></canvas>
+    <div class="hud">
+      <section class="panel">
+        <p class="eyebrow">Code Animation Study #019</p>
+        <h1>Pressure Estuary Plate</h1>
+        <p class="hint">
+          A vertical habitat plate where crimson particle weather, translucent
+          chambers, and visible patch logic all belong to the same organism.
+          The controls tint, fold, and open the field instead of sitting beside
+          it as decoration.
+        </p>
+        <p class="meta">
+          Drag through the page to press the estuary open. Use the patch rail
+          to rebalance dye, turbulence, and valve aperture across the whole
+          plate. This one leans world-scale and anatomical rather than another
+          single centered specimen.
+        </p>
+        <a class="back" href="../../index.html">Index</a>
+      </section>
+
+      <section class="rail" aria-label="Estuary controls">
+        <div class="stack">
+          <div class="section">
+            <p class="small">Habitat mode</p>
+            <div class="mode-grid" id="modeGrid"></div>
+          </div>
+
+          <div class="section">
+            <p class="small">Patch switches</p>
+            <p class="label">Dye balance</p>
+            <div class="steps" id="dyeSteps"></div>
+            <p class="label">Fold drag</p>
+            <div class="steps" id="dragSteps"></div>
+            <p class="label">Valve aperture</p>
+            <div class="steps" id="apertureSteps"></div>
+          </div>
+
+          <div class="rows">
+            <div class="row">
+              <div>
+                <p class="label">Field pressure</p>
+                <p class="value" id="pressureValue">0.18</p>
+              </div>
+            </div>
+            <div class="row">
+              <div>
+                <p class="label">Lane tint</p>
+                <p class="value" id="tintValue">crimson heavy</p>
+              </div>
+            </div>
+            <div class="row">
+              <div>
+                <p class="label">Wake mood</p>
+                <p class="value" id="wakeValue">slow membrane</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+    <script src="../../shared/study-notes.js"></script>
+
+    <script>
+      const canvas = document.getElementById("scene");
+      const ctx = canvas.getContext("2d");
+
+      const modeGrid = document.getElementById("modeGrid");
+      const dyeSteps = document.getElementById("dyeSteps");
+      const dragSteps = document.getElementById("dragSteps");
+      const apertureSteps = document.getElementById("apertureSteps");
+      const pressureValue = document.getElementById("pressureValue");
+      const tintValue = document.getElementById("tintValue");
+      const wakeValue = document.getElementById("wakeValue");
+
+      const TAU = Math.PI * 2;
+      const channels = [];
+      const capsules = [];
+      const motes = [];
+      const dust = [];
+      const ticks = [];
+
+      let width = window.innerWidth;
+      let height = window.innerHeight;
+      let dpr = Math.min(window.devicePixelRatio || 1, 2);
+      let frame = 0;
+
+      const pointer = {
+        x: 0.52,
+        y: 0.54,
+        tx: 0.52,
+        ty: 0.54,
+        energy: 0.18,
+        active: false,
+        speed: 0,
+        lastX: 0.52,
+        lastY: 0.54,
+      };
+
+      const modes = [
+        {
+          name: "Silt bloom",
+          note: "Dense crimson weather with low cyan bleed.",
+          hueShift: 0.18,
+          laneGlow: 0.82,
+          tide: 0.8,
+          particle: 0.94,
+        },
+        {
+          name: "Valve choir",
+          note: "Balanced translucent chambers and slow diagnostic drift.",
+          hueShift: 0.5,
+          laneGlow: 0.68,
+          tide: 1.05,
+          particle: 0.72,
+        },
+        {
+          name: "Ghost brine",
+          note: "Cooler cyan pressure with sharper split-focus seams.",
+          hueShift: 0.82,
+          laneGlow: 0.56,
+          tide: 1.26,
+          particle: 0.58,
+        },
+      ];
+
+      const dyeOptions = [
+        { label: "Red", note: "Crimson-heavy lanes", value: 0.18, text: "crimson heavy" },
+        { label: "Split", note: "Equalized bleed", value: 0.5, text: "balanced split" },
+        { label: "Cyan", note: "Cool valve glow", value: 0.84, text: "cyan lifted" },
+      ];
+
+      const dragOptions = [
+        { label: "Soft", note: "Rounded wakes", value: 0.58, text: "slow membrane" },
+        { label: "Bend", note: "Mid estuary drag", value: 1, text: "creased estuary" },
+        { label: "Shear", note: "Sharper rupture", value: 1.42, text: "sharpened shear" },
+      ];
+
+      const apertureOptions = [
+        { label: "Narrow", note: "Tight valves", value: 0.78 },
+        { label: "Open", note: "Balanced lumen", value: 1.06 },
+        { label: "Flood", note: "Wide chamber mouths", value: 1.34 },
+      ];
+
+      const state = {
+        mode: 1,
+        dye: 0,
+        drag: 0,
+        aperture: 1,
+      };
+
+      function random(min, max) {
+        return min + Math.random() * (max - min);
+      }
+
+      function clamp(value, min, max) {
+        return Math.max(min, Math.min(max, value));
+      }
+
+      function lerp(a, b, t) {
+        return a + (b - a) * t;
+      }
+
+      function resize() {
+        width = window.innerWidth;
+        height = window.innerHeight;
+        dpr = Math.min(window.devicePixelRatio || 1, 2);
+        canvas.width = Math.round(width * dpr);
+        canvas.height = Math.round(height * dpr);
+        canvas.style.width = `${width}px`;
+        canvas.style.height = `${height}px`;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        buildField();
+      }
+
+      function buildField() {
+        channels.length = 0;
+        capsules.length = 0;
+        motes.length = 0;
+        dust.length = 0;
+        ticks.length = 0;
+
+        const channelCount = width < 720 ? 6 : 9;
+        for (let i = 0; i < channelCount; i += 1) {
+          const lane = i / Math.max(1, channelCount - 1);
+          channels.push({
+            lane,
+            x: lerp(width * 0.12, width * 0.88, lane) + random(-width * 0.02, width * 0.02),
+            wobble: random(24, 52),
+            drift: random(0.4, 1.2),
+            thickness: random(18, 40),
+            delay: random(0, TAU),
+          });
+        }
+
+        const capsuleCount = width < 720 ? 18 : 28;
+        for (let i = 0; i < capsuleCount; i += 1) {
+          const anchor = channels[i % channels.length];
+          capsules.push({
+            lane: anchor.lane,
+            laneOffset: random(-0.055, 0.055),
+            y: lerp(height * 0.14, height * 0.9, i / capsuleCount) + random(-24, 24),
+            rx: random(28, 64),
+            ry: random(18, 42),
+            seed: random(0, TAU),
+            pulse: random(0.55, 1.2),
+            opening: random(0.25, 0.82),
+            warmth: random(0.2, 0.92),
+          });
+        }
+
+        const moteCount = width < 720 ? 220 : 320;
+        for (let i = 0; i < moteCount; i += 1) {
+          motes.push({
+            x: random(width * 0.1, width * 0.9),
+            y: random(height * 0.1, height * 0.92),
+            r: random(0.9, 2.2),
+            speed: random(0.3, 1.2),
+            sway: random(14, 40),
+            delay: random(0, TAU),
+            laneMix: Math.random(),
+          });
+        }
+
+        const dustCount = width < 720 ? 120 : 180;
+        for (let i = 0; i < dustCount; i += 1) {
+          dust.push({
+            x: random(0, width),
+            y: random(0, height),
+            size: random(14, 72),
+            alpha: random(0.015, 0.06),
+          });
+        }
+
+        const tickRows = width < 720 ? 14 : 20;
+        for (let i = 0; i < tickRows; i += 1) {
+          ticks.push({
+            y: lerp(height * 0.12, height * 0.92, i / Math.max(1, tickRows - 1)),
+            length: random(10, 34),
+            side: Math.random() > 0.5 ? 1 : -1,
+          });
+        }
+      }
+
+      function currentMode() {
+        return modes[state.mode];
+      }
+
+      function currentDye() {
+        return dyeOptions[state.dye];
+      }
+
+      function currentDrag() {
+        return dragOptions[state.drag];
+      }
+
+      function currentAperture() {
+        return apertureOptions[state.aperture];
+      }
+
+      function createButtons() {
+        modes.forEach((mode, index) => {
+          const button = document.createElement("button");
+          button.className = "mode";
+          if (index === state.mode) {
+            button.classList.add("active");
+          }
+          button.innerHTML = `<strong>${mode.name}</strong><span>${mode.note}</span>`;
+          button.addEventListener("click", () => {
+            state.mode = index;
+            refreshUI();
+          });
+          modeGrid.appendChild(button);
+        });
+
+        buildStepGroup(dyeSteps, dyeOptions, "dye");
+        buildStepGroup(dragSteps, dragOptions, "drag");
+        buildStepGroup(apertureSteps, apertureOptions, "aperture");
+        refreshUI();
+      }
+
+      function buildStepGroup(target, options, key) {
+        options.forEach((option, index) => {
+          const button = document.createElement("button");
+          button.className = "step";
+          if (state[key] === index) {
+            button.classList.add("active");
+          }
+          button.innerHTML = `<strong>${option.label}</strong><span>${option.note}</span>`;
+          button.addEventListener("click", () => {
+            state[key] = index;
+            refreshUI();
+          });
+          target.appendChild(button);
+        });
+      }
+
+      function refreshUI() {
+        [...modeGrid.children].forEach((node, index) => {
+          node.classList.toggle("active", index === state.mode);
+        });
+        [...dyeSteps.children].forEach((node, index) => {
+          node.classList.toggle("active", index === state.dye);
+        });
+        [...dragSteps.children].forEach((node, index) => {
+          node.classList.toggle("active", index === state.drag);
+        });
+        [...apertureSteps.children].forEach((node, index) => {
+          node.classList.toggle("active", index === state.aperture);
+        });
+
+        tintValue.textContent = currentDye().text;
+        wakeValue.textContent = currentDrag().text;
+      }
+
+      function pointerField(x, y) {
+        const px = pointer.x * width;
+        const py = pointer.y * height;
+        const dx = x - px;
+        const dy = y - py;
+        const dist = Math.hypot(dx, dy);
+        return clamp(1 - dist / Math.min(width, height) * 1.6, 0, 1) * pointer.energy;
+      }
+
+      function drawBackground(mode, pressure) {
+        const wash = ctx.createLinearGradient(0, 0, 0, height);
+        wash.addColorStop(0, "rgba(247, 239, 225, 0.025)");
+        wash.addColorStop(0.22, "rgba(119, 217, 231, 0.03)");
+        wash.addColorStop(0.65, `rgba(111, 30, 49, ${0.18 + mode.hueShift * 0.04})`);
+        wash.addColorStop(1, "rgba(4, 4, 6, 0.92)");
+        ctx.fillStyle = wash;
+        ctx.fillRect(0, 0, width, height);
+
+        dust.forEach((cloud) => {
+          ctx.beginPath();
+          ctx.fillStyle = `rgba(243, 237, 227, ${cloud.alpha})`;
+          ctx.ellipse(cloud.x, cloud.y, cloud.size, cloud.size * 0.42, 0, 0, TAU);
+          ctx.fill();
+        });
+
+        const vertical = ctx.createLinearGradient(width * 0.5, 0, width * 0.5, height);
+        vertical.addColorStop(0, "rgba(255, 255, 255, 0)");
+        vertical.addColorStop(0.2, `rgba(119, 217, 231, ${0.035 + pressure * 0.03})`);
+        vertical.addColorStop(0.55, `rgba(255, 91, 115, ${0.08 + pressure * 0.08})`);
+        vertical.addColorStop(1, "rgba(255, 255, 255, 0)");
+        ctx.fillStyle = vertical;
+        ctx.fillRect(width * 0.16, 0, width * 0.68, height);
+      }
+
+      function drawChannels(time, mode, dye, drag, aperture, pressure) {
+        channels.forEach((channel, index) => {
+          const phase = time * channel.drift + channel.delay;
+          const baseX = channel.x;
+          const topY = height * 0.06;
+          const bottomY = height * 0.96;
+          const segments = 28;
+          let prevX = baseX;
+          let prevY = topY;
+
+          const redBias = 1 - dye.value;
+          const cyanBias = dye.value;
+
+          ctx.lineCap = "round";
+          for (let i = 1; i <= segments; i += 1) {
+            const t = i / segments;
+            const y = lerp(topY, bottomY, t);
+            const sway =
+              Math.sin(phase + t * 8 + index * 0.9) * channel.wobble * 0.52 * mode.tide +
+              Math.cos(phase * 0.65 + t * 11) * channel.wobble * 0.22;
+            const pressureKick = pointerField(baseX, y) * width * 0.085 * drag.value;
+            const x = baseX + sway + pressureKick;
+
+            ctx.beginPath();
+            ctx.moveTo(prevX, prevY);
+            ctx.lineTo(x, y);
+            ctx.strokeStyle = `rgba(255, 91, 115, ${0.08 + redBias * 0.18 + pressure * 0.24})`;
+            ctx.lineWidth = channel.thickness * (0.32 + mode.laneGlow * 0.22);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(prevX, prevY);
+            ctx.lineTo(x, y);
+            ctx.strokeStyle = `rgba(119, 217, 231, ${0.04 + cyanBias * 0.16 + pressure * 0.14})`;
+            ctx.lineWidth = channel.thickness * (0.12 + aperture.value * 0.08);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(prevX, prevY);
+            ctx.lineTo(x, y);
+            ctx.strokeStyle = "rgba(244, 236, 224, 0.06)";
+            ctx.lineWidth = 1.1;
+            ctx.stroke();
+
+            prevX = x;
+            prevY = y;
+          }
+        });
+      }
+
+      function drawCapsules(time, mode, dye, drag, aperture, pressure) {
+        capsules.forEach((capsule, index) => {
+          const laneX = lerp(width * 0.12, width * 0.88, capsule.lane + capsule.laneOffset);
+          const sway =
+            Math.sin(time * capsule.pulse + capsule.seed) * width * 0.015 * mode.tide +
+            Math.cos(time * 0.7 + capsule.seed * 0.4) * width * 0.008;
+          const px = laneX + sway + pointerField(laneX, capsule.y) * width * 0.07 * drag.value;
+          const py = capsule.y;
+          const open = capsule.opening * aperture.value + pressure * 0.45;
+          const glow = clamp(pointerField(px, py) * 2.6 + capsule.warmth * 0.6, 0, 1.6);
+
+          const outer = ctx.createRadialGradient(px, py, 0, px, py, capsule.rx * 1.2);
+          outer.addColorStop(0, `rgba(119, 217, 231, ${0.08 + dye.value * 0.09 + glow * 0.06})`);
+          outer.addColorStop(0.6, `rgba(255, 91, 115, ${0.08 + (1 - dye.value) * 0.1 + glow * 0.07})`);
+          outer.addColorStop(1, "rgba(255, 255, 255, 0)");
+          ctx.beginPath();
+          ctx.fillStyle = outer;
+          ctx.ellipse(px, py, capsule.rx * 1.2, capsule.ry * 1.6, 0, 0, TAU);
+          ctx.fill();
+
+          ctx.beginPath();
+          ctx.fillStyle = `rgba(242, 235, 220, ${0.03 + glow * 0.05})`;
+          ctx.ellipse(px, py, capsule.rx, capsule.ry * (0.95 + open * 0.06), 0, 0, TAU);
+          ctx.fill();
+
+          ctx.beginPath();
+          ctx.strokeStyle = `rgba(242, 235, 220, ${0.14 + glow * 0.12})`;
+          ctx.lineWidth = 1.2;
+          ctx.ellipse(px, py, capsule.rx, capsule.ry * (0.92 + open * 0.05), 0, 0, TAU);
+          ctx.stroke();
+
+          ctx.beginPath();
+          ctx.fillStyle = `rgba(255, 91, 115, ${0.12 + (1 - dye.value) * 0.16 + glow * 0.08})`;
+          ctx.ellipse(px, py, capsule.rx * 0.52, capsule.ry * open * 0.42, 0, 0, TAU);
+          ctx.fill();
+
+          ctx.beginPath();
+          ctx.fillStyle = `rgba(119, 217, 231, ${0.09 + dye.value * 0.16 + glow * 0.06})`;
+          ctx.ellipse(
+            px + Math.sin(time + index) * capsule.rx * 0.08,
+            py - capsule.ry * 0.08,
+            capsule.rx * 0.34,
+            capsule.ry * 0.22 * aperture.value,
+            0,
+            0,
+            TAU,
+          );
+          ctx.fill();
+
+          ctx.beginPath();
+          ctx.strokeStyle = `rgba(139, 127, 249, ${0.08 + mode.hueShift * 0.08})`;
+          ctx.lineWidth = 0.8;
+          ctx.moveTo(px - capsule.rx * 0.88, py);
+          ctx.lineTo(px + capsule.rx * 0.88, py);
+          ctx.moveTo(px, py - capsule.ry * 0.84);
+          ctx.lineTo(px, py + capsule.ry * 0.84);
+          ctx.stroke();
+        });
+      }
+
+      function drawParticles(time, mode, dye, pressure) {
+        motes.forEach((mote, index) => {
+          const driftY = (mote.y + time * 30 * mote.speed) % (height * 0.9) + height * 0.08;
+          const driftX =
+            mote.x +
+            Math.sin(time * mote.speed + mote.delay) * mote.sway * mode.particle +
+            pointerField(mote.x, driftY) * width * 0.05;
+          const alpha =
+            0.16 +
+            (1 - dye.value) * 0.18 * mote.laneMix +
+            dye.value * 0.12 * (1 - mote.laneMix) +
+            pressure * 0.18;
+
+          ctx.beginPath();
+          ctx.fillStyle =
+            index % 8 === 0
+              ? `rgba(243, 237, 227, ${alpha * 0.7})`
+              : `rgba(255, 91, 115, ${alpha})`;
+          if (index % 13 === 0) {
+            const s = mote.r * 2.3;
+            ctx.fillRect(driftX - s * 0.5, driftY - s * 0.5, s, s);
+          } else {
+            ctx.arc(driftX, driftY, mote.r, 0, TAU);
+            ctx.fill();
+          }
+        });
+      }
+
+      function drawTicks(time, mode, pressure) {
+        ctx.strokeStyle = `rgba(243, 237, 227, ${0.12 + pressure * 0.1})`;
+        ctx.lineWidth = 1;
+        ticks.forEach((tick, index) => {
+          const centerX = width * 0.5 + Math.sin(time * 0.45 + index) * width * 0.02;
+          const lane = tick.side > 0 ? width * 0.21 : width * 0.79;
+          ctx.beginPath();
+          ctx.moveTo(lane, tick.y);
+          ctx.lineTo(lane + tick.length * tick.side, tick.y);
+          ctx.stroke();
+
+          ctx.beginPath();
+          ctx.strokeStyle = `rgba(119, 217, 231, ${0.06 + mode.hueShift * 0.08})`;
+          ctx.moveTo(centerX - width * 0.06, tick.y);
+          ctx.lineTo(centerX + width * 0.06, tick.y);
+          ctx.stroke();
+        });
+      }
+
+      function drawPointerWake(pressure) {
+        const px = pointer.x * width;
+        const py = pointer.y * height;
+        const radius = Math.min(width, height) * (0.12 + pressure * 0.18);
+        const glow = ctx.createRadialGradient(px, py, 0, px, py, radius);
+        glow.addColorStop(0, `rgba(243, 237, 227, ${0.1 + pressure * 0.12})`);
+        glow.addColorStop(0.35, `rgba(119, 217, 231, ${0.08 + pressure * 0.08})`);
+        glow.addColorStop(0.62, `rgba(255, 91, 115, ${0.07 + pressure * 0.08})`);
+        glow.addColorStop(1, "rgba(255, 255, 255, 0)");
+        ctx.beginPath();
+        ctx.fillStyle = glow;
+        ctx.arc(px, py, radius, 0, TAU);
+        ctx.fill();
+      }
+
+      function render() {
+        frame += 1;
+        const time = frame / 60;
+        pointer.x = lerp(pointer.x, pointer.tx, 0.09);
+        pointer.y = lerp(pointer.y, pointer.ty, 0.09);
+        pointer.energy = lerp(pointer.energy, pointer.active ? 0.92 : 0.18, pointer.active ? 0.1 : 0.04);
+
+        const speed = Math.hypot(pointer.tx - pointer.lastX, pointer.ty - pointer.lastY);
+        pointer.speed = lerp(pointer.speed, speed * 16, 0.2);
+        pointer.lastX = pointer.tx;
+        pointer.lastY = pointer.ty;
+
+        const mode = currentMode();
+        const dye = currentDye();
+        const drag = currentDrag();
+        const aperture = currentAperture();
+        const pressure = clamp(pointer.energy * 0.45 + pointer.speed * 0.3, 0.05, 1);
+
+        pressureValue.textContent = pressure.toFixed(2);
+
+        ctx.clearRect(0, 0, width, height);
+        drawBackground(mode, pressure);
+        drawChannels(time, mode, dye, drag, aperture, pressure);
+        drawCapsules(time, mode, dye, drag, aperture, pressure);
+        drawParticles(time, mode, dye, pressure);
+        drawTicks(time, mode, pressure);
+        drawPointerWake(pressure);
+
+        requestAnimationFrame(render);
+      }
+
+      function updatePointer(clientX, clientY) {
+        pointer.tx = clamp(clientX / width, 0, 1);
+        pointer.ty = clamp(clientY / height, 0, 1);
+      }
+
+      window.addEventListener("pointermove", (event) => {
+        pointer.active = true;
+        updatePointer(event.clientX, event.clientY);
+      });
+
+      window.addEventListener("pointerdown", (event) => {
+        pointer.active = true;
+        updatePointer(event.clientX, event.clientY);
+      });
+
+      window.addEventListener("pointerup", () => {
+        pointer.active = false;
+      });
+
+      window.addEventListener("pointerleave", () => {
+        pointer.active = false;
+      });
+
+      window.addEventListener(
+        "touchmove",
+        (event) => {
+          if (event.touches[0]) {
+            pointer.active = true;
+            updatePointer(event.touches[0].clientX, event.touches[0].clientY);
+          }
+        },
+        { passive: true },
+      );
+
+      window.addEventListener("touchend", () => {
+        pointer.active = false;
+      });
+
+      window.addEventListener("resize", resize);
+
+      resize();
+      createButtons();
+      requestAnimationFrame(render);
+    </script>
+  </body>
+</html>

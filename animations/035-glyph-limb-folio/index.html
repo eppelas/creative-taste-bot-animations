@@ -1,0 +1,728 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>#035 Glyph Limb Folio</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --paper: #ece5d8;
+        --paper-deep: #d7ccbb;
+        --ink: #1d2227;
+        --muted: rgba(29, 34, 39, 0.54);
+        --line: rgba(29, 34, 39, 0.14);
+        --cyan: #6aaac4;
+        --clay: #c56e4f;
+        --gold: #d0a13f;
+        --mist: rgba(255, 255, 255, 0.56);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background:
+          radial-gradient(circle at 18% 14%, rgba(106, 170, 196, 0.18), transparent 26%),
+          radial-gradient(circle at 78% 18%, rgba(197, 110, 79, 0.14), transparent 28%),
+          radial-gradient(circle at 50% 86%, rgba(208, 161, 63, 0.12), transparent 28%),
+          linear-gradient(180deg, #f6efe4 0%, var(--paper) 58%, var(--paper-deep) 100%);
+        font-family: "Azeret Mono", "IBM Plex Mono", "SFMono-Regular", monospace;
+        color: var(--ink);
+      }
+
+      canvas {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        display: block;
+      }
+
+      .overlay {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+      }
+
+      .folio-note,
+      .sigil,
+      .back {
+        position: absolute;
+        border: 1px solid var(--line);
+        background: rgba(255, 250, 242, 0.52);
+        backdrop-filter: blur(14px);
+        box-shadow: 0 22px 50px rgba(64, 52, 38, 0.09);
+        pointer-events: auto;
+      }
+
+      .folio-note {
+        left: 18px;
+        top: 18px;
+        width: min(27rem, calc(100vw - 36px));
+        padding: 14px 15px;
+        border-radius: 20px;
+      }
+
+      .eyebrow,
+      .hint,
+      .meta,
+      .value,
+      h1 {
+        margin: 0;
+      }
+
+      .eyebrow,
+      .meta {
+        font-size: 11px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      h1 {
+        margin-top: 0.35rem;
+        font-size: clamp(1.9rem, 4vw, 3.3rem);
+        line-height: 0.9;
+        letter-spacing: -0.04em;
+      }
+
+      .hint {
+        margin-top: 0.6rem;
+        font-size: 0.92rem;
+        line-height: 1.45;
+        max-width: 32ch;
+      }
+
+      .meta {
+        margin-top: 0.8rem;
+      }
+
+      .value-row {
+        margin-top: 0.8rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.9rem;
+      }
+
+      .value {
+        font-size: 0.83rem;
+        line-height: 1.38;
+      }
+
+      .value strong {
+        display: block;
+        margin-bottom: 0.16rem;
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      .sigil-layer {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+      }
+
+      .sigil {
+        min-width: 118px;
+        padding: 10px 12px;
+        border-radius: 18px;
+        transform: translate(-50%, -50%);
+        cursor: pointer;
+        pointer-events: auto;
+      }
+
+      .sigil strong,
+      .sigil span {
+        display: block;
+      }
+
+      .sigil strong {
+        margin-bottom: 0.18rem;
+        font-size: 0.72rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+
+      .sigil span {
+        font-size: 0.67rem;
+        line-height: 1.28;
+        color: var(--muted);
+      }
+
+      .sigil.active {
+        border-color: rgba(29, 34, 39, 0.22);
+        background: rgba(255, 248, 235, 0.8);
+        box-shadow:
+          inset 0 0 0 1px rgba(208, 161, 63, 0.18),
+          0 26px 62px rgba(64, 52, 38, 0.14);
+      }
+
+      .back {
+        right: 18px;
+        bottom: 18px;
+        border-radius: 999px;
+        padding: 10px 14px;
+        text-decoration: none;
+        color: var(--ink);
+      }
+
+      @media (max-width: 820px) {
+        .folio-note {
+          left: 14px;
+          top: 14px;
+          width: min(25rem, calc(100vw - 28px));
+          padding: 12px 13px;
+        }
+
+        .sigil {
+          min-width: 102px;
+          padding: 8px 10px;
+        }
+
+        .back {
+          right: 14px;
+          bottom: 14px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="scene"></canvas>
+    <div class="overlay">
+      <section class="folio-note">
+        <p class="eyebrow">Code Animation Study #035</p>
+        <h1>Glyph Limb Folio</h1>
+        <p class="hint">
+          An editorial poster specimen: a rooted full-body alien with bead-thread
+          crown details, supportive lower limbs, and crisp stencil drafting that
+          reacts like a living plate.
+        </p>
+        <p class="meta">Pointer bends the posture. Tap a sigil to change the gait law.</p>
+        <div class="value-row">
+          <p class="value"><strong>Law</strong><span id="lawValue">anchor</span></p>
+          <p class="value"><strong>Root span</strong><span id="spanValue">0.54</span></p>
+          <p class="value"><strong>Halo load</strong><span id="haloValue">48%</span></p>
+        </div>
+      </section>
+      <div class="sigil-layer" id="sigilLayer" aria-label="Motion law sigils"></div>
+      <a class="back" href="../../index.html">Back to index</a>
+    <script src="../../shared/study-notes.js"></script>
+    </div>
+
+    <script>
+      const canvas = document.getElementById("scene");
+      const ctx = canvas.getContext("2d");
+      const sigilLayer = document.getElementById("sigilLayer");
+      const lawValue = document.getElementById("lawValue");
+      const spanValue = document.getElementById("spanValue");
+      const haloValue = document.getElementById("haloValue");
+      const TAU = Math.PI * 2;
+
+      const pointer = {
+        x: window.innerWidth * 0.54,
+        y: window.innerHeight * 0.42,
+        tx: window.innerWidth * 0.54,
+        ty: window.innerHeight * 0.42,
+        active: false,
+      };
+
+      const laws = [
+        {
+          id: "anchor",
+          label: "Anchor",
+          hint: "firm stance",
+          accent: "#6aaac4",
+          contrast: "#c56e4f",
+          root: 0.56,
+          lift: 0.26,
+          bead: 0.42,
+          pulse: 0.38,
+        },
+        {
+          id: "survey",
+          label: "Survey",
+          hint: "head scans",
+          accent: "#d0a13f",
+          contrast: "#6aaac4",
+          root: 0.48,
+          lift: 0.42,
+          bead: 0.66,
+          pulse: 0.56,
+        },
+        {
+          id: "flare",
+          label: "Flare",
+          hint: "wide display",
+          accent: "#c56e4f",
+          contrast: "#d0a13f",
+          root: 0.72,
+          lift: 0.58,
+          bead: 0.82,
+          pulse: 0.74,
+        },
+      ];
+
+      let currentLaw = laws[0];
+      let width = 0;
+      let height = 0;
+      let dpr = 1;
+      let lastTime = performance.now();
+      let time = 0;
+
+      function clamp(value, min, max) {
+        return Math.min(max, Math.max(min, value));
+      }
+
+      function lerp(a, b, t) {
+        return a + (b - a) * t;
+      }
+
+      function mixHex(a, b, t) {
+        const parse = (hex) => {
+          const value = hex.replace("#", "");
+          return [
+            parseInt(value.slice(0, 2), 16),
+            parseInt(value.slice(2, 4), 16),
+            parseInt(value.slice(4, 6), 16),
+          ];
+        };
+        const left = parse(a);
+        const right = parse(b);
+        const mixed = left.map((value, index) => Math.round(lerp(value, right[index], t)));
+        return `rgb(${mixed[0]} ${mixed[1]} ${mixed[2]})`;
+      }
+
+      function resize() {
+        dpr = Math.min(window.devicePixelRatio || 1, 2);
+        width = window.innerWidth;
+        height = window.innerHeight;
+        canvas.width = Math.round(width * dpr);
+        canvas.height = Math.round(height * dpr);
+        canvas.style.width = `${width}px`;
+        canvas.style.height = `${height}px`;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        layoutSigils();
+      }
+
+      function setPointer(clientX, clientY, active = true) {
+        pointer.tx = clientX;
+        pointer.ty = clientY;
+        pointer.active = active;
+      }
+
+      function resetPointer() {
+        pointer.active = false;
+        pointer.tx = width * 0.54;
+        pointer.ty = height * 0.42;
+      }
+
+      window.addEventListener("pointermove", (event) => setPointer(event.clientX, event.clientY, true));
+      window.addEventListener("pointerdown", (event) => setPointer(event.clientX, event.clientY, true));
+      window.addEventListener("pointerleave", resetPointer);
+      window.addEventListener("touchstart", (event) => {
+        const touch = event.touches[0];
+        if (touch) {
+          setPointer(touch.clientX, touch.clientY, true);
+        }
+      }, { passive: true });
+      window.addEventListener("touchmove", (event) => {
+        const touch = event.touches[0];
+        if (touch) {
+          setPointer(touch.clientX, touch.clientY, true);
+        }
+      }, { passive: true });
+      window.addEventListener("touchend", resetPointer, { passive: true });
+      window.addEventListener("resize", resize);
+
+      function posterRect() {
+        const posterWidth = Math.min(width * 0.74, 860);
+        const posterHeight = Math.min(height * 0.82, 1120);
+        return {
+          x: width * 0.5 - posterWidth * 0.5,
+          y: height * 0.53 - posterHeight * 0.5,
+          w: posterWidth,
+          h: posterHeight,
+        };
+      }
+
+      function createSigils() {
+        laws.forEach((law) => {
+          const button = document.createElement("button");
+          button.className = "sigil";
+          button.type = "button";
+          button.innerHTML = `<strong>${law.label}</strong><span>${law.hint}</span>`;
+          button.addEventListener("click", () => {
+            currentLaw = law;
+            updateHud(0.54, 0.48);
+            syncSigils();
+          });
+          law.node = button;
+          sigilLayer.appendChild(button);
+        });
+        syncSigils();
+      }
+
+      function syncSigils() {
+        laws.forEach((law) => {
+          law.node.classList.toggle("active", law === currentLaw);
+        });
+      }
+
+      function layoutSigils() {
+        if (!laws[0].node) {
+          return;
+        }
+        const poster = posterRect();
+        const positions = [
+          [poster.x + poster.w * 0.16, poster.y + poster.h * 0.3],
+          [poster.x + poster.w * 0.84, poster.y + poster.h * 0.24],
+          [poster.x + poster.w * 0.78, poster.y + poster.h * 0.78],
+        ];
+        laws.forEach((law, index) => {
+          law.node.style.left = `${positions[index][0]}px`;
+          law.node.style.top = `${positions[index][1]}px`;
+        });
+      }
+
+      function curvePoint(points, t) {
+        const scaled = t * (points.length - 1);
+        const index = Math.min(points.length - 2, Math.floor(scaled));
+        const local = scaled - index;
+        return {
+          x: lerp(points[index].x, points[index + 1].x, local),
+          y: lerp(points[index].y, points[index + 1].y, local),
+        };
+      }
+
+      function strokePath(points, widthValue, strokeStyle, alpha = 1) {
+        if (points.length < 2) {
+          return;
+        }
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.lineJoin = "round";
+        ctx.lineCap = "round";
+        ctx.lineWidth = widthValue;
+        ctx.strokeStyle = strokeStyle;
+        ctx.beginPath();
+        ctx.moveTo(points[0].x, points[0].y);
+        for (let i = 1; i < points.length; i += 1) {
+          const prev = points[i - 1];
+          const point = points[i];
+          const midX = (prev.x + point.x) * 0.5;
+          const midY = (prev.y + point.y) * 0.5;
+          ctx.quadraticCurveTo(prev.x, prev.y, midX, midY);
+        }
+        const last = points[points.length - 1];
+        ctx.lineTo(last.x, last.y);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      function drawNode(x, y, radius, fill, stroke = "rgba(29,34,39,0.16)", lineWidth = 1) {
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, TAU);
+        ctx.fillStyle = fill;
+        ctx.fill();
+        ctx.lineWidth = lineWidth;
+        ctx.strokeStyle = stroke;
+        ctx.stroke();
+      }
+
+      function updateHud(rootSpan, haloLoad) {
+        lawValue.textContent = currentLaw.id;
+        spanValue.textContent = rootSpan.toFixed(2);
+        haloValue.textContent = `${Math.round(haloLoad * 100)}%`;
+      }
+
+      function draw(timeStamp) {
+        const delta = Math.min(0.05, (timeStamp - lastTime) / 1000);
+        lastTime = timeStamp;
+        time += delta;
+        pointer.x = lerp(pointer.x, pointer.tx, 0.08);
+        pointer.y = lerp(pointer.y, pointer.ty, 0.08);
+
+        ctx.clearRect(0, 0, width, height);
+        const poster = posterRect();
+        const nx = clamp((pointer.x - poster.x) / poster.w, 0, 1);
+        const ny = clamp((pointer.y - poster.y) / poster.h, 0, 1);
+        const biasX = (nx - 0.5) * 2;
+        const biasY = (ny - 0.5) * 2;
+        const pointerPull = pointer.active ? 1 : 0.38;
+        const rootSpan = clamp(currentLaw.root + Math.abs(biasX) * 0.13, 0.3, 0.9);
+        const haloLoad = clamp(currentLaw.bead + (1 - ny) * 0.22 + Math.abs(biasX) * 0.08, 0.2, 1);
+        updateHud(rootSpan, haloLoad);
+
+        const cyan = currentLaw.accent;
+        const warm = currentLaw.contrast;
+
+        ctx.save();
+        ctx.fillStyle = "rgba(255,247,236,0.72)";
+        ctx.strokeStyle = "rgba(29,34,39,0.1)";
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.roundRect(poster.x, poster.y, poster.w, poster.h, 34);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = "rgba(255,255,255,0.16)";
+        ctx.beginPath();
+        ctx.roundRect(poster.x + 14, poster.y + 14, poster.w - 28, poster.h - 28, 26);
+        ctx.fill();
+
+        for (let i = 0; i < 19; i += 1) {
+          const gx = poster.x + (poster.w / 18) * i;
+          ctx.strokeStyle = i % 3 === 0 ? "rgba(29,34,39,0.085)" : "rgba(29,34,39,0.045)";
+          ctx.beginPath();
+          ctx.moveTo(gx, poster.y + 18);
+          ctx.lineTo(gx, poster.y + poster.h - 18);
+          ctx.stroke();
+        }
+
+        for (let i = 0; i < 25; i += 1) {
+          const gy = poster.y + (poster.h / 24) * i;
+          ctx.strokeStyle = i % 4 === 0 ? "rgba(29,34,39,0.078)" : "rgba(29,34,39,0.038)";
+          ctx.beginPath();
+          ctx.moveTo(poster.x + 18, gy);
+          ctx.lineTo(poster.x + poster.w - 18, gy);
+          ctx.stroke();
+        }
+
+        ctx.strokeStyle = "rgba(29,34,39,0.11)";
+        ctx.setLineDash([8, 16]);
+        for (let i = -4; i < 6; i += 1) {
+          const sx = poster.x + poster.w * 0.2 + i * 52;
+          ctx.beginPath();
+          ctx.moveTo(sx, poster.y + 18);
+          ctx.lineTo(sx + 160, poster.y + poster.h - 18);
+          ctx.stroke();
+        }
+        ctx.setLineDash([]);
+
+        const cx = poster.x + poster.w * 0.5 + biasX * poster.w * 0.05;
+        const headY = poster.y + poster.h * 0.22 - biasY * poster.h * 0.03;
+        const shoulderY = poster.y + poster.h * 0.35;
+        const pelvisY = poster.y + poster.h * 0.6;
+        const groundY = poster.y + poster.h * 0.88;
+        const spineSway = biasX * poster.w * 0.04 * currentLaw.lift + Math.sin(time * 1.6) * 6;
+
+        const spine = [
+          { x: cx, y: pelvisY + 16 },
+          { x: cx + spineSway * 0.25, y: poster.y + poster.h * 0.53 },
+          { x: cx + spineSway * 0.45, y: shoulderY + 42 },
+          { x: cx + spineSway * 0.62, y: headY + 38 },
+        ];
+        strokePath(spine, 6, "rgba(29,34,39,0.12)");
+        strokePath(spine, 2.2, "rgba(29,34,39,0.88)");
+
+        const torso = [
+          { x: cx - poster.w * 0.082, y: shoulderY - 8 },
+          { x: cx - poster.w * 0.13, y: poster.y + poster.h * 0.47 },
+          { x: cx - poster.w * 0.1, y: pelvisY + 28 },
+          { x: cx - poster.w * 0.042, y: pelvisY + 48 },
+          { x: cx + poster.w * 0.042, y: pelvisY + 48 },
+          { x: cx + poster.w * 0.1, y: pelvisY + 28 },
+          { x: cx + poster.w * 0.13, y: poster.y + poster.h * 0.47 },
+          { x: cx + poster.w * 0.082, y: shoulderY - 8 },
+          { x: cx + poster.w * 0.045, y: headY + 28 },
+          { x: cx, y: headY + 6 },
+          { x: cx - poster.w * 0.045, y: headY + 28 },
+        ];
+
+        ctx.fillStyle = "rgba(255,251,245,0.62)";
+        ctx.strokeStyle = "rgba(29,34,39,0.92)";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(torso[0].x, torso[0].y);
+        for (let i = 1; i < torso.length; i += 1) {
+          ctx.lineTo(torso[i].x, torso[i].y);
+        }
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.strokeStyle = "rgba(29,34,39,0.28)";
+        ctx.lineWidth = 1;
+        for (let i = 0; i < 8; i += 1) {
+          const t = i / 7;
+          ctx.beginPath();
+          ctx.arc(cx, lerp(shoulderY + 10, pelvisY + 16, t), 22 + Math.sin(i + time) * 2, Math.PI * 0.12, Math.PI * 0.88);
+          ctx.stroke();
+        }
+
+        ctx.beginPath();
+        ctx.ellipse(cx, headY, poster.w * 0.05, poster.h * 0.046, 0, 0, TAU);
+        ctx.fillStyle = "rgba(255,250,242,0.78)";
+        ctx.fill();
+        ctx.strokeStyle = "rgba(29,34,39,0.9)";
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        const faceNodes = [
+          { x: cx - poster.w * 0.018, y: headY - poster.h * 0.004, r: 4.2, fill: cyan },
+          { x: cx, y: headY - poster.h * 0.013, r: 5.4, fill: mixHex(cyan, warm, 0.38) },
+          { x: cx + poster.w * 0.018, y: headY - poster.h * 0.002, r: 4.2, fill: warm },
+        ];
+        faceNodes.forEach((node) => {
+          ctx.shadowColor = "rgba(255,255,255,0.28)";
+          ctx.shadowBlur = 10 + haloLoad * 14;
+          drawNode(node.x, node.y, node.r, node.fill, "rgba(29,34,39,0.22)");
+          ctx.shadowBlur = 0;
+        });
+
+        ctx.beginPath();
+        ctx.arc(cx, headY + poster.h * 0.018, poster.w * 0.022, Math.PI * 0.12, Math.PI * 0.88);
+        ctx.strokeStyle = "rgba(29,34,39,0.62)";
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        const beadCount = 5;
+        for (let side = -1; side <= 1; side += 2) {
+          const tipX = cx + side * poster.w * (0.12 + currentLaw.pulse * 0.04) + biasX * 10;
+          const tipY = headY - poster.h * (0.1 + currentLaw.lift * 0.04) - Math.cos(time * 1.4 + side) * 8;
+          const thread = [
+            { x: cx + side * poster.w * 0.016, y: headY - 6 },
+            { x: cx + side * poster.w * 0.03, y: headY - poster.h * 0.03 },
+            { x: cx + side * poster.w * 0.07 + Math.sin(time * 1.3 + side) * 6, y: headY - poster.h * 0.066 },
+            { x: tipX, y: tipY },
+          ];
+          strokePath(thread, 1.2, "rgba(29,34,39,0.82)");
+          strokePath(thread, 4.6, side < 0 ? "rgba(106,170,196,0.34)" : "rgba(197,110,79,0.34)", 0.18);
+          for (let i = 1; i <= beadCount; i += 1) {
+            const bead = curvePoint(thread, i / (beadCount + 1));
+            const radius = 2.4 + i * 0.48 + currentLaw.bead * 0.4;
+            drawNode(
+              bead.x,
+              bead.y,
+              radius,
+              i % 2 === 0 ? warm : cyan,
+              "rgba(29,34,39,0.18)",
+              0.8,
+            );
+          }
+          drawNode(tipX, tipY, 6.5 + haloLoad * 2.4, mixHex(warm, cyan, 0.5), "rgba(29,34,39,0.22)");
+        }
+
+        const armPairs = [
+          { side: -1, yBias: -8, handX: poster.x + poster.w * 0.28 },
+          { side: 1, yBias: 6, handX: poster.x + poster.w * 0.72 },
+        ];
+        armPairs.forEach(({ side, yBias, handX }) => {
+          const elbowX = cx + side * poster.w * 0.11 + biasX * 12;
+          const elbowY = poster.y + poster.h * 0.47 + yBias + Math.sin(time * 1.7 + side) * 8;
+          const handY = poster.y + poster.h * 0.58 + yBias + biasY * 8;
+          const arm = [
+            { x: cx + side * poster.w * 0.055, y: shoulderY + 4 },
+            { x: elbowX, y: elbowY },
+            { x: handX, y: handY },
+          ];
+          strokePath(arm, 5.2, "rgba(29,34,39,0.12)");
+          strokePath(arm, 2, "rgba(29,34,39,0.9)");
+          drawNode(handX, handY, 5, side < 0 ? cyan : warm, "rgba(29,34,39,0.22)");
+        });
+
+        const limbOffsets = [-1.15, -0.38, 0.38, 1.15];
+        limbOffsets.forEach((offset, index) => {
+          const sideSpread = poster.w * 0.12 * offset;
+          const hipX = cx + sideSpread * 0.36;
+          const hipY = pelvisY + 6;
+          const kneeX = cx + sideSpread * 0.76 + biasX * 16;
+          const kneeY = pelvisY + poster.h * 0.12 + (index % 2 === 0 ? -1 : 1) * Math.sin(time * 1.8 + index) * 8;
+          const footX = cx + sideSpread * (1.6 + rootSpan * 0.82) + offset * poster.w * 0.055;
+          const footY = groundY;
+          const limb = [
+            { x: hipX, y: hipY },
+            { x: kneeX, y: kneeY },
+            { x: footX, y: footY },
+          ];
+          strokePath(limb, 6, "rgba(29,34,39,0.1)");
+          strokePath(limb, 2.2, "rgba(29,34,39,0.9)");
+
+          const padW = poster.w * (0.032 + Math.abs(offset) * 0.004);
+          const padH = poster.h * 0.013;
+          ctx.beginPath();
+          ctx.ellipse(footX, footY + 5, padW, padH, 0, 0, TAU);
+          ctx.fillStyle = index % 2 === 0 ? "rgba(106,170,196,0.16)" : "rgba(197,110,79,0.14)";
+          ctx.fill();
+          ctx.strokeStyle = "rgba(29,34,39,0.18)";
+          ctx.lineWidth = 1;
+          ctx.stroke();
+
+          ctx.beginPath();
+          ctx.moveTo(footX - padW * 1.1, footY + 16);
+          ctx.lineTo(footX + padW * 1.1, footY + 16);
+          ctx.strokeStyle = "rgba(29,34,39,0.3)";
+          ctx.stroke();
+        });
+
+        for (let i = 0; i < 5; i += 1) {
+          const laneY = poster.y + poster.h * (0.28 + i * 0.11);
+          const drift = Math.sin(time * 1.2 + i) * 6 + biasX * 10;
+          const points = [];
+          for (let step = 0; step <= 14; step += 1) {
+            const t = step / 14;
+            points.push({
+              x: poster.x + poster.w * (0.08 + t * 0.84),
+              y: laneY + Math.sin(t * TAU * 1.1 + i * 0.7 + time * 0.8) * (8 + i * 1.2) + drift,
+            });
+          }
+          strokePath(points, 1, i % 2 === 0 ? "rgba(106,170,196,0.46)" : "rgba(197,110,79,0.4)");
+        }
+
+        const labels = [
+          { text: "bead thread", x: cx - poster.w * 0.22, y: headY - poster.h * 0.09, tx: cx - poster.w * 0.075, ty: headY - poster.h * 0.05 },
+          { text: "spine register", x: cx + poster.w * 0.1, y: poster.y + poster.h * 0.42, tx: cx + 4, ty: poster.y + poster.h * 0.47 },
+          { text: "root brace", x: cx + poster.w * 0.16, y: groundY - poster.h * 0.03, tx: cx + poster.w * 0.11, ty: groundY - 10 },
+        ];
+        ctx.font = "12px 'Azeret Mono', monospace";
+        ctx.fillStyle = "rgba(29,34,39,0.64)";
+        ctx.strokeStyle = "rgba(29,34,39,0.26)";
+        labels.forEach((label) => {
+          ctx.beginPath();
+          ctx.moveTo(label.x, label.y);
+          ctx.lineTo(label.tx, label.ty);
+          ctx.stroke();
+          ctx.fillText(label.text, label.x, label.y - 4);
+        });
+
+        ctx.font = "11px 'Azeret Mono', monospace";
+        ctx.fillStyle = "rgba(29,34,39,0.46)";
+        ctx.fillText("FOLIO 035 / GLYPH LIMB SPECIMEN", poster.x + 24, poster.y + poster.h - 24);
+
+        ctx.strokeStyle = "rgba(29,34,39,0.3)";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(pointer.x - 12, pointer.y);
+        ctx.lineTo(pointer.x + 12, pointer.y);
+        ctx.moveTo(pointer.x, pointer.y - 12);
+        ctx.lineTo(pointer.x, pointer.y + 12);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(pointer.x, pointer.y, 20 + pointerPull * 6, 0, TAU);
+        ctx.strokeStyle = `rgba(29,34,39,${0.16 + pointerPull * 0.1})`;
+        ctx.stroke();
+
+        ctx.restore();
+        requestAnimationFrame(draw);
+      }
+
+      createSigils();
+      resize();
+      updateHud(0.54, 0.48);
+      requestAnimationFrame((stamp) => {
+        lastTime = stamp;
+        draw(stamp);
+      });
+    </script>
+  </body>
+</html>

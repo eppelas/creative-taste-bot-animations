@@ -1,0 +1,954 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>#058 Bathhouse Commons Mural</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --paper: #ede3d4;
+        --paper-bright: #fbf5ed;
+        --paper-deep: #dcc9b5;
+        --ink: #2f3940;
+        --muted: rgba(47, 57, 64, 0.62);
+        --line: rgba(47, 57, 64, 0.12);
+        --line-strong: rgba(47, 57, 64, 0.24);
+        --cyan: #8dbdcd;
+        --teal: #8caea1;
+        --rose: #d79b92;
+        --amber: #d5a46a;
+        --moss: #9eac82;
+        --plum: #8a7889;
+        --shadow: 0 30px 100px rgba(108, 82, 61, 0.16);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        background:
+          radial-gradient(circle at 16% 14%, rgba(255, 255, 255, 0.9), transparent 18%),
+          radial-gradient(circle at 82% 16%, rgba(141, 189, 205, 0.13), transparent 22%),
+          radial-gradient(circle at 20% 82%, rgba(215, 155, 146, 0.13), transparent 24%),
+          radial-gradient(circle at 74% 82%, rgba(158, 172, 130, 0.13), transparent 26%),
+          linear-gradient(180deg, #f6eee5 0%, var(--paper) 56%, var(--paper-deep) 100%);
+        color: var(--ink);
+        font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", serif;
+      }
+
+      body {
+        overflow-x: hidden;
+      }
+
+      body::before,
+      body::after {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+      }
+
+      body::before {
+        opacity: 0.08;
+        background-image:
+          linear-gradient(rgba(47, 57, 64, 0.12) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(47, 57, 64, 0.12) 1px, transparent 1px);
+        background-size: 92px 92px;
+        mask-image: radial-gradient(circle at 50% 42%, black 36%, transparent 92%);
+      }
+
+      body::after {
+        opacity: 0.14;
+        background-image:
+          linear-gradient(rgba(255, 255, 255, 0.82) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.82) 1px, transparent 1px);
+        background-size: 4px 4px;
+        mix-blend-mode: soft-light;
+      }
+
+      canvas {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        display: block;
+        pointer-events: none;
+      }
+
+      a {
+        color: inherit;
+      }
+
+      .shell {
+        position: relative;
+        min-height: 100vh;
+        padding: 16px;
+        display: grid;
+        grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
+        grid-template-rows: auto 1fr auto;
+        gap: 14px;
+      }
+
+      .panel,
+      .mural-panel,
+      .footer-card,
+      .back {
+        border: 1px solid var(--line);
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(251, 245, 237, 0.6)),
+          rgba(255, 250, 243, 0.64);
+        backdrop-filter: blur(18px);
+        box-shadow: var(--shadow);
+      }
+
+      .panel,
+      .mural-panel {
+        border-radius: 30px;
+        overflow: hidden;
+      }
+
+      .panel::after,
+      .mural-panel::after {
+        content: "";
+        position: absolute;
+        inset: 1px;
+        border-radius: inherit;
+        border: 1px solid rgba(255, 255, 255, 0.44);
+        pointer-events: none;
+      }
+
+      .panel {
+        position: relative;
+        padding: 16px 17px 17px;
+        display: grid;
+        align-content: start;
+        gap: 10px;
+      }
+
+      .intro {
+        grid-column: 1;
+        grid-row: 1;
+      }
+
+      .mural-panel {
+        position: relative;
+        grid-column: 2;
+        grid-row: 1 / span 2;
+        min-height: min(78vh, 920px);
+      }
+
+      .mural-overlay {
+        position: relative;
+        z-index: 1;
+        min-height: 100%;
+        padding: 18px;
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-template-rows: repeat(4, minmax(120px, 1fr));
+        gap: 12px;
+      }
+
+      .status {
+        grid-column: 1;
+        grid-row: 2;
+      }
+
+      .notes {
+        grid-column: 1 / -1;
+        grid-row: 3;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .tile-card,
+      .readout,
+      .footer-card {
+        position: relative;
+        border: 1px solid rgba(47, 57, 64, 0.1);
+        border-radius: 24px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.42), rgba(255, 250, 243, 0.28)),
+          rgba(255, 255, 255, 0.22);
+        overflow: hidden;
+      }
+
+      .tile-card {
+        padding: 12px;
+        display: grid;
+        align-content: space-between;
+        min-height: 0;
+        transform: translate3d(0, 0, 0);
+        transition:
+          transform 220ms ease,
+          box-shadow 220ms ease,
+          border-color 220ms ease,
+          background 220ms ease;
+      }
+
+      .tile-card.active {
+        border-color: rgba(47, 57, 64, 0.22);
+        box-shadow: 0 18px 46px rgba(100, 77, 58, 0.18);
+      }
+
+      .tile-card svg {
+        width: 100%;
+        height: 100%;
+        min-height: 88px;
+        overflow: visible;
+      }
+
+      .tile-card.large {
+        grid-column: span 2;
+        grid-row: span 2;
+      }
+
+      .tile-card.wide {
+        grid-column: span 2;
+      }
+
+      .tile-card.tall {
+        grid-row: span 2;
+      }
+
+      .tile-card.pool {
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.48), rgba(141, 189, 205, 0.09)),
+          rgba(255, 255, 255, 0.24);
+      }
+
+      .tile-card.rose {
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.5), rgba(215, 155, 146, 0.08)),
+          rgba(255, 255, 255, 0.24);
+      }
+
+      .tile-card.moss {
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.48), rgba(158, 172, 130, 0.08)),
+          rgba(255, 255, 255, 0.24);
+      }
+
+      .tile-card.plum {
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.48), rgba(138, 120, 137, 0.08)),
+          rgba(255, 255, 255, 0.24);
+      }
+
+      .tile-top,
+      .tile-bottom,
+      .eyebrow,
+      .small,
+      .meta,
+      .back,
+      .mode-pill {
+        font-family: "Azeret Mono", "IBM Plex Mono", "SFMono-Regular", monospace;
+      }
+
+      .tile-top,
+      .tile-bottom,
+      .eyebrow,
+      .small,
+      .mode-pill {
+        font-size: 11px;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      .tile-top,
+      .tile-bottom {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+
+      h1 {
+        font-size: clamp(2.1rem, 4.7vw, 4.7rem);
+        line-height: 0.9;
+        letter-spacing: -0.07em;
+        max-width: 8ch;
+      }
+
+      .body {
+        color: rgba(47, 57, 64, 0.78);
+        line-height: 1.56;
+        font-size: 0.98rem;
+      }
+
+      .meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.9rem;
+        color: var(--muted);
+        font-size: 0.72rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .readout {
+        padding: 12px 13px;
+      }
+
+      .readout-grid {
+        display: grid;
+        gap: 10px;
+      }
+
+      .readout strong {
+        display: block;
+        margin-top: 0.4rem;
+        font-size: 1rem;
+        letter-spacing: -0.05em;
+      }
+
+      .mode-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 0.5rem;
+      }
+
+      .mode-pill {
+        padding: 6px 8px;
+        border-radius: 999px;
+        border: 1px solid rgba(47, 57, 64, 0.12);
+        background: rgba(255, 255, 255, 0.42);
+      }
+
+      .mode-pill.active {
+        border-color: rgba(47, 57, 64, 0.24);
+        color: var(--ink);
+      }
+
+      .footer-card {
+        padding: 12px 13px;
+      }
+
+      .footer-card p:last-child {
+        margin-top: 0.5rem;
+        color: rgba(47, 57, 64, 0.78);
+        line-height: 1.48;
+        font-size: 0.9rem;
+      }
+
+      .back {
+        position: fixed;
+        right: 16px;
+        bottom: 16px;
+        border-radius: 999px;
+        padding: 11px 14px;
+        text-decoration: none;
+        font-size: 0.74rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--ink);
+      }
+
+      @media (max-width: 1080px) {
+        .shell {
+          grid-template-columns: minmax(0, 1fr);
+          grid-template-rows: auto auto auto auto;
+        }
+
+        .intro,
+        .status,
+        .mural-panel,
+        .notes {
+          grid-column: 1;
+        }
+
+        .intro {
+          grid-row: 1;
+        }
+
+        .status {
+          grid-row: 2;
+        }
+
+        .mural-panel {
+          grid-row: 3;
+          min-height: 760px;
+        }
+
+        .notes {
+          grid-row: 4;
+        }
+      }
+
+      @media (max-width: 780px) {
+        .shell {
+          padding: 12px;
+          gap: 12px;
+        }
+
+        .panel,
+        .mural-panel {
+          border-radius: 24px;
+        }
+
+        .mural-overlay {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          grid-template-rows: none;
+          grid-auto-rows: minmax(120px, auto);
+          padding: 14px;
+          gap: 10px;
+        }
+
+        .tile-card.large,
+        .tile-card.wide {
+          grid-column: span 2;
+        }
+
+        .tile-card.tall {
+          grid-row: span 1;
+        }
+
+        .notes {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .back {
+          right: 12px;
+          bottom: 12px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <section class="panel intro">
+        <p class="eyebrow">Code Animation Study #058</p>
+        <h1>Bathhouse Commons Mural</h1>
+        <p class="body">
+          A browser-native environmental sheet built from the strongest fresh
+          design lane: awkward communal bathhouse tiles, steam pockets, and
+          mural-like scenes share one soft public wall instead of collapsing
+          into another dark console, dossier, or centered specimen.
+        </p>
+        <p class="body">
+          Move across the mural to warm nearby tiles and pull up steam. Click to
+          rotate the commons between hush, rinse, and gossip, changing ripple
+          speed, crowd drift, and towel-line motion without adding fake app
+          chrome.
+        </p>
+        <div class="meta">
+          <span>Environmental illustration lane</span>
+          <span>Steam-and-ripple interaction</span>
+          <span>Static self-contained page</span>
+        </div>
+      </section>
+
+      <section class="panel status">
+        <p class="eyebrow">Commons Readout</p>
+        <div class="readout-grid">
+          <article class="readout">
+            <p class="small">Tile Temperature</p>
+            <strong id="tempValue">Warm</strong>
+          </article>
+          <article class="readout">
+            <p class="small">Steam Bias</p>
+            <strong id="steamValue">Soft Drift</strong>
+          </article>
+          <article class="readout">
+            <p class="small">Crowd Mode</p>
+            <strong id="modeValue">Hush</strong>
+            <div class="mode-row" id="modeRow">
+              <span class="mode-pill active">Hush</span>
+              <span class="mode-pill">Rinse</span>
+              <span class="mode-pill">Gossip</span>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="mural-panel" id="muralPanel">
+        <canvas id="scene"></canvas>
+        <div class="mural-overlay">
+          <article class="tile-card large pool" data-tile="0">
+            <div class="tile-top"><span>Pool 01</span><span>Shared soak</span></div>
+            <svg viewBox="0 0 200 180" aria-hidden="true">
+              <rect x="18" y="92" width="164" height="62" rx="26" fill="rgba(141,189,205,0.18)" />
+              <path d="M50 104 C60 78 86 70 98 82 C110 64 136 70 146 98" fill="none" stroke="#2f3940" stroke-width="7" stroke-linecap="round"/>
+              <circle cx="74" cy="90" r="4" fill="#2f3940" />
+              <circle cx="122" cy="88" r="4" fill="#2f3940" />
+              <path d="M60 118 C84 112 114 112 140 118" fill="none" stroke="#8dbdcd" stroke-width="6" stroke-linecap="round" />
+              <path d="M34 68 C50 42 58 46 64 26" fill="none" stroke="rgba(141,189,205,0.7)" stroke-width="4" stroke-linecap="round"/>
+              <path d="M158 74 C146 48 154 42 144 18" fill="none" stroke="rgba(215,155,146,0.52)" stroke-width="4" stroke-linecap="round"/>
+            </svg>
+            <div class="tile-bottom"><span>Tiles warming</span><span>steam seam</span></div>
+          </article>
+
+          <article class="tile-card rose" data-tile="1">
+            <div class="tile-top"><span>Bench 02</span><span>towel fold</span></div>
+            <svg viewBox="0 0 160 120" aria-hidden="true">
+              <path d="M22 86 H138" fill="none" stroke="#2f3940" stroke-width="6" stroke-linecap="round"/>
+              <path d="M40 86 V48 C40 34 58 26 72 34 C88 18 116 28 118 52 V86" fill="none" stroke="#2f3940" stroke-width="7" stroke-linecap="round"/>
+              <path d="M58 94 C76 84 90 84 108 94" fill="none" stroke="#d79b92" stroke-width="5" stroke-linecap="round" />
+              <circle cx="63" cy="52" r="3.5" fill="#2f3940" />
+              <circle cx="95" cy="51" r="3.5" fill="#2f3940" />
+            </svg>
+            <div class="tile-bottom"><span>awkward rest</span><span>quiet</span></div>
+          </article>
+
+          <article class="tile-card moss tall" data-tile="2">
+            <div class="tile-top"><span>Brush 03</span><span>vertical scrub</span></div>
+            <svg viewBox="0 0 160 200" aria-hidden="true">
+              <path d="M80 34 V152" fill="none" stroke="#2f3940" stroke-width="9" stroke-linecap="round"/>
+              <path d="M48 58 C56 30 104 30 112 58" fill="none" stroke="#2f3940" stroke-width="8" stroke-linecap="round"/>
+              <path d="M44 112 C62 92 98 92 116 112" fill="none" stroke="#8caea1" stroke-width="8" stroke-linecap="round"/>
+              <path d="M56 142 C70 126 90 126 104 142" fill="none" stroke="#d5a46a" stroke-width="6" stroke-linecap="round"/>
+              <path d="M32 28 C24 48 24 70 34 96" fill="none" stroke="rgba(141,189,205,0.54)" stroke-width="4" stroke-linecap="round"/>
+            </svg>
+            <div class="tile-bottom"><span>steam ladder</span><span>moss</span></div>
+          </article>
+
+          <article class="tile-card plum wide" data-tile="3">
+            <div class="tile-top"><span>Mirror 04</span><span>drift line</span></div>
+            <svg viewBox="0 0 200 120" aria-hidden="true">
+              <rect x="18" y="18" width="164" height="84" rx="24" fill="rgba(138,120,137,0.08)" stroke="rgba(47,57,64,0.18)" stroke-width="3"/>
+              <path d="M34 74 C60 58 74 46 100 62 C126 78 138 52 166 42" fill="none" stroke="#2f3940" stroke-width="6" stroke-linecap="round"/>
+              <path d="M32 88 C58 74 74 64 100 76 C126 88 142 68 166 60" fill="none" stroke="#8dbdcd" stroke-width="4" stroke-linecap="round"/>
+              <circle cx="84" cy="52" r="3.5" fill="#d79b92"/>
+              <circle cx="118" cy="64" r="3.5" fill="#8caea1"/>
+            </svg>
+            <div class="tile-bottom"><span>reflection bend</span><span>glass fog</span></div>
+          </article>
+
+          <article class="tile-card moss" data-tile="4">
+            <div class="tile-top"><span>Hooks 05</span><span>drying line</span></div>
+            <svg viewBox="0 0 160 120" aria-hidden="true">
+              <path d="M22 28 H138" fill="none" stroke="#2f3940" stroke-width="5" stroke-linecap="round"/>
+              <path d="M50 28 V64" fill="none" stroke="#2f3940" stroke-width="4" stroke-linecap="round"/>
+              <path d="M82 28 V76" fill="none" stroke="#2f3940" stroke-width="4" stroke-linecap="round"/>
+              <path d="M112 28 V58" fill="none" stroke="#2f3940" stroke-width="4" stroke-linecap="round"/>
+              <path d="M42 64 C56 56 64 56 78 64" fill="none" stroke="#8caea1" stroke-width="8" stroke-linecap="round"/>
+              <path d="M72 76 C92 66 102 66 120 76" fill="none" stroke="#d79b92" stroke-width="8" stroke-linecap="round"/>
+            </svg>
+            <div class="tile-bottom"><span>linen sway</span><span>hooks</span></div>
+          </article>
+
+          <article class="tile-card pool" data-tile="5">
+            <div class="tile-top"><span>Soap 06</span><span>slip path</span></div>
+            <svg viewBox="0 0 160 120" aria-hidden="true">
+              <path d="M34 88 C42 58 64 44 82 52 C98 38 122 48 130 82" fill="none" stroke="#2f3940" stroke-width="7" stroke-linecap="round"/>
+              <path d="M44 94 C68 86 92 86 118 94" fill="none" stroke="#8dbdcd" stroke-width="5" stroke-linecap="round"/>
+              <circle cx="70" cy="58" r="3.5" fill="#2f3940"/>
+              <circle cx="101" cy="61" r="3.5" fill="#2f3940"/>
+              <circle cx="52" cy="42" r="9" fill="rgba(255,255,255,0.58)" stroke="rgba(47,57,64,0.18)" stroke-width="2"/>
+            </svg>
+            <div class="tile-bottom"><span>surface loop</span><span>foam</span></div>
+          </article>
+
+          <article class="tile-card large rose" data-tile="6">
+            <div class="tile-top"><span>Commons 07</span><span>gossip lane</span></div>
+            <svg viewBox="0 0 200 180" aria-hidden="true">
+              <path d="M20 132 C52 112 74 106 100 120 C124 96 152 98 182 132" fill="none" stroke="#2f3940" stroke-width="8" stroke-linecap="round"/>
+              <path d="M40 138 C58 126 74 126 92 138" fill="none" stroke="#8caea1" stroke-width="6" stroke-linecap="round"/>
+              <path d="M108 140 C126 126 144 126 160 140" fill="none" stroke="#d79b92" stroke-width="6" stroke-linecap="round"/>
+              <circle cx="58" cy="96" r="4" fill="#2f3940"/>
+              <circle cx="96" cy="92" r="4" fill="#2f3940"/>
+              <circle cx="142" cy="98" r="4" fill="#2f3940"/>
+              <path d="M36 70 C44 54 54 44 68 32" fill="none" stroke="rgba(141,189,205,0.64)" stroke-width="4" stroke-linecap="round"/>
+              <path d="M158 80 C150 58 156 48 146 26" fill="none" stroke="rgba(215,155,146,0.52)" stroke-width="4" stroke-linecap="round"/>
+              <path d="M90 66 C100 46 108 40 122 24" fill="none" stroke="rgba(213,164,106,0.54)" stroke-width="4" stroke-linecap="round"/>
+            </svg>
+            <div class="tile-bottom"><span>shared breath</span><span>mural center</span></div>
+          </article>
+
+          <article class="tile-card plum" data-tile="7">
+            <div class="tile-top"><span>Drain 08</span><span>pool hinge</span></div>
+            <svg viewBox="0 0 160 120" aria-hidden="true">
+              <circle cx="80" cy="66" r="26" fill="rgba(138,120,137,0.08)" stroke="#2f3940" stroke-width="5"/>
+              <path d="M80 40 V92" fill="none" stroke="#2f3940" stroke-width="4"/>
+              <path d="M54 66 H106" fill="none" stroke="#2f3940" stroke-width="4"/>
+              <path d="M26 94 C54 88 106 88 134 94" fill="none" stroke="#8dbdcd" stroke-width="5" stroke-linecap="round"/>
+            </svg>
+            <div class="tile-bottom"><span>eddy map</span><span>hinge</span></div>
+          </article>
+
+          <article class="tile-card pool wide" data-tile="8">
+            <div class="tile-top"><span>Steam 09</span><span>upper shelf</span></div>
+            <svg viewBox="0 0 200 120" aria-hidden="true">
+              <path d="M42 98 C50 56 84 44 98 66 C114 42 148 52 156 96" fill="none" stroke="#2f3940" stroke-width="7" stroke-linecap="round"/>
+              <path d="M34 56 C42 34 54 30 58 16" fill="none" stroke="rgba(141,189,205,0.72)" stroke-width="4" stroke-linecap="round"/>
+              <path d="M92 42 C100 20 112 18 116 6" fill="none" stroke="rgba(215,155,146,0.64)" stroke-width="4" stroke-linecap="round"/>
+              <path d="M146 54 C156 30 166 28 172 12" fill="none" stroke="rgba(158,172,130,0.64)" stroke-width="4" stroke-linecap="round"/>
+            </svg>
+            <div class="tile-bottom"><span>roof vapor</span><span>soft rise</span></div>
+          </article>
+
+          <article class="tile-card moss" data-tile="9">
+            <div class="tile-top"><span>Steps 10</span><span>entry seam</span></div>
+            <svg viewBox="0 0 160 120" aria-hidden="true">
+              <path d="M24 92 H70 V74 H108 V56 H136" fill="none" stroke="#2f3940" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="60" cy="54" r="4" fill="#2f3940"/>
+              <path d="M36 40 C48 26 62 26 76 40" fill="none" stroke="#8caea1" stroke-width="6" stroke-linecap="round"/>
+            </svg>
+            <div class="tile-bottom"><span>approach</span><span>stair</span></div>
+          </article>
+
+          <article class="tile-card rose" data-tile="10">
+            <div class="tile-top"><span>Whisper 11</span><span>tile hush</span></div>
+            <svg viewBox="0 0 160 120" aria-hidden="true">
+              <path d="M34 88 C54 60 74 50 90 58 C102 44 120 52 128 74" fill="none" stroke="#2f3940" stroke-width="7" stroke-linecap="round"/>
+              <circle cx="68" cy="60" r="3.5" fill="#2f3940"/>
+              <circle cx="102" cy="64" r="3.5" fill="#2f3940"/>
+              <path d="M46 36 C60 30 74 34 84 44" fill="none" stroke="#d79b92" stroke-width="5" stroke-linecap="round"/>
+            </svg>
+            <div class="tile-bottom"><span>small talk</span><span>rose fog</span></div>
+          </article>
+
+          <article class="tile-card plum" data-tile="11">
+            <div class="tile-top"><span>Ledger 12</span><span>attendance</span></div>
+            <svg viewBox="0 0 160 120" aria-hidden="true">
+              <rect x="28" y="24" width="104" height="72" rx="18" fill="rgba(255,255,255,0.36)" stroke="rgba(47,57,64,0.18)" stroke-width="3"/>
+              <path d="M44 48 H116" fill="none" stroke="#2f3940" stroke-width="4" stroke-linecap="round"/>
+              <path d="M44 64 H108" fill="none" stroke="#8dbdcd" stroke-width="4" stroke-linecap="round"/>
+              <path d="M44 80 H98" fill="none" stroke="#d79b92" stroke-width="4" stroke-linecap="round"/>
+            </svg>
+            <div class="tile-bottom"><span>attendance</span><span>paper edge</span></div>
+          </article>
+        </div>
+      </section>
+
+      <section class="notes">
+        <article class="footer-card">
+          <p class="small">Idea</p>
+          <p>
+            Turn the current design-usable branch into a shared environment and
+            surface language, so the animation library gains a mural/world page
+            rather than another isolated poster, hero specimen, or fake app.
+          </p>
+        </article>
+        <article class="footer-card">
+          <p class="small">Interaction</p>
+          <p>
+            Pointer proximity raises local heat, steam, and tile focus; click
+            cycles three commons moods that retune ripple speed, body sway, and
+            towel-line movement across the same composition.
+          </p>
+        </article>
+        <article class="footer-card">
+          <p class="small">Next</p>
+          <p>
+            A later extension could let each tile open into a deeper little
+            civic room or social ritual, keeping the same soft mural grammar but
+            widening it into a whole public-building world.
+          </p>
+        </article>
+      </section>
+    </main>
+
+    <a class="back" href="../../index.html">Back to Index</a>
+
+    <script>
+      const canvas = document.getElementById("scene");
+      const muralPanel = document.getElementById("muralPanel");
+      const ctx = canvas.getContext("2d");
+      const tempValue = document.getElementById("tempValue");
+      const steamValue = document.getElementById("steamValue");
+      const modeValue = document.getElementById("modeValue");
+      const modePills = [...document.querySelectorAll(".mode-pill")];
+      const tileCards = [...document.querySelectorAll(".tile-card")];
+
+      const state = {
+        width: 0,
+        height: 0,
+        dpr: Math.min(window.devicePixelRatio || 1, 2),
+        pointer: { x: 0.5, y: 0.5, inside: false, power: 0 },
+        modeIndex: 0,
+        modes: [
+          { name: "Hush", steam: 0.7, ripple: 0.45, drift: 0.35, label: "Soft Drift", temp: "Warm" },
+          { name: "Rinse", steam: 0.52, ripple: 1.05, drift: 0.72, label: "Wet Lift", temp: "Hot" },
+          { name: "Gossip", steam: 0.9, ripple: 0.66, drift: 1.14, label: "Crowded Bloom", temp: "Glowing" },
+        ],
+        ripples: [],
+        steamNodes: [],
+        gridLines: [],
+        lastTime: 0,
+      };
+
+      function makeGrid() {
+        state.steamNodes = [];
+        state.gridLines = [];
+        const cols = 7;
+        const rows = 6;
+        for (let y = 0; y <= rows; y += 1) {
+          state.gridLines.push({
+            x1: 0,
+            y1: (y / rows) * state.height,
+            x2: state.width,
+            y2: (y / rows) * state.height,
+          });
+        }
+        for (let x = 0; x <= cols; x += 1) {
+          state.gridLines.push({
+            x1: (x / cols) * state.width,
+            y1: 0,
+            x2: (x / cols) * state.width,
+            y2: state.height,
+          });
+        }
+        for (let i = 0; i < 34; i += 1) {
+          state.steamNodes.push({
+            baseX: Math.random(),
+            baseY: Math.random(),
+            drift: 0.4 + Math.random() * 1.4,
+            size: 28 + Math.random() * 56,
+            hue: i % 3,
+            phase: Math.random() * Math.PI * 2,
+          });
+        }
+      }
+
+      function resize() {
+        const rect = muralPanel.getBoundingClientRect();
+        state.width = rect.width;
+        state.height = rect.height;
+        canvas.width = rect.width * state.dpr;
+        canvas.height = rect.height * state.dpr;
+        canvas.style.width = rect.width + "px";
+        canvas.style.height = rect.height + "px";
+        ctx.setTransform(state.dpr, 0, 0, state.dpr, 0, 0);
+        makeGrid();
+      }
+
+      function addRipple(x, y, scale = 1) {
+        state.ripples.push({
+          x,
+          y,
+          radius: 12 * scale,
+          life: 0,
+          maxLife: 90,
+        });
+      }
+
+      function updateTiles(time) {
+        const mode = state.modes[state.modeIndex];
+        tileCards.forEach((card, index) => {
+          const rect = card.getBoundingClientRect();
+          const muralRect = muralPanel.getBoundingClientRect();
+          const cx = rect.left + rect.width / 2 - muralRect.left;
+          const cy = rect.top + rect.height / 2 - muralRect.top;
+          const dx = state.pointer.x * state.width - cx;
+          const dy = state.pointer.y * state.height - cy;
+          const dist = Math.hypot(dx, dy);
+          const influence = state.pointer.inside ? Math.max(0, 1 - dist / 240) : 0;
+          const bob = Math.sin(time * 0.0007 + index * 0.9) * 4;
+          const sway = Math.cos(time * 0.0005 + index * 0.6) * 3 * mode.drift;
+          const lift = influence * 10;
+          card.style.transform = `translate3d(${sway}px, ${bob - lift}px, 0)`;
+          card.classList.toggle("active", influence > 0.18);
+          card.style.backgroundPosition = `${50 + influence * 10}% ${50 - influence * 8}%`;
+        });
+      }
+
+      function drawBackdrop(time) {
+        ctx.clearRect(0, 0, state.width, state.height);
+
+        const topWash = ctx.createLinearGradient(0, 0, 0, state.height);
+        topWash.addColorStop(0, "rgba(255,255,255,0.25)");
+        topWash.addColorStop(1, "rgba(220,201,181,0.06)");
+        ctx.fillStyle = topWash;
+        ctx.fillRect(0, 0, state.width, state.height);
+
+        ctx.save();
+        ctx.strokeStyle = "rgba(47,57,64,0.07)";
+        ctx.lineWidth = 1;
+        state.gridLines.forEach((line) => {
+          ctx.beginPath();
+          ctx.moveTo(line.x1, line.y1);
+          ctx.lineTo(line.x2, line.y2);
+          ctx.stroke();
+        });
+        ctx.restore();
+
+        const mode = state.modes[state.modeIndex];
+        const focusX = state.pointer.x * state.width;
+        const focusY = state.pointer.y * state.height;
+
+        for (const node of state.steamNodes) {
+          const x =
+            node.baseX * state.width +
+            Math.sin(time * 0.00028 * node.drift + node.phase) * 18 * mode.drift;
+          const y =
+            node.baseY * state.height +
+            Math.cos(time * 0.00022 * node.drift + node.phase) * 14;
+          const dist = Math.hypot(focusX - x, focusY - y);
+          const warmth = state.pointer.inside ? Math.max(0, 1 - dist / 240) : 0;
+          const radius = node.size * (0.72 + warmth * 0.48 + mode.steam * 0.18);
+
+          let color = "rgba(141,189,205,0.12)";
+          if (node.hue === 1) color = "rgba(215,155,146,0.11)";
+          if (node.hue === 2) color = "rgba(158,172,130,0.1)";
+
+          const glow = ctx.createRadialGradient(x, y, 0, x, y, radius);
+          glow.addColorStop(0, color);
+          glow.addColorStop(1, "rgba(255,255,255,0)");
+          ctx.fillStyle = glow;
+          ctx.beginPath();
+          ctx.arc(x, y, radius, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.strokeStyle = `rgba(255,255,255,${0.1 + warmth * 0.18})`;
+          ctx.lineWidth = 1.2;
+          ctx.beginPath();
+          ctx.moveTo(x - radius * 0.18, y + radius * 0.12);
+          ctx.bezierCurveTo(
+            x - radius * 0.08,
+            y - radius * 0.24,
+            x + radius * 0.08,
+            y - radius * 0.18,
+            x + radius * 0.18,
+            y - radius * 0.46
+          );
+          ctx.stroke();
+        }
+
+        ctx.save();
+        ctx.globalCompositeOperation = "multiply";
+        for (let i = 0; i < 5; i += 1) {
+          const baseY = state.height * (0.2 + i * 0.17);
+          ctx.strokeStyle = i % 2 === 0 ? "rgba(141,189,205,0.22)" : "rgba(215,155,146,0.18)";
+          ctx.lineWidth = 2 + i * 0.35;
+          ctx.beginPath();
+          for (let x = -40; x <= state.width + 40; x += 18) {
+            const noise =
+              Math.sin(x * 0.011 + time * 0.0008 * mode.ripple + i) * 11 +
+              Math.cos(x * 0.018 - time * 0.00052 + i * 3) * 5;
+            const pointerBend =
+              state.pointer.inside
+                ? Math.max(0, 1 - Math.abs(x - focusX) / 280) * (focusY - baseY) * 0.045
+                : 0;
+            const y = baseY + noise + pointerBend;
+            if (x === -40) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+          }
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      function drawRipples(delta) {
+        const mode = state.modes[state.modeIndex];
+        state.ripples = state.ripples.filter((ripple) => {
+          ripple.life += delta * 0.06;
+          ripple.radius += 0.75 * mode.ripple;
+          const alpha = 1 - ripple.life / ripple.maxLife;
+          if (alpha <= 0) return false;
+
+          ctx.strokeStyle = `rgba(47,57,64,${alpha * 0.16})`;
+          ctx.lineWidth = 1.4;
+          ctx.beginPath();
+          ctx.ellipse(
+            ripple.x,
+            ripple.y,
+            ripple.radius,
+            ripple.radius * 0.56,
+            0,
+            0,
+            Math.PI * 2
+          );
+          ctx.stroke();
+
+          ctx.strokeStyle = `rgba(141,189,205,${alpha * 0.24})`;
+          ctx.beginPath();
+          ctx.ellipse(
+            ripple.x,
+            ripple.y,
+            ripple.radius * 0.72,
+            ripple.radius * 0.34,
+            0,
+            0,
+            Math.PI * 2
+          );
+          ctx.stroke();
+          return true;
+        });
+      }
+
+      function animate(time) {
+        if (!state.lastTime) state.lastTime = time;
+        const delta = Math.min(32, time - state.lastTime);
+        state.lastTime = time;
+
+        updateTiles(time);
+        drawBackdrop(time);
+
+        if (state.pointer.inside && Math.random() < 0.09) {
+          addRipple(
+            state.pointer.x * state.width + (Math.random() - 0.5) * 60,
+            state.pointer.y * state.height + (Math.random() - 0.5) * 36,
+            0.5 + Math.random() * 0.5
+          );
+        }
+
+        if (Math.random() < 0.018) {
+          addRipple(
+            Math.random() * state.width,
+            state.height * (0.2 + Math.random() * 0.6),
+            0.4 + Math.random() * 0.6
+          );
+        }
+
+        drawRipples(delta);
+        requestAnimationFrame(animate);
+      }
+
+      function updateModeUI() {
+        const mode = state.modes[state.modeIndex];
+        tempValue.textContent = mode.temp;
+        steamValue.textContent = mode.label;
+        modeValue.textContent = mode.name;
+        modePills.forEach((pill, index) => pill.classList.toggle("active", index === state.modeIndex));
+      }
+
+      function cycleMode() {
+        state.modeIndex = (state.modeIndex + 1) % state.modes.length;
+        updateModeUI();
+      }
+
+      muralPanel.addEventListener("pointermove", (event) => {
+        const rect = muralPanel.getBoundingClientRect();
+        state.pointer.x = (event.clientX - rect.left) / rect.width;
+        state.pointer.y = (event.clientY - rect.top) / rect.height;
+        state.pointer.inside = true;
+      });
+
+      muralPanel.addEventListener("pointerenter", () => {
+        state.pointer.inside = true;
+      });
+
+      muralPanel.addEventListener("pointerleave", () => {
+        state.pointer.inside = false;
+      });
+
+      muralPanel.addEventListener("click", (event) => {
+        const rect = muralPanel.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        const y = event.clientY - rect.top;
+        addRipple(x, y, 1.3);
+        cycleMode();
+      });
+
+      window.addEventListener("resize", resize);
+
+      resize();
+      updateModeUI();
+      requestAnimationFrame(animate);
+    </script>
+  </body>
+</html>

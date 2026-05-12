@@ -1,0 +1,808 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>#031 Porous Interface Creature</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #eef4f4;
+        --paper: rgba(255, 255, 255, 0.58);
+        --line: rgba(33, 60, 80, 0.18);
+        --ink: #294354;
+        --muted: rgba(41, 67, 84, 0.68);
+        --blue: #8dd2ff;
+        --blue-deep: #4e9ecf;
+        --peach: #ffc3a6;
+        --pearl: #f9fbfd;
+        --shadow: rgba(77, 126, 150, 0.18);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background:
+          radial-gradient(circle at 18% 18%, rgba(141, 210, 255, 0.18), transparent 22%),
+          radial-gradient(circle at 82% 22%, rgba(255, 195, 166, 0.16), transparent 24%),
+          radial-gradient(circle at 54% 82%, rgba(141, 210, 255, 0.12), transparent 28%),
+          linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(238, 244, 244, 0.96)),
+          var(--bg);
+        color: var(--ink);
+        font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+      }
+
+      canvas {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        display: block;
+      }
+
+      .hud {
+        position: fixed;
+        inset: 16px;
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        align-items: flex-start;
+        pointer-events: none;
+      }
+
+      .panel,
+      .mode,
+      .back {
+        border: 1px solid var(--line);
+        background: var(--paper);
+        backdrop-filter: blur(18px);
+        box-shadow: 0 24px 60px rgba(76, 124, 148, 0.1);
+      }
+
+      .panel,
+      .mode {
+        pointer-events: auto;
+      }
+
+      .panel {
+        width: min(34rem, calc(100vw - 32px));
+        border-radius: 26px;
+        padding: 16px 17px 17px;
+        display: grid;
+        gap: 10px;
+      }
+
+      .eyebrow,
+      .hint,
+      .meta,
+      .label,
+      .value {
+        margin: 0;
+      }
+
+      .eyebrow,
+      .label {
+        font-size: 11px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: rgba(41, 67, 84, 0.52);
+      }
+
+      h1 {
+        margin: 0;
+        font-size: clamp(2rem, 4.4vw, 3.3rem);
+        line-height: 0.92;
+        letter-spacing: -0.03em;
+      }
+
+      .hint,
+      .meta {
+        color: var(--muted);
+        line-height: 1.45;
+      }
+
+      .hint {
+        font-size: 0.96rem;
+      }
+
+      .meta {
+        font-size: 0.81rem;
+      }
+
+      .readout {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+      }
+
+      .value {
+        display: block;
+        margin-top: 0.24rem;
+        font-size: 0.95rem;
+        color: var(--ink);
+      }
+
+      .modes {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+      }
+
+      .mode {
+        position: absolute;
+        min-width: 126px;
+        border-radius: 18px;
+        padding: 10px 12px;
+        color: var(--ink);
+        transform: translate(-50%, -50%);
+        cursor: pointer;
+        pointer-events: auto;
+      }
+
+      .mode strong,
+      .mode span {
+        display: block;
+      }
+
+      .mode strong {
+        margin-bottom: 0.16rem;
+        font-size: 0.74rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .mode span {
+        font-size: 0.69rem;
+        line-height: 1.32;
+        color: var(--muted);
+      }
+
+      .mode.active {
+        border-color: rgba(78, 158, 207, 0.34);
+        box-shadow:
+          inset 0 0 0 1px rgba(78, 158, 207, 0.18),
+          0 24px 64px rgba(76, 124, 148, 0.14);
+      }
+
+      .back {
+        position: fixed;
+        right: 16px;
+        bottom: 16px;
+        border-radius: 999px;
+        padding: 10px 14px;
+        color: var(--ink);
+        text-decoration: none;
+        pointer-events: auto;
+      }
+
+      @media (max-width: 920px) {
+        .hud {
+          inset: 14px;
+        }
+
+        .panel {
+          width: min(100%, 31rem);
+        }
+
+        .mode {
+          min-width: 104px;
+          padding: 8px 10px;
+        }
+
+        .back {
+          right: 14px;
+          bottom: 14px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="scene"></canvas>
+    <div class="hud">
+      <section class="panel">
+        <p class="eyebrow">Code Animation Study #031</p>
+        <h1>Porous Interface Creature</h1>
+        <p class="hint">
+          A pale design-board organism: one translucent shell, soft root-legs,
+          and live connector probes, so the interface reads like anatomy rather
+          than a dashboard laid on top.
+        </p>
+        <p class="meta">
+          Move across the board to pull the nearest legs and sensor lines into
+          tension. Click one of the board nodes to swap the creature law:
+          drift, probe, or bloom.
+        </p>
+        <div class="readout">
+          <p class="label">Board law<span class="value" id="modeValue">drift</span></p>
+          <p class="label">Probe tension<span class="value" id="tensionValue">0.31</span></p>
+          <p class="label">Core warmth<span class="value" id="warmthValue">48%</span></p>
+        </div>
+      </section>
+    </div>
+    <div class="modes" id="modes" aria-label="Creature board nodes"></div>
+    <a class="back" href="../../index.html">Back to index</a>
+    <script src="../../shared/study-notes.js"></script>
+
+    <script>
+      const canvas = document.getElementById("scene");
+      const ctx = canvas.getContext("2d");
+      const modesLayer = document.getElementById("modes");
+      const modeValue = document.getElementById("modeValue");
+      const tensionValue = document.getElementById("tensionValue");
+      const warmthValue = document.getElementById("warmthValue");
+
+      const pointer = {
+        x: window.innerWidth * 0.52,
+        y: window.innerHeight * 0.54,
+        tx: window.innerWidth * 0.52,
+        ty: window.innerHeight * 0.54,
+        active: false,
+      };
+
+      const TAU = Math.PI * 2;
+      const boardModes = [
+        {
+          id: "drift",
+          label: "Drift",
+          hint: "slow gait",
+          cool: "#97d8ff",
+          warm: "#ffc7ab",
+          flex: 0.34,
+          lift: 0.38,
+          glow: 0.42,
+        },
+        {
+          id: "probe",
+          label: "Probe",
+          hint: "wider reach",
+          cool: "#6dbff4",
+          warm: "#ffb08d",
+          flex: 0.62,
+          lift: 0.64,
+          glow: 0.52,
+        },
+        {
+          id: "bloom",
+          label: "Bloom",
+          hint: "open pores",
+          cool: "#b4e5ff",
+          warm: "#ffd2bc",
+          flex: 0.48,
+          lift: 0.54,
+          glow: 0.78,
+        },
+      ];
+
+      let activeMode = boardModes[0];
+
+      const modeNodes = boardModes.map((mode, index) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "mode";
+        button.innerHTML = `<strong>${mode.label}</strong><span>${mode.hint}</span>`;
+        button.addEventListener("click", () => {
+          activeMode = mode;
+          updateModeButtons();
+        });
+        modesLayer.appendChild(button);
+        return {
+          mode,
+          button,
+          x: 0.16 + index * 0.32,
+          y: index === 1 ? 0.78 : 0.22,
+        };
+      });
+
+      function updateModeButtons() {
+        modeValue.textContent = activeMode.id;
+        for (const node of modeNodes) {
+          node.button.classList.toggle("active", node.mode === activeMode);
+        }
+      }
+
+      const miniPanels = [
+        { x: 0.1, y: 0.18, w: 0.15, h: 0.22, type: "specimen" },
+        { x: 0.31, y: 0.08, w: 0.34, h: 0.09, type: "chips" },
+        { x: 0.74, y: 0.08, w: 0.22, h: 0.23, type: "branch" },
+        { x: 0.12, y: 0.33, w: 0.11, h: 0.18, type: "slider" },
+        { x: 0.83, y: 0.31, w: 0.13, h: 0.12, type: "shell" },
+        { x: 0.82, y: 0.44, w: 0.14, h: 0.14, type: "dial" },
+        { x: 0.82, y: 0.58, w: 0.16, h: 0.11, type: "tracks" },
+        { x: 0.08, y: 0.58, w: 0.1, h: 0.16, type: "tree" },
+        { x: 0.03, y: 0.78, w: 0.17, h: 0.16, type: "orbit" },
+        { x: 0.21, y: 0.8, w: 0.18, h: 0.14, type: "wave" },
+        { x: 0.41, y: 0.8, w: 0.2, h: 0.13, type: "dotfield" },
+        { x: 0.64, y: 0.8, w: 0.16, h: 0.13, type: "swell" },
+        { x: 0.83, y: 0.8, w: 0.14, h: 0.13, type: "spray" },
+      ];
+
+      const creature = {
+        x: 0.5,
+        y: 0.5,
+        w: 0.34,
+        h: 0.23,
+        legs: Array.from({ length: 10 }, (_, index) => ({
+          side: index < 5 ? -1 : 1,
+          phase: (index / 10) * TAU,
+          rootX: 0.34 + (index % 5) * 0.08,
+          reach: 0.13 + (index % 3) * 0.018,
+          lift: 0.08 + (index % 2) * 0.012,
+        })),
+        probes: Array.from({ length: 6 }, (_, index) => ({
+          anchorX: 0.38 + index * 0.05,
+          anchorY: 0.42 + (index % 2) * 0.05,
+          targetX: 0.64 + index * 0.02,
+          targetY: 0.3 + index * 0.08,
+          phase: index * 0.8,
+        })),
+      };
+
+      const fieldDots = Array.from({ length: 140 }, () => ({
+        x: Math.random(),
+        y: Math.random(),
+        size: 1 + Math.random() * 2.2,
+        speed: 0.0004 + Math.random() * 0.0008,
+        phase: Math.random() * TAU,
+      }));
+
+      function resize() {
+        const ratio = window.devicePixelRatio || 1;
+        canvas.width = Math.round(window.innerWidth * ratio);
+        canvas.height = Math.round(window.innerHeight * ratio);
+        canvas.style.width = `${window.innerWidth}px`;
+        canvas.style.height = `${window.innerHeight}px`;
+        ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+
+        const layout = [
+          [0.18, 0.19],
+          [0.5, 0.12],
+          [0.84, 0.2],
+        ];
+        modeNodes.forEach((node, index) => {
+          if (window.innerWidth < 820) {
+            node.button.style.left = `${18 + index * 32}%`;
+            node.button.style.top = `${86}%`;
+          } else {
+            node.button.style.left = `${layout[index][0] * 100}%`;
+            node.button.style.top = `${layout[index][1] * 100}%`;
+          }
+        });
+      }
+
+      function lerp(a, b, t) {
+        return a + (b - a) * t;
+      }
+
+      function drawRoundRect(x, y, w, h, r) {
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.arcTo(x + w, y, x + w, y + h, r);
+        ctx.arcTo(x + w, y + h, x, y + h, r);
+        ctx.arcTo(x, y + h, x, y, r);
+        ctx.arcTo(x, y, x + w, y, r);
+        ctx.closePath();
+      }
+
+      function drawPanel(panel, time) {
+        const w = window.innerWidth;
+        const h = window.innerHeight;
+        const x = panel.x * w;
+        const y = panel.y * h;
+        const pw = panel.w * w;
+        const ph = panel.h * h;
+
+        ctx.save();
+        ctx.translate(x, y);
+
+        drawRoundRect(0, 0, pw, ph, Math.min(28, pw * 0.14));
+        ctx.fillStyle = "rgba(255,255,255,0.34)";
+        ctx.strokeStyle = "rgba(33, 60, 80, 0.14)";
+        ctx.lineWidth = 1.1;
+        ctx.fill();
+        ctx.stroke();
+        ctx.clip();
+
+        const g = ctx.createLinearGradient(0, 0, pw, ph);
+        g.addColorStop(0, "rgba(141, 210, 255, 0.1)");
+        g.addColorStop(1, "rgba(255, 195, 166, 0.08)");
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, pw, ph);
+
+        switch (panel.type) {
+          case "specimen":
+          case "shell": {
+            const centerX = pw * 0.5;
+            const centerY = ph * 0.52;
+            const rx = pw * (panel.type === "specimen" ? 0.28 : 0.26);
+            const ry = ph * (panel.type === "specimen" ? 0.38 : 0.22);
+            ctx.save();
+            ctx.translate(centerX, centerY);
+            ctx.rotate(-0.28 + Math.sin(time * 0.0014) * 0.06);
+            const grad = ctx.createRadialGradient(-rx * 0.2, 0, 4, 0, 0, rx * 1.1);
+            grad.addColorStop(0, "rgba(255, 203, 173, 0.46)");
+            grad.addColorStop(0.45, "rgba(174, 224, 255, 0.34)");
+            grad.addColorStop(1, "rgba(174, 224, 255, 0.04)");
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.ellipse(0, 0, rx, ry, 0, 0, TAU);
+            ctx.fill();
+            ctx.strokeStyle = "rgba(98, 154, 189, 0.42)";
+            ctx.lineWidth = 1.2;
+            ctx.stroke();
+            ctx.restore();
+            break;
+          }
+          case "chips": {
+            for (let i = 0; i < 7; i += 1) {
+              const cx = pw * (0.2 + i * 0.1);
+              const cy = ph * 0.5;
+              const rad = ph * 0.14;
+              const pulse = 0.5 + 0.5 * Math.sin(time * 0.0012 + i);
+              const grad = ctx.createRadialGradient(cx, cy, rad * 0.2, cx, cy, rad);
+              grad.addColorStop(0, i === 0 ? "rgba(78,158,207,0.9)" : `rgba(255, 195, 166, ${0.14 + pulse * 0.22})`);
+              grad.addColorStop(1, "rgba(255,255,255,0.08)");
+              ctx.fillStyle = grad;
+              ctx.beginPath();
+              ctx.arc(cx, cy, rad, 0, TAU);
+              ctx.fill();
+            }
+            break;
+          }
+          case "branch":
+          case "tree": {
+            ctx.strokeStyle = "rgba(78, 158, 207, 0.54)";
+            ctx.lineWidth = 1.4;
+            const baseX = pw * 0.36;
+            const baseY = ph * 0.88;
+            for (let i = 0; i < 6; i += 1) {
+              ctx.beginPath();
+              ctx.moveTo(baseX, baseY);
+              const sway = Math.sin(time * 0.001 + i) * pw * 0.03;
+              ctx.bezierCurveTo(
+                baseX + sway,
+                ph * (0.66 - i * 0.04),
+                pw * (0.12 + i * 0.08),
+                ph * (0.42 - i * 0.04),
+                pw * (0.2 + i * 0.1),
+                ph * (0.14 + i * 0.04)
+              );
+              ctx.stroke();
+            }
+            break;
+          }
+          case "slider": {
+            ctx.fillStyle = "rgba(255, 195, 166, 0.42)";
+            drawRoundRect(pw * 0.18, ph * 0.12, pw * 0.14, ph * 0.72, pw * 0.07);
+            ctx.fill();
+            ctx.strokeStyle = "rgba(33, 60, 80, 0.16)";
+            ctx.stroke();
+            ctx.fillStyle = "rgba(141, 210, 255, 0.48)";
+            drawRoundRect(
+              pw * 0.5,
+              ph * (0.18 + (0.28 + activeMode.flex * 0.28) * 0.42),
+              pw * 0.24,
+              ph * 0.34,
+              pw * 0.12
+            );
+            ctx.fill();
+            break;
+          }
+          case "dial": {
+            const cx = pw * 0.5;
+            const cy = ph * 0.52;
+            const r = Math.min(pw, ph) * 0.34;
+            ctx.strokeStyle = "rgba(78, 158, 207, 0.22)";
+            for (let i = 0; i < 3; i += 1) {
+              ctx.beginPath();
+              ctx.arc(cx, cy, r * (1 - i * 0.25), 0, TAU);
+              ctx.stroke();
+            }
+            const angle = -1.2 + activeMode.flex * 2.4;
+            ctx.strokeStyle = "rgba(255, 195, 166, 0.64)";
+            ctx.lineWidth = 2.2;
+            ctx.beginPath();
+            ctx.moveTo(cx, cy);
+            ctx.lineTo(cx + Math.cos(angle) * r * 0.9, cy + Math.sin(angle) * r * 0.9);
+            ctx.stroke();
+            ctx.fillStyle = "rgba(78, 158, 207, 0.86)";
+            ctx.beginPath();
+            ctx.arc(cx, cy, r * 0.16, 0, TAU);
+            ctx.fill();
+            break;
+          }
+          case "tracks": {
+            for (let i = 0; i < 4; i += 1) {
+              const yy = ph * (0.22 + i * 0.2);
+              ctx.strokeStyle = "rgba(41, 67, 84, 0.16)";
+              ctx.beginPath();
+              ctx.moveTo(pw * 0.1, yy);
+              ctx.lineTo(pw * 0.9, yy);
+              ctx.stroke();
+              const xx = pw * (0.28 + 0.5 * Math.sin(time * 0.001 + i) * 0.18 + i * 0.14);
+              ctx.fillStyle = i % 2 ? "rgba(141, 210, 255, 0.8)" : "rgba(255, 195, 166, 0.86)";
+              ctx.beginPath();
+              ctx.arc(xx, yy, ph * 0.06, 0, TAU);
+              ctx.fill();
+            }
+            break;
+          }
+          case "orbit": {
+            const cx = pw * 0.52;
+            const cy = ph * 0.52;
+            const r = Math.min(pw, ph) * 0.36;
+            ctx.strokeStyle = "rgba(41, 67, 84, 0.22)";
+            ctx.beginPath();
+            ctx.arc(cx, cy, r, 0, TAU);
+            ctx.stroke();
+            for (let i = 0; i < 4; i += 1) {
+              const angle = time * 0.0006 + i * (TAU / 4);
+              ctx.fillStyle = i === 0 ? "rgba(78, 158, 207, 0.96)" : "rgba(41, 67, 84, 0.88)";
+              ctx.beginPath();
+              ctx.arc(cx + Math.cos(angle) * r, cy + Math.sin(angle) * r, ph * 0.025, 0, TAU);
+              ctx.fill();
+            }
+            const core = ctx.createRadialGradient(cx, cy, 1, cx, cy, r * 0.4);
+            core.addColorStop(0, "rgba(141, 210, 255, 0.92)");
+            core.addColorStop(1, "rgba(141, 210, 255, 0.08)");
+            ctx.fillStyle = core;
+            ctx.beginPath();
+            ctx.arc(cx, cy, r * 0.42, 0, TAU);
+            ctx.fill();
+            break;
+          }
+          case "wave":
+          case "swell": {
+            ctx.strokeStyle = panel.type === "wave" ? "rgba(78, 158, 207, 0.4)" : "rgba(141, 210, 255, 0.46)";
+            ctx.lineWidth = 1.6;
+            for (let i = 0; i < 4; i += 1) {
+              ctx.beginPath();
+              for (let step = 0; step <= 36; step += 1) {
+                const t = step / 36;
+                const xx = pw * t;
+                const yy =
+                  ph * (0.55 + (i - 1.5) * 0.08) +
+                  Math.sin(t * TAU * 1.2 + time * 0.001 + i) * ph * 0.12;
+                if (step === 0) ctx.moveTo(xx, yy);
+                else ctx.lineTo(xx, yy);
+              }
+              ctx.stroke();
+            }
+            break;
+          }
+          case "dotfield": {
+            for (let row = 0; row < 18; row += 1) {
+              for (let col = 0; col < 24; col += 1) {
+                const xx = pw * (0.18 + col * 0.018);
+                const yy = ph * (0.2 + row * 0.03);
+                const dist = Math.hypot(col - 12, row - 9);
+                const alpha = Math.max(0, 0.4 - dist * 0.02);
+                ctx.fillStyle = `rgba(41, 67, 84, ${alpha})`;
+                ctx.beginPath();
+                ctx.arc(xx, yy, 0.9 + alpha * 1.8, 0, TAU);
+                ctx.fill();
+              }
+            }
+            ctx.strokeStyle = "rgba(141, 210, 255, 0.24)";
+            ctx.beginPath();
+            ctx.arc(pw * 0.66, ph * 0.48, ph * 0.24, 0, TAU);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.arc(pw * 0.86, ph * 0.54, ph * 0.24, 0, TAU);
+            ctx.stroke();
+            break;
+          }
+          case "spray": {
+            for (let i = 0; i < 90; i += 1) {
+              const xx = pw * (0.15 + (i % 18) * 0.04) + Math.sin(i + time * 0.001) * 3;
+              const yy = ph * (0.2 + Math.floor(i / 18) * 0.14);
+              const size = 1 + ((i * 7) % 5);
+              ctx.fillStyle = i % 5 === 0 ? "rgba(141, 210, 255, 0.42)" : "rgba(78, 158, 207, 0.26)";
+              ctx.beginPath();
+              ctx.arc(xx, yy, size * 0.4, 0, TAU);
+              ctx.fill();
+            }
+            break;
+          }
+        }
+
+        ctx.restore();
+      }
+
+      function render(time) {
+        ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+
+        pointer.x = lerp(pointer.x, pointer.tx, 0.08);
+        pointer.y = lerp(pointer.y, pointer.ty, 0.08);
+
+        for (const dot of fieldDots) {
+          const driftX = Math.sin(time * dot.speed + dot.phase) * 18;
+          const driftY = Math.cos(time * dot.speed * 1.6 + dot.phase) * 12;
+          ctx.fillStyle =
+            dot.size > 2
+              ? "rgba(141, 210, 255, 0.24)"
+              : "rgba(41, 67, 84, 0.14)";
+          ctx.beginPath();
+          ctx.arc(dot.x * window.innerWidth + driftX, dot.y * window.innerHeight + driftY, dot.size, 0, TAU);
+          ctx.fill();
+        }
+
+        for (const panel of miniPanels) {
+          drawPanel(panel, time);
+        }
+
+        const boardX = window.innerWidth * 0.5;
+        const boardY = window.innerHeight * 0.57;
+        const bodyW = window.innerWidth * creature.w;
+        const bodyH = window.innerHeight * creature.h;
+        const pointerDx = (pointer.x - boardX) / window.innerWidth;
+        const pointerDy = (pointer.y - boardY) / window.innerHeight;
+        const tension = Math.min(1, Math.hypot(pointerDx * 1.8, pointerDy * 2.2) * 1.7);
+        const warmth = 0.48 + activeMode.glow * 0.28 + Math.max(0, 0.18 - tension * 0.12);
+
+        tensionValue.textContent = tension.toFixed(2);
+        warmthValue.textContent = `${Math.round(warmth * 100)}%`;
+
+        ctx.save();
+        ctx.translate(boardX, boardY);
+
+        drawRoundRect(-bodyW * 0.56, bodyH * 0.4, bodyW * 1.1, bodyH * 0.74, bodyH * 0.22);
+        const plinth = ctx.createLinearGradient(0, -bodyH, 0, bodyH * 1.2);
+        plinth.addColorStop(0, "rgba(255,255,255,0.18)");
+        plinth.addColorStop(1, "rgba(187, 217, 228, 0.38)");
+        ctx.fillStyle = plinth;
+        ctx.strokeStyle = "rgba(98, 154, 189, 0.18)";
+        ctx.lineWidth = 1.4;
+        ctx.fill();
+        ctx.stroke();
+
+        for (const leg of creature.legs) {
+          const rootX = (leg.rootX - 0.5) * bodyW;
+          const rootY = bodyH * 0.38;
+          const phase = time * 0.002 + leg.phase;
+          const stride = Math.sin(phase) * bodyW * 0.04 * activeMode.flex;
+          const lift = Math.max(0, Math.cos(phase)) * bodyH * leg.lift * activeMode.lift;
+          const attractX = (pointer.x - boardX) * 0.06 * activeMode.flex;
+          const targetX = rootX + leg.side * bodyW * leg.reach + stride + attractX;
+          const targetY = bodyH * (0.88 - leg.reach * 0.4) - lift;
+          const ctrl1X = rootX + leg.side * bodyW * 0.08 + pointerDx * bodyW * 0.06;
+          const ctrl1Y = bodyH * 0.64;
+          const ctrl2X = targetX - leg.side * bodyW * 0.05;
+          const ctrl2Y = targetY - bodyH * 0.12;
+
+          ctx.strokeStyle = "rgba(155, 207, 234, 0.82)";
+          ctx.lineWidth = 11;
+          ctx.lineCap = "round";
+          ctx.beginPath();
+          ctx.moveTo(rootX, rootY);
+          ctx.bezierCurveTo(ctrl1X, ctrl1Y, ctrl2X, ctrl2Y, targetX, targetY);
+          ctx.stroke();
+
+          ctx.strokeStyle = "rgba(255, 255, 255, 0.56)";
+          ctx.lineWidth = 4;
+          ctx.beginPath();
+          ctx.moveTo(rootX, rootY);
+          ctx.bezierCurveTo(ctrl1X, ctrl1Y, ctrl2X, ctrl2Y, targetX, targetY);
+          ctx.stroke();
+        }
+
+        for (const probe of creature.probes) {
+          const anchorX = (probe.anchorX - 0.5) * bodyW;
+          const anchorY = (probe.anchorY - 0.5) * bodyH;
+          const targetX =
+            window.innerWidth * (probe.targetX + Math.sin(time * 0.0008 + probe.phase) * 0.012) -
+            boardX;
+          const targetY =
+            window.innerHeight * (probe.targetY + Math.cos(time * 0.001 + probe.phase) * 0.015) -
+            boardY;
+          const pull = 0.2 + activeMode.flex * 0.3 + tension * 0.26;
+          ctx.strokeStyle = "rgba(41, 67, 84, 0.52)";
+          ctx.lineWidth = 1.4;
+          ctx.beginPath();
+          ctx.moveTo(anchorX, anchorY);
+          ctx.bezierCurveTo(
+            anchorX + (targetX - anchorX) * 0.3,
+            anchorY - bodyH * pull,
+            targetX - (targetX - anchorX) * 0.2,
+            targetY + bodyH * 0.1,
+            targetX,
+            targetY
+          );
+          ctx.stroke();
+
+          ctx.fillStyle = "rgba(41, 67, 84, 0.9)";
+          ctx.beginPath();
+          ctx.arc(targetX, targetY, 2.1, 0, TAU);
+          ctx.fill();
+        }
+
+        ctx.save();
+        ctx.rotate(-0.12 + pointerDx * 0.12);
+        const shell = ctx.createRadialGradient(
+          -bodyW * 0.08,
+          -bodyH * 0.06,
+          bodyH * 0.16,
+          0,
+          0,
+          bodyW * 0.62
+        );
+        shell.addColorStop(0, "rgba(255, 213, 187, 0.72)");
+        shell.addColorStop(0.34, "rgba(228, 244, 255, 0.64)");
+        shell.addColorStop(0.82, "rgba(120, 196, 232, 0.52)");
+        shell.addColorStop(1, "rgba(120, 196, 232, 0.1)");
+        ctx.fillStyle = shell;
+        ctx.strokeStyle = "rgba(118, 174, 204, 0.82)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, bodyW * 0.48, bodyH * 0.38, 0, 0, TAU);
+        ctx.fill();
+        ctx.stroke();
+
+        const glow = ctx.createRadialGradient(-bodyW * 0.04, -bodyH * 0.02, 2, 0, 0, bodyW * 0.34);
+        glow.addColorStop(0, `rgba(255, 198, 170, ${0.22 + activeMode.glow * 0.34})`);
+        glow.addColorStop(0.56, `rgba(255, 208, 186, ${0.12 + activeMode.glow * 0.18})`);
+        glow.addColorStop(1, "rgba(255, 208, 186, 0)");
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.ellipse(-bodyW * 0.05, -bodyH * 0.02, bodyW * 0.32, bodyH * 0.22, 0, 0, TAU);
+        ctx.fill();
+
+        ctx.strokeStyle = "rgba(255,255,255,0.6)";
+        ctx.lineWidth = 1.1;
+        ctx.beginPath();
+        ctx.moveTo(-bodyW * 0.34, -bodyH * 0.02);
+        ctx.bezierCurveTo(-bodyW * 0.18, -bodyH * 0.22, bodyW * 0.22, -bodyH * 0.18, bodyW * 0.38, 0);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(-bodyW * 0.08, bodyH * 0.05);
+        ctx.bezierCurveTo(bodyW * 0.06, bodyH * 0.01, bodyW * 0.22, bodyH * 0.08, bodyW * 0.34, bodyH * 0.18);
+        ctx.stroke();
+
+        for (let i = 0; i < 26; i += 1) {
+          const px = -bodyW * 0.32 + (i % 13) * bodyW * 0.046;
+          const py = bodyH * 0.08 + Math.floor(i / 13) * bodyH * 0.08;
+          ctx.fillStyle = i % 3 === 0 ? "rgba(41,67,84,0.66)" : "rgba(255,255,255,0.54)";
+          ctx.beginPath();
+          ctx.arc(px, py, i % 4 === 0 ? 2.1 : 1.2, 0, TAU);
+          ctx.fill();
+        }
+
+        ctx.beginPath();
+        ctx.moveTo(-bodyW * 0.46, bodyH * 0.12);
+        ctx.quadraticCurveTo(-bodyW * 0.48, bodyH * 0.24, -bodyW * 0.34, bodyH * 0.27);
+        ctx.strokeStyle = "rgba(41,67,84,0.72)";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.restore();
+
+        ctx.restore();
+
+        requestAnimationFrame(render);
+      }
+
+      window.addEventListener("pointermove", (event) => {
+        pointer.tx = event.clientX;
+        pointer.ty = event.clientY;
+        pointer.active = true;
+      });
+
+      window.addEventListener("pointerleave", () => {
+        pointer.active = false;
+        pointer.tx = window.innerWidth * 0.52;
+        pointer.ty = window.innerHeight * 0.54;
+      });
+
+      window.addEventListener("resize", resize);
+
+      updateModeButtons();
+      resize();
+      requestAnimationFrame(render);
+    </script>
+  </body>
+</html>

@@ -1,0 +1,895 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>#040 Relay Organ Atlas</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #071018;
+        --panel: rgba(13, 23, 33, 0.84);
+        --panel-soft: rgba(15, 28, 40, 0.72);
+        --line: rgba(170, 221, 255, 0.16);
+        --line-strong: rgba(170, 221, 255, 0.34);
+        --text: #dce7ef;
+        --muted: rgba(220, 231, 239, 0.58);
+        --cyan: #7be0f3;
+        --mint: #9fe5d7;
+        --amber: #f0d27d;
+        --coral: #f58d80;
+        --crimson: #f35a7d;
+        --shadow: 0 28px 70px rgba(0, 0, 0, 0.34);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        background:
+          radial-gradient(circle at 18% 16%, rgba(123, 224, 243, 0.12), transparent 24%),
+          radial-gradient(circle at 84% 18%, rgba(243, 90, 125, 0.08), transparent 24%),
+          radial-gradient(circle at 52% 82%, rgba(159, 229, 215, 0.08), transparent 30%),
+          linear-gradient(180deg, #08111a 0%, #060c13 100%);
+        color: var(--text);
+        font-family: "Azeret Mono", "IBM Plex Mono", "SFMono-Regular", monospace;
+      }
+
+      body {
+        min-height: 100vh;
+      }
+
+      .shell {
+        position: relative;
+        min-height: 100vh;
+        padding: 18px;
+        display: grid;
+        gap: 14px;
+        grid-template-columns: 270px minmax(0, 1fr) 300px;
+        grid-template-rows: auto minmax(0, 1fr) auto;
+      }
+
+      .chrome {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        opacity: 0.5;
+      }
+
+      .chrome::before,
+      .chrome::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+      }
+
+      .chrome::before {
+        background-image:
+          linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+        background-size: 84px 84px;
+        mask-image: radial-gradient(circle at center, black 52%, transparent 100%);
+      }
+
+      .chrome::after {
+        background:
+          linear-gradient(90deg, transparent 0%, rgba(123, 224, 243, 0.08) 48%, transparent 52%),
+          linear-gradient(180deg, transparent 0%, rgba(243, 90, 125, 0.06) 50%, transparent 56%);
+        mix-blend-mode: screen;
+        opacity: 0.35;
+      }
+
+      .panel {
+        position: relative;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 28px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 18%),
+          var(--panel);
+        backdrop-filter: blur(18px);
+        box-shadow: var(--shadow);
+      }
+
+      .panel::after {
+        content: "";
+        position: absolute;
+        inset: 1px;
+        border-radius: inherit;
+        border: 1px solid rgba(255, 255, 255, 0.03);
+        pointer-events: none;
+      }
+
+      .header {
+        grid-column: 1 / span 3;
+        display: grid;
+        grid-template-columns: 1.1fr 0.9fr;
+        gap: 14px;
+      }
+
+      .hero,
+      .overview,
+      .stage,
+      .diag,
+      .footer {
+        padding: 18px;
+      }
+
+      .eyebrow,
+      .label,
+      .tiny {
+        margin: 0;
+        font-size: 11px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+
+      h1 {
+        margin-top: 0.5rem;
+        max-width: 10ch;
+        font-family: "Iowan Old Style", "Times New Roman", serif;
+        font-size: clamp(2.6rem, 5vw, 5rem);
+        line-height: 0.9;
+        letter-spacing: -0.06em;
+      }
+
+      .hero .body,
+      .overview .body,
+      .footer .body {
+        margin-top: 0.84rem;
+        max-width: 66ch;
+        color: rgba(220, 231, 239, 0.72);
+        line-height: 1.56;
+      }
+
+      .readouts,
+      .legend,
+      .mini-grid,
+      .footer-grid {
+        display: grid;
+        gap: 10px;
+      }
+
+      .readouts {
+        margin-top: 1rem;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .stat,
+      .legend-card,
+      .mini-card,
+      .footer-card {
+        padding: 12px 13px;
+        border-radius: 18px;
+        border: 1px solid rgba(170, 221, 255, 0.12);
+        background: rgba(255, 255, 255, 0.03);
+      }
+
+      .value {
+        margin-top: 0.36rem;
+        display: block;
+        font-size: 1.1rem;
+        letter-spacing: -0.06em;
+      }
+
+      .overview {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+
+      .legend-card {
+        display: grid;
+        gap: 8px;
+      }
+
+      .legend-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: rgba(220, 231, 239, 0.72);
+        font-size: 0.8rem;
+      }
+
+      .swatch {
+        width: 10px;
+        height: 10px;
+        flex: 0 0 auto;
+        border-radius: 999px;
+      }
+
+      .swatch.cyan { background: var(--cyan); }
+      .swatch.mint { background: var(--mint); }
+      .swatch.amber { background: var(--amber); }
+      .swatch.coral { background: var(--coral); }
+
+      .stage {
+        min-height: 620px;
+      }
+
+      .stage-shell {
+        height: 100%;
+        border-radius: 22px;
+        border: 1px solid rgba(170, 221, 255, 0.08);
+        background:
+          radial-gradient(circle at 52% 44%, rgba(123, 224, 243, 0.08), transparent 24%),
+          radial-gradient(circle at 50% 72%, rgba(243, 90, 125, 0.06), transparent 22%),
+          linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 22%),
+          rgba(7, 17, 25, 0.88);
+        position: relative;
+        overflow: hidden;
+      }
+
+      #atlas {
+        display: block;
+        width: 100%;
+        height: min(74vh, 820px);
+      }
+
+      .diag {
+        display: grid;
+        gap: 12px;
+        align-content: start;
+      }
+
+      .mini-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .spark,
+      .bar-row {
+        margin-top: 0.8rem;
+      }
+
+      .bar-row {
+        display: grid;
+        gap: 8px;
+      }
+
+      .bar-line {
+        display: grid;
+        grid-template-columns: 68px 1fr 48px;
+        gap: 10px;
+        align-items: center;
+        font-size: 0.74rem;
+        color: rgba(220, 231, 239, 0.7);
+      }
+
+      .bar-track {
+        height: 8px;
+        border-radius: 999px;
+        overflow: hidden;
+        background: rgba(255, 255, 255, 0.08);
+      }
+
+      .bar-fill {
+        height: 100%;
+        width: 50%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, var(--cyan), var(--mint), var(--amber), var(--coral));
+        transform-origin: left center;
+      }
+
+      .footer {
+        grid-column: 1 / span 3;
+      }
+
+      .footer-grid {
+        margin-top: 1rem;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+
+      .footer-card .value {
+        font-size: 1rem;
+      }
+
+      .back {
+        position: fixed;
+        right: 18px;
+        bottom: 18px;
+        padding: 12px 16px;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        background: rgba(11, 19, 28, 0.92);
+        color: inherit;
+        text-decoration: none;
+        box-shadow: var(--shadow);
+      }
+
+      @media (max-width: 1120px) {
+        .shell {
+          grid-template-columns: 1fr;
+          grid-template-rows: auto;
+        }
+
+        .header,
+        .footer {
+          grid-column: auto;
+        }
+
+        .header {
+          grid-template-columns: 1fr;
+        }
+
+        .readouts,
+        .footer-grid {
+          grid-template-columns: 1fr;
+        }
+
+        #atlas {
+          height: min(72vh, 700px);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="chrome" aria-hidden="true"></div>
+    <main class="shell">
+      <section class="header">
+        <article class="panel hero">
+          <p class="eyebrow">Animation 040 / Relay Organ Atlas</p>
+          <h1>Believable signal anatomy as a real page</h1>
+          <p class="body">
+            A darker multi-pane relay atlas tuned to the latest HTML feedback:
+            one grounded organism, bilateral support, local pressure weather,
+            and interface behavior that stays inside the same body instead of
+            splitting into a detached dashboard.
+          </p>
+          <div class="readouts">
+            <div class="stat">
+              <p class="label">Field law</p>
+              <span class="value" id="lawLabel">Brace</span>
+            </div>
+            <div class="stat">
+              <p class="label">Near refraction</p>
+              <span class="value" id="focusReadout">0.42</span>
+            </div>
+            <div class="stat">
+              <p class="label">Support balance</p>
+              <span class="value" id="balanceReadout">0.77</span>
+            </div>
+          </div>
+        </article>
+
+        <aside class="panel overview">
+          <p class="eyebrow">Motion note</p>
+          <p class="body">
+            Pointer movement only refracts the nearby relay lanes and shifts
+            stance pressure inside the same plate. No slider farm, no dead
+            chrome, no floating decorative limbs.
+          </p>
+          <div class="legend">
+            <div class="legend-card">
+              <p class="label">Active materials</p>
+              <div class="legend-row"><span class="swatch cyan"></span>Cool relay lanes</div>
+              <div class="legend-row"><span class="swatch mint"></span>Membrane support ribs</div>
+              <div class="legend-row"><span class="swatch amber"></span>Calibration amber</div>
+              <div class="legend-row"><span class="swatch coral"></span>Stress seams</div>
+            </div>
+            <div class="legend-card">
+              <p class="label">Observed correction</p>
+              <p class="tiny">
+                More page-like and design-usable. The body has to feel attached,
+                stable, and structurally legible even when the field bends.
+              </p>
+            </div>
+          </div>
+        </aside>
+      </section>
+
+      <aside class="panel overview">
+        <p class="eyebrow">Atlas columns</p>
+        <div class="legend">
+          <div class="legend-card">
+            <p class="label">Upper probes</p>
+            <p class="tiny">Thin thread feelers scan local turbulence and recoil first.</p>
+          </div>
+          <div class="legend-card">
+            <p class="label">Relay torso</p>
+            <p class="tiny">A contained chamber with layered current lanes and a stable center.</p>
+          </div>
+          <div class="legend-card">
+            <p class="label">Root braces</p>
+            <p class="tiny">Lower supports widen under pressure so the figure stays believable.</p>
+          </div>
+        </div>
+      </aside>
+
+      <section class="panel stage">
+        <div class="stage-shell" id="stageShell">
+          <svg id="atlas" viewBox="0 0 900 860" role="img" aria-label="Animated relay organ atlas">
+            <defs>
+              <linearGradient id="coreGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#9fe5d7" stop-opacity="0.88" />
+                <stop offset="52%" stop-color="#7be0f3" stop-opacity="0.9" />
+                <stop offset="100%" stop-color="#f58d80" stop-opacity="0.62" />
+              </linearGradient>
+              <linearGradient id="shellGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stop-color="rgba(255,255,255,0.22)" />
+                <stop offset="100%" stop-color="rgba(255,255,255,0.03)" />
+              </linearGradient>
+              <filter id="softGlow">
+                <feGaussianBlur stdDeviation="7" result="blur" />
+                <feMerge>
+                  <feMergeNode in="blur" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+              <filter id="softBlur">
+                <feGaussianBlur stdDeviation="2.4" />
+              </filter>
+            </defs>
+
+            <rect x="20" y="20" width="860" height="820" rx="26" fill="rgba(6,14,21,0.38)" stroke="rgba(170,221,255,0.08)" />
+
+            <g id="gridLayer" opacity="0.46"></g>
+            <g id="traceLayer" opacity="0.55"></g>
+
+            <g id="annotationLayer" stroke="rgba(220,231,239,0.3)" fill="none" stroke-width="1.2"></g>
+
+            <g id="figureGroup">
+              <path
+                id="supportAura"
+                d=""
+                fill="rgba(123,224,243,0.08)"
+                filter="url(#softBlur)"
+              ></path>
+              <path
+                id="bodyShell"
+                d=""
+                fill="rgba(255,255,255,0.05)"
+                stroke="rgba(220,231,239,0.32)"
+                stroke-width="2"
+              ></path>
+              <path id="innerShell" d="" fill="rgba(255,255,255,0.04)" stroke="rgba(159,229,215,0.18)" stroke-width="1.4"></path>
+              <path id="leftFeeler" d="" fill="none" stroke="rgba(123,224,243,0.7)" stroke-width="2.2" stroke-linecap="round"></path>
+              <path id="rightFeeler" d="" fill="none" stroke="rgba(245,141,128,0.74)" stroke-width="2.2" stroke-linecap="round"></path>
+              <path id="leftRoot" d="" fill="none" stroke="rgba(159,229,215,0.75)" stroke-width="4" stroke-linecap="round"></path>
+              <path id="rightRoot" d="" fill="none" stroke="rgba(159,229,215,0.75)" stroke-width="4" stroke-linecap="round"></path>
+              <path id="laneA" d="" fill="none" stroke="rgba(123,224,243,0.88)" stroke-width="3" stroke-linecap="round"></path>
+              <path id="laneB" d="" fill="none" stroke="rgba(240,210,125,0.84)" stroke-width="3" stroke-linecap="round"></path>
+              <path id="laneC" d="" fill="none" stroke="rgba(243,90,125,0.72)" stroke-width="2.8" stroke-linecap="round"></path>
+              <ellipse id="coreGlow" cx="450" cy="400" rx="78" ry="58" fill="url(#coreGrad)" opacity="0.54" filter="url(#softGlow)"></ellipse>
+              <ellipse id="coreRing" cx="450" cy="400" rx="86" ry="68" fill="none" stroke="rgba(220,231,239,0.36)" stroke-width="1.6"></ellipse>
+              <ellipse id="coreInner" cx="450" cy="400" rx="42" ry="26" fill="rgba(255,255,255,0.08)" stroke="rgba(220,231,239,0.45)" stroke-width="1.2"></ellipse>
+              <circle id="dotLeft" cx="422" cy="395" r="5.6" fill="#7be0f3"></circle>
+              <circle id="dotMid" cx="450" cy="404" r="6.2" fill="#f0d27d"></circle>
+              <circle id="dotRight" cx="478" cy="395" r="5.6" fill="#f58d80"></circle>
+            </g>
+
+            <g id="callouts" fill="rgba(220,231,239,0.84)" font-size="14" letter-spacing="1.2">
+              <text x="106" y="178">UPPER PROBE</text>
+              <text x="642" y="250">RELAY CHAMBER</text>
+              <text x="144" y="680">ROOT BRACE</text>
+            </g>
+          </svg>
+        </div>
+      </section>
+
+      <aside class="panel diag">
+        <div class="mini-grid">
+          <article class="mini-card">
+            <p class="label">Current weather</p>
+            <svg class="spark" id="sparkA" viewBox="0 0 240 72" width="100%" height="72" aria-hidden="true">
+              <polyline fill="none" stroke="rgba(123,224,243,0.88)" stroke-width="2.2" points=""></polyline>
+              <polyline fill="none" stroke="rgba(240,210,125,0.68)" stroke-width="1.4" points=""></polyline>
+            </svg>
+          </article>
+          <article class="mini-card">
+            <p class="label">Support meters</p>
+            <div class="bar-row">
+              <div class="bar-line">
+                <span>L arch</span>
+                <div class="bar-track"><div class="bar-fill" id="barLeft"></div></div>
+                <span id="barLeftText">58%</span>
+              </div>
+              <div class="bar-line">
+                <span>Core</span>
+                <div class="bar-track"><div class="bar-fill" id="barCore"></div></div>
+                <span id="barCoreText">74%</span>
+              </div>
+              <div class="bar-line">
+                <span>R arch</span>
+                <div class="bar-track"><div class="bar-fill" id="barRight"></div></div>
+                <span id="barRightText">61%</span>
+              </div>
+            </div>
+          </article>
+          <article class="mini-card">
+            <p class="label">Field bias</p>
+            <p class="body" style="font-size:0.8rem">
+              Local refraction follows the pointer, but the body answers by
+              widening support first and only then retuning the relay lanes.
+            </p>
+          </article>
+        </div>
+      </aside>
+
+      <section class="panel footer">
+        <p class="eyebrow">Embedded review hints</p>
+        <p class="body">
+          Check the page first for structural clarity: the legs should read as a
+          stable brace, the motion should stay inside the same organism, and the
+          overall composition should feel closer to a usable dark interface than
+          to a detached specimen poster.
+        </p>
+        <div class="footer-grid">
+          <div class="footer-card">
+            <p class="label">Believability</p>
+            <span class="value" id="believability">0.78</span>
+          </div>
+          <div class="footer-card">
+            <p class="label">Refraction</p>
+            <span class="value" id="refraction">0.42</span>
+          </div>
+          <div class="footer-card">
+            <p class="label">Stress load</p>
+            <span class="value" id="stress">0.36</span>
+          </div>
+          <div class="footer-card">
+            <p class="label">Drift law</p>
+            <span class="value" id="drift">Brace / local</span>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <a class="back" href="../../index.html">Back to index</a>
+    <script src="../../shared/study-notes.js"></script>
+
+    <script>
+      const pointer = { x: 0.5, y: 0.5, active: false };
+      const stageShell = document.getElementById("stageShell");
+      const atlas = document.getElementById("atlas");
+      const lawLabel = document.getElementById("lawLabel");
+      const focusReadout = document.getElementById("focusReadout");
+      const balanceReadout = document.getElementById("balanceReadout");
+      const believability = document.getElementById("believability");
+      const refraction = document.getElementById("refraction");
+      const stress = document.getElementById("stress");
+      const drift = document.getElementById("drift");
+      const bars = {
+        left: document.getElementById("barLeft"),
+        core: document.getElementById("barCore"),
+        right: document.getElementById("barRight"),
+      };
+      const barText = {
+        left: document.getElementById("barLeftText"),
+        core: document.getElementById("barCoreText"),
+        right: document.getElementById("barRightText"),
+      };
+
+      const paths = {
+        aura: document.getElementById("supportAura"),
+        body: document.getElementById("bodyShell"),
+        inner: document.getElementById("innerShell"),
+        leftFeeler: document.getElementById("leftFeeler"),
+        rightFeeler: document.getElementById("rightFeeler"),
+        leftRoot: document.getElementById("leftRoot"),
+        rightRoot: document.getElementById("rightRoot"),
+        laneA: document.getElementById("laneA"),
+        laneB: document.getElementById("laneB"),
+        laneC: document.getElementById("laneC"),
+      };
+
+      const gridLayer = document.getElementById("gridLayer");
+      const traceLayer = document.getElementById("traceLayer");
+      const annotationLayer = document.getElementById("annotationLayer");
+      const sparkA = document.querySelector("#sparkA polyline:first-of-type");
+      const sparkB = document.querySelector("#sparkA polyline:last-of-type");
+      const coreGlow = document.getElementById("coreGlow");
+      const coreRing = document.getElementById("coreRing");
+      const coreInner = document.getElementById("coreInner");
+      const dotLeft = document.getElementById("dotLeft");
+      const dotMid = document.getElementById("dotMid");
+      const dotRight = document.getElementById("dotRight");
+
+      const ns = "http://www.w3.org/2000/svg";
+
+      function clamp(value, min, max) {
+        return Math.min(max, Math.max(min, value));
+      }
+
+      function lerp(a, b, t) {
+        return a + (b - a) * t;
+      }
+
+      function toPath(points, close = false) {
+        const head = points.map((point, index) => `${index === 0 ? "M" : "L"} ${point[0].toFixed(1)} ${point[1].toFixed(1)}`);
+        if (close) {
+          head.push("Z");
+        }
+        return head.join(" ");
+      }
+
+      function curvePath(points) {
+        if (!points.length) return "";
+        let d = `M ${points[0][0].toFixed(1)} ${points[0][1].toFixed(1)}`;
+        for (let i = 1; i < points.length; i += 1) {
+          const prev = points[i - 1];
+          const curr = points[i];
+          const midX = (prev[0] + curr[0]) / 2;
+          const midY = (prev[1] + curr[1]) / 2;
+          d += ` Q ${prev[0].toFixed(1)} ${prev[1].toFixed(1)} ${midX.toFixed(1)} ${midY.toFixed(1)}`;
+        }
+        const last = points[points.length - 1];
+        d += ` T ${last[0].toFixed(1)} ${last[1].toFixed(1)}`;
+        return d;
+      }
+
+      function buildStaticLayers() {
+        for (let x = 80; x <= 820; x += 74) {
+          const line = document.createElementNS(ns, "line");
+          line.setAttribute("x1", x);
+          line.setAttribute("x2", x);
+          line.setAttribute("y1", 50);
+          line.setAttribute("y2", 810);
+          line.setAttribute("stroke", "rgba(220,231,239,0.05)");
+          line.setAttribute("stroke-width", "1");
+          gridLayer.appendChild(line);
+        }
+
+        for (let y = 68; y <= 792; y += 68) {
+          const line = document.createElementNS(ns, "line");
+          line.setAttribute("x1", 42);
+          line.setAttribute("x2", 858);
+          line.setAttribute("y1", y);
+          line.setAttribute("y2", y);
+          line.setAttribute("stroke", "rgba(220,231,239,0.04)");
+          line.setAttribute("stroke-width", "1");
+          gridLayer.appendChild(line);
+        }
+
+        for (let i = 0; i < 16; i += 1) {
+          const path = document.createElementNS(ns, "path");
+          path.setAttribute("fill", "none");
+          path.setAttribute("stroke", i % 2 === 0 ? "rgba(123,224,243,0.08)" : "rgba(243,90,125,0.08)");
+          path.setAttribute("stroke-width", i % 3 === 0 ? "1.6" : "1");
+          traceLayer.appendChild(path);
+        }
+
+        const calloutSets = [
+          [[160, 186], [234, 220], [306, 236]],
+          [[672, 258], [612, 306], [566, 344]],
+          [[202, 686], [274, 660], [340, 636]],
+        ];
+
+        calloutSets.forEach((points) => {
+          const path = document.createElementNS(ns, "path");
+          path.setAttribute("d", curvePath(points));
+          annotationLayer.appendChild(path);
+        });
+      }
+
+      buildStaticLayers();
+
+      function updateSpark(time, refractionValue) {
+        const a = [];
+        const b = [];
+        for (let i = 0; i <= 24; i += 1) {
+          const x = (i / 24) * 240;
+          const wave = Math.sin(time * 1.7 + i * 0.36) * 16;
+          const wave2 = Math.cos(time * 1.1 + i * 0.24 + refractionValue * 4) * 12;
+          a.push(`${x.toFixed(1)},${(36 + wave + wave2).toFixed(1)}`);
+          b.push(`${x.toFixed(1)},${(34 + wave * 0.34 - wave2 * 0.62).toFixed(1)}`);
+        }
+        sparkA.setAttribute("points", a.join(" "));
+        sparkB.setAttribute("points", b.join(" "));
+      }
+
+      function drawFigure(time) {
+        const xBias = (pointer.x - 0.5) * 2;
+        const yBias = (pointer.y - 0.5) * 2;
+        const local = pointer.active ? 1 : 0;
+        const sway = Math.sin(time * 0.7) * 12 + xBias * 18;
+        const pulse = (Math.sin(time * 1.8) + 1) * 0.5;
+        const brace = clamp(0.74 - Math.abs(xBias) * 0.16 + Math.cos(time * 0.9) * 0.04, 0.52, 0.92);
+        const refractionValue = clamp(0.24 + Math.abs(xBias) * 0.38 + local * 0.06 + pulse * 0.12, 0.18, 0.88);
+        const stressValue = clamp(0.22 + Math.abs(yBias) * 0.18 + Math.sin(time * 1.2) * 0.06 + local * 0.08, 0.16, 0.74);
+
+        const body = [
+          [450, 182 + pulse * 8],
+          [354 - sway * 0.16, 242 + stressValue * 12],
+          [314 - sway * 0.32, 364 + refractionValue * 24],
+          [334 - sway * 0.18, 542 - stressValue * 18],
+          [380 - sway * 0.08, 658 + brace * 24],
+          [450, 732 + brace * 12],
+          [520 + sway * 0.08, 658 + brace * 24],
+          [566 + sway * 0.18, 542 - stressValue * 18],
+          [586 + sway * 0.32, 364 + refractionValue * 24],
+          [546 + sway * 0.16, 242 + stressValue * 12],
+        ];
+
+        const inner = [
+          [450, 236],
+          [386 - sway * 0.1, 296 + refractionValue * 18],
+          [368 - sway * 0.18, 408 + pulse * 12],
+          [388 - sway * 0.08, 560 - stressValue * 14],
+          [450, 648 + brace * 10],
+          [512 + sway * 0.08, 560 - stressValue * 14],
+          [532 + sway * 0.18, 408 + pulse * 12],
+          [514 + sway * 0.1, 296 + refractionValue * 18],
+        ];
+
+        const aura = [
+          [450, 166],
+          [324 - sway * 0.18, 262],
+          [274 - sway * 0.26, 414],
+          [316 - sway * 0.1, 624],
+          [450, 780],
+          [584 + sway * 0.1, 624],
+          [626 + sway * 0.26, 414],
+          [576 + sway * 0.18, 262],
+        ];
+
+        paths.body.setAttribute("d", toPath(body, true));
+        paths.inner.setAttribute("d", toPath(inner, true));
+        paths.aura.setAttribute("d", toPath(aura, true));
+
+        const feelerLift = 92 + pulse * 18;
+        paths.leftFeeler.setAttribute(
+          "d",
+          curvePath([
+            [418, 224],
+            [390 - sway * 0.12, 196 - feelerLift * 0.2],
+            [338 - sway * 0.22, 158 - feelerLift * 0.44],
+            [286 - sway * 0.3, 126 - feelerLift * 0.66],
+          ]),
+        );
+        paths.rightFeeler.setAttribute(
+          "d",
+          curvePath([
+            [482, 224],
+            [510 + sway * 0.12, 196 - feelerLift * 0.2],
+            [562 + sway * 0.22, 158 - feelerLift * 0.44],
+            [614 + sway * 0.3, 126 - feelerLift * 0.66],
+          ]),
+        );
+
+        const rootSpread = 120 + brace * 64;
+        paths.leftRoot.setAttribute(
+          "d",
+          curvePath([
+            [404, 678],
+            [370 - sway * 0.1, 730 + stressValue * 24],
+            [322 - rootSpread * 0.26, 784 - pulse * 10],
+            [256 - rootSpread * 0.46, 814],
+          ]),
+        );
+        paths.rightRoot.setAttribute(
+          "d",
+          curvePath([
+            [496, 678],
+            [530 + sway * 0.1, 730 + stressValue * 24],
+            [578 + rootSpread * 0.26, 784 - pulse * 10],
+            [644 + rootSpread * 0.46, 814],
+          ]),
+        );
+
+        const shear = xBias * 42 + Math.sin(time * 1.2) * 10;
+        const lift = yBias * -18;
+
+        paths.laneA.setAttribute(
+          "d",
+          curvePath([
+            [352, 280 + lift * 0.2],
+            [394 + shear * 0.2, 336 - pulse * 8],
+            [450 + shear * 0.28, 392],
+            [510 + shear * 0.18, 468 + pulse * 6],
+            [536, 590 + lift * 0.2],
+          ]),
+        );
+        paths.laneB.setAttribute(
+          "d",
+          curvePath([
+            [544, 276 - lift * 0.16],
+            [504 - shear * 0.18, 336 + pulse * 10],
+            [448 - shear * 0.24, 406],
+            [388 - shear * 0.22, 476 - pulse * 6],
+            [362, 596 - lift * 0.16],
+          ]),
+        );
+        paths.laneC.setAttribute(
+          "d",
+          curvePath([
+            [450, 248],
+            [472 + shear * 0.12, 322],
+            [474 + shear * 0.04, 420],
+            [446 - shear * 0.06, 510],
+            [450, 624],
+          ]),
+        );
+
+        const coreRx = 72 + pulse * 12 + refractionValue * 14;
+        const coreRy = 52 + pulse * 10;
+        coreGlow.setAttribute("rx", coreRx.toFixed(1));
+        coreGlow.setAttribute("ry", coreRy.toFixed(1));
+        coreGlow.setAttribute("opacity", (0.44 + pulse * 0.18).toFixed(2));
+        coreRing.setAttribute("rx", (coreRx + 10).toFixed(1));
+        coreRing.setAttribute("ry", (coreRy + 10).toFixed(1));
+        coreInner.setAttribute("rx", (38 + pulse * 8).toFixed(1));
+        coreInner.setAttribute("ry", (24 + pulse * 5).toFixed(1));
+        dotLeft.setAttribute("cx", (422 - shear * 0.06).toFixed(1));
+        dotMid.setAttribute("cy", (404 + pulse * 3).toFixed(1));
+        dotRight.setAttribute("cx", (478 + shear * 0.06).toFixed(1));
+
+        const tracePaths = traceLayer.querySelectorAll("path");
+        tracePaths.forEach((path, index) => {
+          const offset = index * 0.32;
+          const band = 120 + index * 18;
+          const points = [];
+          for (let i = 0; i < 7; i += 1) {
+            const px = 110 + i * 112;
+            const py =
+              140 +
+              index * 34 +
+              Math.sin(time * 0.86 + i * 0.52 + offset) * (8 + index * 0.5) +
+              Math.cos(time * 0.44 + i * 0.18) * 5 +
+              xBias * band * 0.05;
+            points.push([px, py]);
+          }
+          path.setAttribute("d", curvePath(points));
+        });
+
+        lawLabel.textContent = xBias < -0.2 ? "Shear" : xBias > 0.2 ? "Latch" : "Brace";
+        focusReadout.textContent = refractionValue.toFixed(2);
+        balanceReadout.textContent = brace.toFixed(2);
+        believability.textContent = clamp(brace + 0.08 - stressValue * 0.18, 0.54, 0.94).toFixed(2);
+        refraction.textContent = refractionValue.toFixed(2);
+        stress.textContent = stressValue.toFixed(2);
+        drift.textContent = `${lawLabel.textContent} / local`;
+
+        const levels = {
+          left: clamp(0.42 + brace * 0.28 - xBias * 0.18, 0.18, 0.94),
+          core: clamp(0.54 + pulse * 0.22 + refractionValue * 0.12, 0.24, 0.96),
+          right: clamp(0.42 + brace * 0.28 + xBias * 0.18, 0.18, 0.94),
+        };
+
+        Object.entries(levels).forEach(([key, value]) => {
+          bars[key].style.transform = `scaleX(${value.toFixed(3)})`;
+          barText[key].textContent = `${Math.round(value * 100)}%`;
+        });
+
+        updateSpark(time, refractionValue);
+      }
+
+      function onPointerMove(event) {
+        const rect = stageShell.getBoundingClientRect();
+        pointer.x = clamp((event.clientX - rect.left) / rect.width, 0, 1);
+        pointer.y = clamp((event.clientY - rect.top) / rect.height, 0, 1);
+        pointer.active = true;
+      }
+
+      stageShell.addEventListener("pointermove", onPointerMove);
+      stageShell.addEventListener("pointerenter", onPointerMove);
+      stageShell.addEventListener("pointerleave", () => {
+        pointer.active = false;
+      });
+
+      let start = performance.now();
+      function frame(now) {
+        const time = (now - start) / 1000;
+        if (!pointer.active) {
+          pointer.x = lerp(pointer.x, 0.5 + Math.sin(time * 0.23) * 0.08, 0.018);
+          pointer.y = lerp(pointer.y, 0.48 + Math.cos(time * 0.18) * 0.06, 0.018);
+        }
+        drawFigure(time);
+        requestAnimationFrame(frame);
+      }
+
+      requestAnimationFrame(frame);
+    </script>
+  </body>
+</html>

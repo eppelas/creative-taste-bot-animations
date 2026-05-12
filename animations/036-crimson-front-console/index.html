@@ -1,0 +1,1209 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>#036 Crimson Front Console</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #05060a;
+        --bg-soft: rgba(11, 13, 19, 0.84);
+        --panel: rgba(12, 14, 22, 0.76);
+        --panel-strong: rgba(17, 19, 28, 0.92);
+        --line: rgba(255, 202, 185, 0.12);
+        --line-strong: rgba(255, 202, 185, 0.24);
+        --text: #f7efe7;
+        --muted: rgba(247, 239, 231, 0.58);
+        --crimson: #ff5167;
+        --ember: #ff9b6d;
+        --cyan: #7ddaf4;
+        --acid: #ddff65;
+        --shadow: 0 28px 80px rgba(0, 0, 0, 0.34);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        background:
+          radial-gradient(circle at 18% 16%, rgba(255, 81, 103, 0.16), transparent 24%),
+          radial-gradient(circle at 82% 14%, rgba(125, 218, 244, 0.12), transparent 26%),
+          radial-gradient(circle at 50% 88%, rgba(221, 255, 101, 0.08), transparent 22%),
+          linear-gradient(180deg, #090b12 0%, #05060a 100%);
+        color: var(--text);
+        font-family: "Azeret Mono", "IBM Plex Mono", "SFMono-Regular", monospace;
+      }
+
+      body {
+        padding: 18px;
+      }
+
+      .console {
+        position: relative;
+        min-height: calc(100vh - 36px);
+        border: 1px solid var(--line);
+        border-radius: 28px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 18%),
+          linear-gradient(135deg, rgba(125, 218, 244, 0.03), transparent 42%, rgba(255, 81, 103, 0.03) 100%),
+          rgba(5, 6, 10, 0.72);
+        box-shadow: var(--shadow);
+        overflow: hidden;
+      }
+
+      .console::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background-image:
+          linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+        background-size: 84px 84px;
+        opacity: 0.22;
+        pointer-events: none;
+      }
+
+      .shell {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        grid-template-columns: 18rem minmax(0, 1fr) 19rem;
+        grid-template-rows: auto minmax(21rem, 1fr) auto;
+        gap: 14px;
+        min-height: calc(100vh - 36px);
+        padding: 14px;
+      }
+
+      .panel {
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 22%),
+          var(--panel);
+        backdrop-filter: blur(18px);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+      }
+
+      .topbar {
+        grid-column: 1 / -1;
+        display: grid;
+        grid-template-columns: minmax(0, 1.2fr) auto;
+        gap: 14px;
+        align-items: stretch;
+      }
+
+      .title-panel,
+      .mode-panel,
+      .left-stack,
+      .right-stack,
+      .timeline-panel {
+        padding: 16px 18px;
+      }
+
+      .eyebrow,
+      .meta,
+      .small-label {
+        margin: 0;
+        font-size: 11px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      h1,
+      h2,
+      p {
+        margin: 0;
+      }
+
+      h1 {
+        margin-top: 0.45rem;
+        font-size: clamp(2rem, 4vw, 3.65rem);
+        line-height: 0.9;
+        letter-spacing: -0.05em;
+      }
+
+      .title-copy {
+        margin-top: 0.72rem;
+        max-width: 44rem;
+        color: rgba(247, 239, 231, 0.72);
+        line-height: 1.48;
+      }
+
+      .meta-row {
+        margin-top: 0.95rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem 1.2rem;
+      }
+
+      .meta-row span {
+        font-size: 0.82rem;
+        color: rgba(247, 239, 231, 0.84);
+      }
+
+      .mode-panel {
+        display: grid;
+        align-content: space-between;
+        min-width: 18rem;
+      }
+
+      .mode-buttons {
+        margin-top: 0.9rem;
+        display: flex;
+        gap: 0.55rem;
+        flex-wrap: wrap;
+      }
+
+      button,
+      input[type="range"] {
+        font: inherit;
+      }
+
+      .mode-button,
+      .back {
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.03);
+        color: var(--text);
+        padding: 10px 14px;
+        cursor: pointer;
+        transition:
+          transform 180ms ease,
+          border-color 180ms ease,
+          background 180ms ease;
+      }
+
+      .mode-button:hover,
+      .mode-button:focus-visible,
+      .back:hover,
+      .back:focus-visible {
+        transform: translateY(-1px);
+        border-color: var(--line-strong);
+        background: rgba(255, 255, 255, 0.06);
+        outline: none;
+      }
+
+      .mode-button.active {
+        border-color: rgba(221, 255, 101, 0.4);
+        box-shadow: inset 0 0 0 1px rgba(221, 255, 101, 0.14);
+        background:
+          linear-gradient(90deg, rgba(255, 81, 103, 0.08), rgba(125, 218, 244, 0.06)),
+          rgba(255, 255, 255, 0.05);
+      }
+
+      .dashboard {
+        display: contents;
+      }
+
+      .left-stack,
+      .right-stack {
+        display: grid;
+        gap: 14px;
+      }
+
+      .left-stack {
+        grid-column: 1;
+        grid-row: 2;
+        align-content: start;
+      }
+
+      .right-stack {
+        grid-column: 3;
+        grid-row: 2;
+        align-content: start;
+      }
+
+      .stack-card {
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        padding: 14px;
+        background: rgba(255, 255, 255, 0.02);
+      }
+
+      .readout-grid {
+        margin-top: 0.8rem;
+        display: grid;
+        gap: 0.7rem;
+      }
+
+      .readout {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        align-items: baseline;
+      }
+
+      .readout strong {
+        font-size: 0.95rem;
+        font-weight: 600;
+      }
+
+      .readout span {
+        font-size: 0.78rem;
+        color: var(--muted);
+      }
+
+      .gauge {
+        margin-top: 0.85rem;
+        height: 9px;
+        border-radius: 999px;
+        overflow: hidden;
+        background: rgba(255, 255, 255, 0.05);
+      }
+
+      .gauge-fill {
+        height: 100%;
+        width: 42%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, var(--crimson), var(--ember), var(--acid));
+      }
+
+      .relay-list {
+        margin-top: 0.85rem;
+        display: grid;
+        gap: 0.7rem;
+      }
+
+      .relay-item {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        gap: 0.7rem;
+        align-items: center;
+        font-size: 0.76rem;
+      }
+
+      .relay-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+        background: var(--cyan);
+        box-shadow: 0 0 14px rgba(125, 218, 244, 0.4);
+      }
+
+      .relay-track {
+        height: 4px;
+        border-radius: 999px;
+        overflow: hidden;
+        background: rgba(255, 255, 255, 0.06);
+      }
+
+      .relay-track span {
+        display: block;
+        height: 100%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, var(--cyan), var(--crimson));
+      }
+
+      .main-panel {
+        position: relative;
+        grid-column: 2;
+        grid-row: 2;
+        overflow: hidden;
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr) auto;
+      }
+
+      .main-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        align-items: start;
+        padding: 16px 18px 0;
+      }
+
+      .main-copy {
+        max-width: 34rem;
+        margin-top: 0.55rem;
+        color: rgba(247, 239, 231, 0.66);
+        line-height: 1.45;
+      }
+
+      .callout {
+        display: grid;
+        gap: 0.5rem;
+        justify-items: end;
+        text-align: right;
+      }
+
+      .callout strong {
+        font-size: 1.8rem;
+        letter-spacing: -0.05em;
+      }
+
+      .main-stage {
+        position: relative;
+        min-height: 24rem;
+        margin: 12px 14px 14px;
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        overflow: hidden;
+        background:
+          radial-gradient(circle at 50% 50%, rgba(255, 81, 103, 0.1), transparent 38%),
+          linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(5, 6, 10, 0.5));
+      }
+
+      .main-stage canvas {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        display: block;
+      }
+
+      .stage-overlay {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+      }
+
+      .target-box,
+      .tag,
+      .legend {
+        position: absolute;
+        border: 1px solid var(--line);
+        background: rgba(8, 11, 18, 0.46);
+        backdrop-filter: blur(12px);
+      }
+
+      .target-box {
+        width: 9rem;
+        height: 9rem;
+        right: 6.5%;
+        top: 12%;
+        border-radius: 28px;
+      }
+
+      .tag {
+        padding: 9px 11px;
+        border-radius: 14px;
+        font-size: 0.7rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .tag strong {
+        display: block;
+        margin-bottom: 0.18rem;
+        font-size: 0.82rem;
+        text-transform: none;
+      }
+
+      .tag-a {
+        left: 5.8%;
+        top: 10%;
+      }
+
+      .tag-b {
+        left: 8.6%;
+        bottom: 12%;
+      }
+
+      .legend {
+        left: 50%;
+        bottom: 8%;
+        transform: translateX(-50%);
+        width: min(22rem, 78%);
+        border-radius: 18px;
+        padding: 10px 12px;
+      }
+
+      .legend-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        font-size: 0.72rem;
+        color: var(--muted);
+      }
+
+      .control-strip {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        padding: 0 14px 14px;
+      }
+
+      .slider-card {
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        padding: 12px 13px;
+        background: rgba(255, 255, 255, 0.02);
+      }
+
+      .slider-card label {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        font-size: 0.78rem;
+        color: var(--muted);
+      }
+
+      input[type="range"] {
+        width: 100%;
+        margin-top: 0.75rem;
+        accent-color: var(--ember);
+        cursor: pointer;
+        background: transparent;
+      }
+
+      .mini-grid {
+        margin-top: 0.85rem;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.5rem;
+      }
+
+      .mini-grid span {
+        display: block;
+        aspect-ratio: 1;
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        background:
+          radial-gradient(circle at 50% 50%, rgba(255, 81, 103, 0.2), transparent 40%),
+          linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent);
+      }
+
+      .timeline-panel {
+        grid-column: 1 / -1;
+        grid-row: 3;
+      }
+
+      .timeline-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        align-items: end;
+      }
+
+      .timeline-track {
+        position: relative;
+        margin-top: 1rem;
+        height: 7.5rem;
+        border-radius: 18px;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 18%),
+          rgba(255, 255, 255, 0.02);
+      }
+
+      .timeline-track canvas {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        display: block;
+      }
+
+      .timeline-labels {
+        margin-top: 0.75rem;
+        display: flex;
+        justify-content: space-between;
+        gap: 0.5rem;
+        font-size: 0.72rem;
+        color: var(--muted);
+      }
+
+      .back {
+        position: absolute;
+        right: 18px;
+        bottom: 18px;
+        text-decoration: none;
+      }
+
+      @media (max-width: 1180px) {
+        .shell {
+          grid-template-columns: 1fr;
+          grid-template-rows: auto auto auto auto auto;
+        }
+
+        .topbar,
+        .timeline-panel,
+        .left-stack,
+        .main-panel,
+        .right-stack {
+          grid-column: 1;
+        }
+
+        .left-stack,
+        .main-panel,
+        .right-stack,
+        .timeline-panel {
+          grid-row: auto;
+        }
+
+        .topbar {
+          grid-template-columns: 1fr;
+        }
+
+        .mode-panel {
+          min-width: 0;
+        }
+      }
+
+      @media (max-width: 780px) {
+        body {
+          padding: 10px;
+        }
+
+        .console,
+        .shell {
+          min-height: calc(100vh - 20px);
+        }
+
+        .shell {
+          padding: 10px;
+          gap: 10px;
+        }
+
+        .title-panel,
+        .mode-panel,
+        .left-stack,
+        .right-stack,
+        .timeline-panel {
+          padding: 14px;
+        }
+
+        .main-head {
+          flex-direction: column;
+        }
+
+        .callout {
+          justify-items: start;
+          text-align: left;
+        }
+
+        .main-stage {
+          min-height: 22rem;
+          margin: 10px 10px 12px;
+        }
+
+        .control-strip {
+          grid-template-columns: 1fr;
+          padding: 0 10px 10px;
+        }
+
+        .legend {
+          width: calc(100% - 1.2rem);
+          left: 0.6rem;
+          transform: none;
+        }
+
+        .target-box {
+          width: 6.8rem;
+          height: 6.8rem;
+        }
+
+        .back {
+          right: 12px;
+          bottom: 12px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="console">
+      <div class="shell">
+        <div class="topbar">
+          <section class="panel title-panel">
+            <p class="eyebrow">Code Animation Study #036</p>
+            <h1>Crimson Front Console</h1>
+            <p class="title-copy">
+              A true HTML forecast surface instead of another specimen plate:
+              pressure cells, relay tracks, and wet diagnostic weather sit inside
+              a believable multi-pane interface that still behaves like a living
+              signal field.
+            </p>
+            <div class="meta-row">
+              <span>Pointer shears the front</span>
+              <span>Mode buttons retune storm law</span>
+              <span>Sliders control density, drift, and ember lift</span>
+            </div>
+          </section>
+
+          <section class="panel mode-panel">
+            <div>
+              <p class="eyebrow">Front mode</p>
+              <div class="mode-buttons" id="modeButtons">
+                <button class="mode-button active" data-mode="survey">Survey</button>
+                <button class="mode-button" data-mode="shear">Shear</button>
+                <button class="mode-button" data-mode="bloom">Bloom</button>
+              </div>
+            </div>
+            <p class="meta" id="modeHint">
+              Survey keeps the front wide and legible, like a design board under
+              calm diagnostic pressure.
+            </p>
+          </section>
+        </div>
+
+        <aside class="panel left-stack">
+          <section class="stack-card">
+            <p class="small-label">Pressure windows</p>
+            <div class="readout-grid">
+              <div class="readout"><strong id="frontValue">0.46</strong><span>Front spread</span></div>
+              <div class="readout"><strong id="driftValue">0.31</strong><span>Lateral drift</span></div>
+              <div class="readout"><strong id="emberValue">42%</strong><span>Ember lift</span></div>
+            </div>
+            <div class="gauge"><div class="gauge-fill" id="leftGauge"></div></div>
+          </section>
+
+          <section class="stack-card">
+            <p class="small-label">Relay channels</p>
+            <div class="relay-list">
+              <div class="relay-item">
+                <span class="relay-dot"></span>
+                <div class="relay-track"><span id="trackA" style="width: 56%"></span></div>
+                <span id="trackAText">56%</span>
+              </div>
+              <div class="relay-item">
+                <span class="relay-dot" style="background: var(--ember); box-shadow: 0 0 14px rgba(255, 155, 109, 0.42)"></span>
+                <div class="relay-track"><span id="trackB" style="width: 38%"></span></div>
+                <span id="trackBText">38%</span>
+              </div>
+              <div class="relay-item">
+                <span class="relay-dot" style="background: var(--acid); box-shadow: 0 0 14px rgba(221, 255, 101, 0.42)"></span>
+                <div class="relay-track"><span id="trackC" style="width: 24%"></span></div>
+                <span id="trackCText">24%</span>
+              </div>
+            </div>
+          </section>
+
+          <section class="stack-card">
+            <p class="small-label">Cell samplers</p>
+            <div class="mini-grid">
+              <span></span>
+              <span></span>
+              <span></span>
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+          </section>
+        </aside>
+
+        <section class="panel main-panel">
+          <div class="main-head">
+            <div>
+              <p class="eyebrow">Storm front</p>
+              <h2>Distributed pressure map</h2>
+              <p class="main-copy">
+                The central field is procedural and browser-native. It behaves
+                like a survey console, not a poster screenshot: the pointer bends
+                the pressure basins, and the controls retune how the front pools,
+                rebounds, and glows.
+              </p>
+            </div>
+            <div class="callout">
+              <p class="small-label">Target offset</p>
+              <strong id="targetValue">12.4°</strong>
+              <p class="meta">current seam divergence</p>
+            </div>
+          </div>
+
+          <div class="main-stage" id="stage">
+            <canvas id="stormCanvas"></canvas>
+            <div class="stage-overlay">
+              <div class="target-box"></div>
+              <div class="tag tag-a"><strong id="cellCountValue">18 cells</strong>active storm pockets</div>
+              <div class="tag tag-b"><strong id="swellValue">0.52</strong>current swell</div>
+              <div class="legend">
+                <div class="legend-row">
+                  <span>cyan: cooler relay</span>
+                  <span>crimson: pressure seam</span>
+                  <span>amber: warm uplift</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="control-strip">
+            <div class="slider-card">
+              <label for="densityRange"><span>Cell density</span><span id="densityOut">0.62</span></label>
+              <input id="densityRange" type="range" min="0.2" max="1" step="0.01" value="0.62" />
+            </div>
+            <div class="slider-card">
+              <label for="driftRange"><span>Shear drift</span><span id="shearOut">0.31</span></label>
+              <input id="driftRange" type="range" min="0" max="1" step="0.01" value="0.31" />
+            </div>
+            <div class="slider-card">
+              <label for="emberRange"><span>Ember lift</span><span id="emberOut">0.42</span></label>
+              <input id="emberRange" type="range" min="0" max="1" step="0.01" value="0.42" />
+            </div>
+          </div>
+        </section>
+
+        <aside class="panel right-stack">
+          <section class="stack-card">
+            <p class="small-label">Forecast notes</p>
+            <div class="readout-grid">
+              <div class="readout"><strong id="relayValue">relay calm</strong><span>Active grammar</span></div>
+              <div class="readout"><strong id="pointerValue">centered</strong><span>Pointer zone</span></div>
+            </div>
+          </section>
+
+          <section class="stack-card">
+            <p class="small-label">Signal strips</p>
+            <div class="relay-list">
+              <div class="relay-item"><span class="relay-dot"></span><span>north seam</span><span id="northValue">stable</span></div>
+              <div class="relay-item"><span class="relay-dot" style="background: var(--ember); box-shadow: 0 0 14px rgba(255, 155, 109, 0.42)"></span><span>ember lane</span><span id="emberState">rising</span></div>
+              <div class="relay-item"><span class="relay-dot" style="background: var(--acid); box-shadow: 0 0 14px rgba(221, 255, 101, 0.42)"></span><span>field strain</span><span id="strainValue">0.28</span></div>
+            </div>
+          </section>
+
+          <section class="stack-card">
+            <p class="small-label">Usage note</p>
+            <p class="main-copy" style="margin-top: 0.75rem; font-size: 0.8rem">
+              This is intentionally closer to a design surface than the recent
+              creature/specimen pages: real panes, live readouts, and a weather
+              grammar that could plausibly feed a visual system rather than just
+              decorate one.
+            </p>
+          </section>
+        </aside>
+
+        <section class="panel timeline-panel">
+          <div class="timeline-head">
+            <div>
+              <p class="eyebrow">Propagation strip</p>
+              <h2>Front history</h2>
+            </div>
+            <p class="meta">The lower strip samples the live center field and drags behind it.</p>
+          </div>
+          <div class="timeline-track">
+            <canvas id="timelineCanvas"></canvas>
+          </div>
+          <div class="timeline-labels">
+            <span>west ingress</span>
+            <span>relay braid</span>
+            <span>pressure basin</span>
+            <span>heat rise</span>
+            <span>quiet edge</span>
+          </div>
+        </section>
+      </div>
+
+      <a class="back" href="../../index.html">Back to index</a>
+    <script src="../../shared/study-notes.js"></script>
+    </main>
+
+    <script>
+      const stormCanvas = document.getElementById("stormCanvas");
+      const stormCtx = stormCanvas.getContext("2d");
+      const timelineCanvas = document.getElementById("timelineCanvas");
+      const timelineCtx = timelineCanvas.getContext("2d");
+      const stage = document.getElementById("stage");
+      const modeButtons = [...document.querySelectorAll(".mode-button")];
+
+      const densityRange = document.getElementById("densityRange");
+      const driftRange = document.getElementById("driftRange");
+      const emberRange = document.getElementById("emberRange");
+
+      const frontValue = document.getElementById("frontValue");
+      const driftValue = document.getElementById("driftValue");
+      const emberValue = document.getElementById("emberValue");
+      const leftGauge = document.getElementById("leftGauge");
+      const densityOut = document.getElementById("densityOut");
+      const shearOut = document.getElementById("shearOut");
+      const emberOut = document.getElementById("emberOut");
+      const modeHint = document.getElementById("modeHint");
+      const targetValue = document.getElementById("targetValue");
+      const cellCountValue = document.getElementById("cellCountValue");
+      const swellValue = document.getElementById("swellValue");
+      const relayValue = document.getElementById("relayValue");
+      const pointerValue = document.getElementById("pointerValue");
+      const northValue = document.getElementById("northValue");
+      const emberState = document.getElementById("emberState");
+      const strainValue = document.getElementById("strainValue");
+      const trackA = document.getElementById("trackA");
+      const trackB = document.getElementById("trackB");
+      const trackC = document.getElementById("trackC");
+      const trackAText = document.getElementById("trackAText");
+      const trackBText = document.getElementById("trackBText");
+      const trackCText = document.getElementById("trackCText");
+
+      const TAU = Math.PI * 2;
+      const pointer = { x: 0.56, y: 0.48, tx: 0.56, ty: 0.48, active: false };
+      const history = [];
+
+      const modes = {
+        survey: {
+          hint: "Survey keeps the front wide and legible, like a design board under calm diagnostic pressure.",
+          spread: 0.88,
+          drift: 0.3,
+          glow: 0.42,
+          label: "relay calm",
+        },
+        shear: {
+          hint: "Shear leans the front sideways, stretches the seams, and pushes more structural turbulence into the panel grid.",
+          spread: 0.64,
+          drift: 0.68,
+          glow: 0.32,
+          label: "fault skew",
+        },
+        bloom: {
+          hint: "Bloom thickens the warm uplift, fills the basins, and turns the center into a denser weather blossom without adding a central emblem.",
+          spread: 1.04,
+          drift: 0.42,
+          glow: 0.74,
+          label: "warm bloom",
+        },
+      };
+
+      const state = {
+        mode: "survey",
+        density: parseFloat(densityRange.value),
+        shear: parseFloat(driftRange.value),
+        ember: parseFloat(emberRange.value),
+        width: 0,
+        height: 0,
+        time: 0,
+        dpr: Math.min(window.devicePixelRatio || 1, 2),
+        cells: [],
+        motes: [],
+      };
+
+      function createField() {
+        const cellCount = Math.round(14 + state.density * 18);
+        state.cells = Array.from({ length: cellCount }, (_, index) => ({
+          seed: Math.random() * 1000,
+          orbit: 0.14 + Math.random() * 0.34,
+          angle: (index / cellCount) * TAU + Math.random() * 0.6,
+          radius: 0.12 + Math.random() * 0.34,
+          gain: 0.4 + Math.random() * 0.7,
+          bias: Math.random() * 0.5,
+        }));
+
+        state.motes = Array.from({ length: 110 }, () => ({
+          x: Math.random(),
+          y: Math.random(),
+          speed: 0.0005 + Math.random() * 0.0016,
+          size: 1 + Math.random() * 2.5,
+          phase: Math.random() * TAU,
+        }));
+      }
+
+      function resize() {
+        const rect = stage.getBoundingClientRect();
+        state.width = rect.width;
+        state.height = rect.height;
+
+        stormCanvas.width = Math.round(rect.width * state.dpr);
+        stormCanvas.height = Math.round(rect.height * state.dpr);
+        stormCanvas.style.width = rect.width + "px";
+        stormCanvas.style.height = rect.height + "px";
+        stormCtx.setTransform(state.dpr, 0, 0, state.dpr, 0, 0);
+
+        const timelineRect = timelineCanvas.parentElement.getBoundingClientRect();
+        timelineCanvas.width = Math.round(timelineRect.width * state.dpr);
+        timelineCanvas.height = Math.round(timelineRect.height * state.dpr);
+        timelineCanvas.style.width = timelineRect.width + "px";
+        timelineCanvas.style.height = timelineRect.height + "px";
+        timelineCtx.setTransform(state.dpr, 0, 0, state.dpr, 0, 0);
+      }
+
+      function lerp(a, b, t) {
+        return a + (b - a) * t;
+      }
+
+      function setMode(nextMode) {
+        state.mode = nextMode;
+        modeButtons.forEach((button) => {
+          button.classList.toggle("active", button.dataset.mode === nextMode);
+        });
+        modeHint.textContent = modes[nextMode].hint;
+        relayValue.textContent = modes[nextMode].label;
+      }
+
+      function syncInputs() {
+        state.density = parseFloat(densityRange.value);
+        state.shear = parseFloat(driftRange.value);
+        state.ember = parseFloat(emberRange.value);
+        densityOut.textContent = state.density.toFixed(2);
+        shearOut.textContent = state.shear.toFixed(2);
+        emberOut.textContent = state.ember.toFixed(2);
+      }
+
+      function updatePointerZone() {
+        const x = pointer.x;
+        const y = pointer.y;
+        if (x < 0.36 && y < 0.34) pointerValue.textContent = "northwest";
+        else if (x > 0.66 && y < 0.34) pointerValue.textContent = "northeast";
+        else if (x < 0.36 && y > 0.68) pointerValue.textContent = "southwest";
+        else if (x > 0.66 && y > 0.68) pointerValue.textContent = "southeast";
+        else pointerValue.textContent = "centered";
+      }
+
+      function drawBackground(ctx, width, height) {
+        const bg = ctx.createLinearGradient(0, 0, 0, height);
+        bg.addColorStop(0, "rgba(10, 12, 18, 0.96)");
+        bg.addColorStop(1, "rgba(6, 7, 11, 0.98)");
+        ctx.fillStyle = bg;
+        ctx.fillRect(0, 0, width, height);
+
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.035)";
+        ctx.lineWidth = 1;
+        for (let x = 0; x < width; x += 48) {
+          ctx.beginPath();
+          ctx.moveTo(x + 0.5, 0);
+          ctx.lineTo(x + 0.5, height);
+          ctx.stroke();
+        }
+        for (let y = 0; y < height; y += 48) {
+          ctx.beginPath();
+          ctx.moveTo(0, y + 0.5);
+          ctx.lineTo(width, y + 0.5);
+          ctx.stroke();
+        }
+      }
+
+      function drawCells() {
+        const { width, height, time } = state;
+        const mode = modes[state.mode];
+        const centerX = width * 0.5 + (pointer.x - 0.5) * width * 0.18;
+        const centerY = height * 0.52 + (pointer.y - 0.5) * height * 0.14;
+
+        state.cells.forEach((cell, index) => {
+          const wobble = Math.sin(time * (0.45 + cell.bias) + cell.seed) * 0.08;
+          const offsetX =
+            Math.cos(cell.angle + time * cell.orbit * (0.5 + mode.drift) + cell.seed) *
+            width *
+            cell.radius;
+          const offsetY =
+            Math.sin(cell.angle * 1.3 - time * (0.25 + state.shear * 0.9) + cell.seed) *
+            height *
+            (cell.radius * 0.78);
+          const x = centerX + offsetX + (pointer.x - 0.5) * width * 0.12 * cell.gain;
+          const y = centerY + offsetY + (pointer.y - 0.5) * height * 0.12 * cell.gain;
+          const radius =
+            (36 + index * 0.8 + cell.gain * 32) * (0.62 + state.density * 0.58 + mode.spread * 0.12 + wobble);
+
+          const glow = stormCtx.createRadialGradient(x, y, radius * 0.1, x, y, radius);
+          glow.addColorStop(0, `rgba(255, 81, 103, ${0.16 + state.ember * 0.22})`);
+          glow.addColorStop(0.55, `rgba(255, 155, 109, ${0.08 + mode.glow * 0.11})`);
+          glow.addColorStop(1, "rgba(255, 81, 103, 0)");
+          stormCtx.fillStyle = glow;
+          stormCtx.beginPath();
+          stormCtx.arc(x, y, radius, 0, TAU);
+          stormCtx.fill();
+
+          stormCtx.strokeStyle = index % 3 === 0 ? "rgba(125, 218, 244, 0.16)" : "rgba(255, 81, 103, 0.16)";
+          stormCtx.lineWidth = 1;
+          stormCtx.beginPath();
+          for (let step = 0; step <= 36; step += 1) {
+            const t = step / 36;
+            const angle = t * TAU;
+            const wave =
+              radius * (0.86 + Math.sin(angle * 4 + time * 1.4 + cell.seed) * 0.06 + wobble * 0.35);
+            const px = x + Math.cos(angle) * wave;
+            const py = y + Math.sin(angle) * wave * (0.74 + state.shear * 0.14);
+            if (step === 0) stormCtx.moveTo(px, py);
+            else stormCtx.lineTo(px, py);
+          }
+          stormCtx.closePath();
+          stormCtx.stroke();
+        });
+      }
+
+      function drawSeams() {
+        const { width, height, time } = state;
+        stormCtx.lineWidth = 1.4;
+
+        for (let band = 0; band < 7; band += 1) {
+          const yBase = height * (0.14 + band * 0.11);
+          stormCtx.beginPath();
+          for (let x = 0; x <= width; x += 10) {
+            const nx = x / width;
+            const wave =
+              Math.sin(nx * 8 + time * (0.6 + band * 0.02) + band) * (18 + band * 2) +
+              Math.cos(nx * 16 - time * 0.35 + band * 2) * 8 +
+              (pointer.x - 0.5) * 46 * (0.2 + band / 12);
+            const y = yBase + wave + (pointer.y - 0.5) * 28 * Math.sin(nx * 3 + band);
+            if (x === 0) stormCtx.moveTo(x, y);
+            else stormCtx.lineTo(x, y);
+          }
+          stormCtx.strokeStyle =
+            band % 2 === 0 ? "rgba(255, 81, 103, 0.34)" : "rgba(125, 218, 244, 0.18)";
+          stormCtx.stroke();
+        }
+      }
+
+      function drawMotes() {
+        const { width, height, time } = state;
+        state.motes.forEach((mote) => {
+          const x = ((mote.x + time * mote.speed * (0.5 + state.shear)) % 1) * width;
+          const y =
+            mote.y * height +
+            Math.sin(time * 1.4 + mote.phase + mote.x * 8) * 12 +
+            (pointer.y - 0.5) * 16;
+          stormCtx.fillStyle = `rgba(247, 239, 231, ${0.18 + Math.sin(time * 2 + mote.phase) * 0.08})`;
+          stormCtx.beginPath();
+          stormCtx.arc(x, y, mote.size, 0, TAU);
+          stormCtx.fill();
+        });
+      }
+
+      function drawTargetSweep() {
+        const { width, height, time } = state;
+        const x = width * (0.78 + Math.sin(time * 0.5) * 0.02);
+        const y = height * 0.24;
+        const radius = 70 + state.ember * 24;
+
+        stormCtx.strokeStyle = "rgba(255, 255, 255, 0.08)";
+        stormCtx.lineWidth = 1;
+        for (let ring = 0; ring < 3; ring += 1) {
+          stormCtx.beginPath();
+          stormCtx.arc(x, y, radius - ring * 18, 0, TAU);
+          stormCtx.stroke();
+        }
+
+        stormCtx.strokeStyle = "rgba(221, 255, 101, 0.42)";
+        stormCtx.beginPath();
+        stormCtx.arc(x, y, radius, -Math.PI / 2, -Math.PI / 2 + Math.sin(time * 1.4) * 1.2 + 1.6);
+        stormCtx.stroke();
+      }
+
+      function renderTimeline() {
+        const rect = timelineCanvas.parentElement.getBoundingClientRect();
+        const width = rect.width;
+        const height = rect.height;
+
+        timelineCtx.clearRect(0, 0, width, height);
+
+        const bg = timelineCtx.createLinearGradient(0, 0, 0, height);
+        bg.addColorStop(0, "rgba(255, 255, 255, 0.03)");
+        bg.addColorStop(1, "rgba(0, 0, 0, 0.08)");
+        timelineCtx.fillStyle = bg;
+        timelineCtx.fillRect(0, 0, width, height);
+
+        for (let i = 0; i < history.length; i += 1) {
+          const sample = history[i];
+          const x = (i / Math.max(history.length - 1, 1)) * width;
+          const y = height * (0.7 - sample * 0.48);
+          const radius = 4 + sample * 10;
+          const gradient = timelineCtx.createRadialGradient(x, y, 0, x, y, radius * 2.3);
+          gradient.addColorStop(0, "rgba(255, 155, 109, 0.46)");
+          gradient.addColorStop(0.5, "rgba(255, 81, 103, 0.22)");
+          gradient.addColorStop(1, "rgba(255, 81, 103, 0)");
+          timelineCtx.fillStyle = gradient;
+          timelineCtx.beginPath();
+          timelineCtx.arc(x, y, radius * 2.3, 0, TAU);
+          timelineCtx.fill();
+        }
+
+        timelineCtx.lineWidth = 2;
+        timelineCtx.strokeStyle = "rgba(125, 218, 244, 0.64)";
+        timelineCtx.beginPath();
+        history.forEach((sample, index) => {
+          const x = (index / Math.max(history.length - 1, 1)) * width;
+          const y = height * (0.72 - sample * 0.44) + Math.sin(index * 0.18) * 3;
+          if (index === 0) timelineCtx.moveTo(x, y);
+          else timelineCtx.lineTo(x, y);
+        });
+        timelineCtx.stroke();
+
+        timelineCtx.strokeStyle = "rgba(255, 81, 103, 0.34)";
+        timelineCtx.beginPath();
+        history.forEach((sample, index) => {
+          const x = (index / Math.max(history.length - 1, 1)) * width;
+          const y = height * (0.54 - sample * 0.3) + Math.cos(index * 0.22) * 4;
+          if (index === 0) timelineCtx.moveTo(x, y);
+          else timelineCtx.lineTo(x, y);
+        });
+        timelineCtx.stroke();
+      }
+
+      function updateReadouts() {
+        const mode = modes[state.mode];
+        const front = 0.28 + state.density * 0.42 + mode.spread * 0.14;
+        const drift = state.shear * 0.74 + mode.drift * 0.22;
+        const ember = state.ember * 0.68 + mode.glow * 0.26;
+        const target = (pointer.x - 0.5) * 34 + (pointer.y - 0.5) * -18;
+        const swell = 0.22 + state.density * 0.28 + state.ember * 0.18 + mode.spread * 0.1;
+        const strain = 0.14 + state.shear * 0.48 + (pointer.active ? 0.12 : 0);
+
+        frontValue.textContent = front.toFixed(2);
+        driftValue.textContent = drift.toFixed(2);
+        emberValue.textContent = Math.round(ember * 100) + "%";
+        leftGauge.style.width = Math.round(front * 100) + "%";
+        targetValue.textContent = `${target.toFixed(1)}°`;
+        cellCountValue.textContent = `${state.cells.length} cells`;
+        swellValue.textContent = swell.toFixed(2);
+        strainValue.textContent = strain.toFixed(2);
+        northValue.textContent = target > 4 ? "tilted east" : target < -4 ? "tilted west" : "stable";
+        emberState.textContent = ember > 0.58 ? "surging" : ember < 0.34 ? "cooling" : "rising";
+
+        const a = Math.round((0.42 + state.density * 0.34 + mode.spread * 0.1) * 100);
+        const b = Math.round((0.18 + state.shear * 0.52) * 100);
+        const c = Math.round((0.12 + state.ember * 0.5) * 100);
+
+        trackA.style.width = a + "%";
+        trackB.style.width = b + "%";
+        trackC.style.width = c + "%";
+        trackAText.textContent = a + "%";
+        trackBText.textContent = b + "%";
+        trackCText.textContent = c + "%";
+
+        updatePointerZone();
+
+        history.push(Math.min(1, front * 0.52 + ember * 0.28 + Math.abs(target) / 40));
+        if (history.length > 180) history.shift();
+      }
+
+      function render() {
+        state.time += 0.016;
+        pointer.x = lerp(pointer.x, pointer.tx, 0.08);
+        pointer.y = lerp(pointer.y, pointer.ty, 0.08);
+
+        stormCtx.clearRect(0, 0, state.width, state.height);
+        drawBackground(stormCtx, state.width, state.height);
+        drawCells();
+        drawSeams();
+        drawMotes();
+        drawTargetSweep();
+        updateReadouts();
+        renderTimeline();
+        requestAnimationFrame(render);
+      }
+
+      stage.addEventListener("pointermove", (event) => {
+        const rect = stage.getBoundingClientRect();
+        pointer.tx = (event.clientX - rect.left) / rect.width;
+        pointer.ty = (event.clientY - rect.top) / rect.height;
+        pointer.active = true;
+      });
+
+      stage.addEventListener("pointerleave", () => {
+        pointer.tx = 0.56;
+        pointer.ty = 0.48;
+        pointer.active = false;
+      });
+
+      modeButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+          setMode(button.dataset.mode);
+        });
+      });
+
+      densityRange.addEventListener("input", () => {
+        syncInputs();
+        createField();
+      });
+      driftRange.addEventListener("input", syncInputs);
+      emberRange.addEventListener("input", syncInputs);
+
+      window.addEventListener("resize", resize);
+
+      syncInputs();
+      setMode("survey");
+      createField();
+      resize();
+      render();
+    </script>
+  </body>
+</html>

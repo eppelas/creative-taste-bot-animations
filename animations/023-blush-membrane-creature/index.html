@@ -1,0 +1,714 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>#023 Blush Membrane Creature</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #120d12;
+        --panel: rgba(29, 19, 28, 0.76);
+        --line: rgba(255, 234, 214, 0.12);
+        --text: #f8efdf;
+        --muted: rgba(248, 239, 223, 0.66);
+        --rose: #ff7e93;
+        --peach: #f4c995;
+        --plum: #3a1731;
+        --cyan: #83dad6;
+        --lilac: #9386e7;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        background:
+          radial-gradient(circle at 18% 18%, rgba(255, 126, 147, 0.12), transparent 24%),
+          radial-gradient(circle at 76% 20%, rgba(131, 218, 214, 0.08), transparent 24%),
+          radial-gradient(circle at 50% 88%, rgba(244, 201, 149, 0.06), transparent 30%),
+          linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 24%),
+          var(--bg);
+        color: var(--text);
+        font-family: "Avenir Next", "Trebuchet MS", "Segoe UI", sans-serif;
+      }
+
+      canvas {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        display: block;
+      }
+
+      .ui {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+      }
+
+      .panel,
+      .back,
+      .readout,
+      .bubble {
+        position: absolute;
+        border: 1px solid var(--line);
+        background: var(--panel);
+        backdrop-filter: blur(18px);
+        box-shadow: 0 24px 80px rgba(0, 0, 0, 0.3);
+      }
+
+      .panel {
+        top: 18px;
+        left: 18px;
+        width: min(28rem, calc(100vw - 36px));
+        padding: 15px 16px 16px;
+        border-radius: 22px;
+      }
+
+      .back {
+        top: 18px;
+        right: 18px;
+        padding: 10px 14px;
+        border-radius: 999px;
+        color: var(--text);
+        text-decoration: none;
+        pointer-events: auto;
+      }
+
+      .readout {
+        left: 18px;
+        right: 18px;
+        bottom: 18px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 18px;
+        padding: 13px 15px;
+        border-radius: 18px;
+      }
+
+      .eyebrow,
+      .hint,
+      .reading,
+      .mini {
+        margin: 0;
+      }
+
+      .eyebrow,
+      .mini {
+        font-size: 11px;
+        letter-spacing: 0.17em;
+        text-transform: uppercase;
+        color: rgba(248, 239, 223, 0.5);
+      }
+
+      h1 {
+        margin: 0.45rem 0 0.5rem;
+        font-size: clamp(2rem, 4.2vw, 3.2rem);
+        line-height: 0.92;
+      }
+
+      .hint,
+      .reading {
+        color: var(--muted);
+        line-height: 1.46;
+        font-size: 0.95rem;
+      }
+
+      .stats {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem 1.6rem;
+      }
+
+      .stat strong {
+        display: block;
+        margin-bottom: 0.16rem;
+        font-size: 0.72rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: rgba(248, 239, 223, 0.5);
+      }
+
+      .bubble {
+        left: 50%;
+        top: calc(50% - min(26vw, 220px));
+        transform: translate(-50%, -50%);
+        min-width: 92px;
+        padding: 9px 14px;
+        border-radius: 999px;
+        text-align: center;
+        font-size: 0.92rem;
+        color: var(--text);
+        opacity: 0;
+        transition: opacity 180ms ease;
+      }
+
+      .bubble.visible {
+        opacity: 1;
+      }
+
+      @media (max-width: 820px) {
+        .back {
+          top: auto;
+          right: 18px;
+          bottom: 108px;
+        }
+
+        .readout {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+
+        h1 {
+          font-size: clamp(1.9rem, 9vw, 2.8rem);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="scene"></canvas>
+    <div class="ui">
+      <section class="panel">
+        <p class="eyebrow">Code Animation Study #023</p>
+        <h1>Blush Membrane Creature</h1>
+        <p class="hint">
+          A direct-touch follow-up to the creature branch: pet slowly to warm
+          the body, bend the gaze, and open a softer mouth shape. Jab too fast
+          and the membrane tightens instead of behaving like a dashboard.
+        </p>
+      </section>
+
+      <a class="back" href="../../index.html">Index</a>
+
+      <div class="bubble" id="bubble">hm</div>
+
+      <section class="readout" aria-label="Creature readout">
+        <div class="stats">
+          <div class="stat">
+            <strong>Temperament</strong>
+            <span id="temperamentValue">watchful</span>
+          </div>
+          <div class="stat">
+            <strong>Blush pressure</strong>
+            <span id="blushValue">0.32</span>
+          </div>
+          <div class="stat">
+            <strong>Gaze drift</strong>
+            <span id="gazeValue">centered</span>
+          </div>
+        </div>
+        <p class="reading" id="readingText">
+          Move close to pull the eyes. Press and drag in short strokes to pet
+          the cheek and forehead. Fast pokes make the body tense and scoot
+          away.
+        </p>
+      </section>
+    </div>
+    <script src="../../shared/study-notes.js"></script>
+
+    <script>
+      const canvas = document.getElementById("scene");
+      const ctx = canvas.getContext("2d");
+      const temperamentValue = document.getElementById("temperamentValue");
+      const blushValue = document.getElementById("blushValue");
+      const gazeValue = document.getElementById("gazeValue");
+      const readingText = document.getElementById("readingText");
+      const bubble = document.getElementById("bubble");
+
+      const TAU = Math.PI * 2;
+      const pointer = {
+        x: window.innerWidth * 0.5,
+        y: window.innerHeight * 0.54,
+        tx: window.innerWidth * 0.5,
+        ty: window.innerHeight * 0.54,
+        px: window.innerWidth * 0.5,
+        py: window.innerHeight * 0.54,
+        speed: 0,
+        down: false,
+        near: false,
+      };
+
+      const touches = [];
+      const motes = [];
+      let width = window.innerWidth;
+      let height = window.innerHeight;
+      let dpr = Math.min(window.devicePixelRatio || 1, 2);
+      let currentBubble = null;
+      let bubbleTimer = 0;
+      let trust = 0.36;
+      let tension = 0.24;
+      let chirp = 0.1;
+      let lastTime = performance.now();
+
+      for (let i = 0; i < 80; i += 1) {
+        motes.push({
+          x: Math.random(),
+          y: Math.random(),
+          size: 1 + Math.random() * 3,
+          drift: 0.2 + Math.random() * 0.5,
+          hue: Math.random(),
+        });
+      }
+
+      function resize() {
+        width = window.innerWidth;
+        height = window.innerHeight;
+        dpr = Math.min(window.devicePixelRatio || 1, 2);
+        canvas.width = width * dpr;
+        canvas.height = height * dpr;
+        canvas.style.width = `${width}px`;
+        canvas.style.height = `${height}px`;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+
+      function clamp(value, min, max) {
+        return Math.max(min, Math.min(max, value));
+      }
+
+      function lerp(a, b, t) {
+        return a + (b - a) * t;
+      }
+
+      function smoothstep(edge0, edge1, x) {
+        const t = clamp((x - edge0) / (edge1 - edge0), 0, 1);
+        return t * t * (3 - 2 * t);
+      }
+
+      function showBubble(text) {
+        currentBubble = text;
+        bubble.textContent = text;
+        bubble.classList.add("visible");
+        bubbleTimer = 1.3;
+      }
+
+      function pushTouch(x, y, power, kind) {
+        touches.push({
+          x,
+          y,
+          power,
+          life: 1,
+          kind,
+        });
+      }
+
+      function emitPetReaction(x, y, speed) {
+        const slow = speed < 26;
+        const power = clamp(slow ? 0.65 - speed / 80 : 0.3 + speed / 160, 0.2, 0.82);
+        pushTouch(x, y, power, slow ? "pet" : "poke");
+
+        if (slow) {
+          trust = clamp(trust + 0.09, 0, 1);
+          tension = clamp(tension - 0.04, 0, 1);
+          chirp = clamp(chirp + 0.12, 0, 1);
+          if (Math.random() < 0.34) {
+            showBubble(["hm", "mm", "oh", "..."][Math.floor(Math.random() * 4)]);
+          }
+        } else {
+          tension = clamp(tension + 0.1, 0, 1);
+          trust = clamp(trust - 0.05, 0, 1);
+          chirp = clamp(chirp - 0.08, 0, 1);
+          if (Math.random() < 0.22) {
+            showBubble(["eh", "!", "oh?"][Math.floor(Math.random() * 3)]);
+          }
+        }
+      }
+
+      function creatureState(time) {
+        const baseX = width * 0.5;
+        const baseY = height * 0.57;
+        const radiusX = Math.min(width * 0.22, 230);
+        const radiusY = Math.min(height * 0.22, 210);
+
+        const dx = pointer.x - baseX;
+        const dy = pointer.y - baseY;
+        const normalizedDistance = Math.hypot(dx / radiusX, dy / radiusY);
+        const proximity = clamp(1 - normalizedDistance, 0, 1);
+        pointer.near = proximity > 0.08;
+
+        const avoidance = smoothstep(0.55, 1, tension) * proximity;
+        const calmLean = smoothstep(0.28, 0.9, trust) * proximity;
+        const shiftX = -dx * avoidance * 0.16 + dx * calmLean * 0.06;
+        const shiftY = -dy * avoidance * 0.1 + dy * calmLean * 0.04;
+
+        let petGlow = 0;
+        let squeezeX = 0;
+        let squeezeY = 0;
+
+        for (const touch of touches) {
+          const tx = (touch.x - baseX) / radiusX;
+          const ty = (touch.y - baseY) / radiusY;
+          const falloff = Math.exp(-(tx * tx * 1.8 + ty * ty * 2.2));
+          petGlow += falloff * touch.power;
+          squeezeX += tx * falloff * touch.power;
+          squeezeY += ty * falloff * touch.power;
+        }
+
+        return {
+          x: baseX + shiftX,
+          y: baseY + shiftY,
+          radiusX,
+          radiusY,
+          proximity,
+          petGlow: clamp(petGlow, 0, 1.8),
+          squeezeX,
+          squeezeY,
+          wobble: Math.sin(time * 1.8) * 0.015 + Math.cos(time * 1.1) * 0.014,
+        };
+      }
+
+      function drawBackground(time, creature) {
+        const bg = ctx.createLinearGradient(0, 0, 0, height);
+        bg.addColorStop(0, "#18111a");
+        bg.addColorStop(0.6, "#120d12");
+        bg.addColorStop(1, "#0e0a0f");
+        ctx.fillStyle = bg;
+        ctx.fillRect(0, 0, width, height);
+
+        const halo = ctx.createRadialGradient(
+          creature.x,
+          creature.y,
+          creature.radiusX * 0.18,
+          creature.x,
+          creature.y,
+          creature.radiusX * 1.7
+        );
+        halo.addColorStop(0, `rgba(255, 126, 147, ${0.12 + creature.petGlow * 0.08})`);
+        halo.addColorStop(0.45, "rgba(131, 218, 214, 0.06)");
+        halo.addColorStop(1, "rgba(0, 0, 0, 0)");
+        ctx.fillStyle = halo;
+        ctx.fillRect(0, 0, width, height);
+
+        for (const mote of motes) {
+          const x = mote.x * width + Math.sin(time * mote.drift + mote.y * 8) * 16;
+          const y = mote.y * height + Math.cos(time * (mote.drift + 0.1) + mote.x * 8) * 12;
+          const alpha = 0.06 + 0.07 * Math.sin(time * mote.drift + mote.x * 10);
+          ctx.fillStyle =
+            mote.hue > 0.66
+              ? `rgba(255, 126, 147, ${alpha})`
+              : mote.hue > 0.33
+                ? `rgba(131, 218, 214, ${alpha})`
+                : `rgba(244, 201, 149, ${alpha})`;
+          ctx.beginPath();
+          ctx.arc(x, y, mote.size, 0, TAU);
+          ctx.fill();
+        }
+      }
+
+      function drawTouchFields(time) {
+        for (const touch of touches) {
+          const outer = 90 + (1 - touch.life) * 120;
+          const inner = 6 + (1 - touch.life) * 20;
+          const glow = ctx.createRadialGradient(touch.x, touch.y, inner, touch.x, touch.y, outer);
+          if (touch.kind === "pet") {
+            glow.addColorStop(0, `rgba(255, 173, 187, ${0.18 * touch.life})`);
+            glow.addColorStop(0.44, `rgba(131, 218, 214, ${0.09 * touch.life})`);
+          } else {
+            glow.addColorStop(0, `rgba(255, 126, 147, ${0.16 * touch.life})`);
+            glow.addColorStop(0.44, `rgba(147, 134, 231, ${0.08 * touch.life})`);
+          }
+          glow.addColorStop(1, "rgba(0, 0, 0, 0)");
+          ctx.fillStyle = glow;
+          ctx.fillRect(touch.x - outer, touch.y - outer, outer * 2, outer * 2);
+
+          ctx.strokeStyle =
+            touch.kind === "pet"
+              ? `rgba(244, 201, 149, ${0.1 * touch.life})`
+              : `rgba(255, 126, 147, ${0.1 * touch.life})`;
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.arc(touch.x, touch.y, 14 + (1 - touch.life) * 30 + Math.sin(time * 3 + touch.life * 6) * 2, 0, TAU);
+          ctx.stroke();
+        }
+      }
+
+      function bodyPoint(angle, creature, time) {
+        let radial =
+          1 +
+          Math.sin(angle * 3 + time * 1.2) * 0.04 +
+          Math.cos(angle * 5 - time * 1.5) * 0.035 +
+          creature.wobble;
+
+        const stretch = Math.cos(angle) * creature.squeezeX * 0.06 + Math.sin(angle) * creature.squeezeY * 0.08;
+        radial += stretch;
+
+        for (const touch of touches) {
+          const tx = (touch.x - creature.x) / creature.radiusX;
+          const ty = (touch.y - creature.y) / creature.radiusY;
+          const touchAngle = Math.atan2(ty, tx);
+          let delta = Math.abs(Math.atan2(Math.sin(angle - touchAngle), Math.cos(angle - touchAngle)));
+          const directional = Math.exp(-(delta * delta) / 0.22);
+          radial -= directional * touch.power * 0.18 * touch.life;
+        }
+
+        const rX = creature.radiusX * radial;
+        const rY = creature.radiusY * (radial + 0.02);
+        return {
+          x: creature.x + Math.cos(angle) * rX,
+          y: creature.y + Math.sin(angle) * rY,
+        };
+      }
+
+      function drawCreature(time, creature) {
+        ctx.save();
+        ctx.translate(creature.x, creature.y + creature.radiusY * 0.78);
+        ctx.scale(1.1, 0.34);
+        const shadow = ctx.createRadialGradient(0, 0, 20, 0, 0, creature.radiusX * 1.2);
+        shadow.addColorStop(0, `rgba(0, 0, 0, ${0.34 + tension * 0.1})`);
+        shadow.addColorStop(1, "rgba(0, 0, 0, 0)");
+        ctx.fillStyle = shadow;
+        ctx.beginPath();
+        ctx.arc(0, 0, creature.radiusX, 0, TAU);
+        ctx.fill();
+        ctx.restore();
+
+        const bodyGradient = ctx.createRadialGradient(
+          creature.x - creature.radiusX * 0.2,
+          creature.y - creature.radiusY * 0.3,
+          creature.radiusX * 0.1,
+          creature.x,
+          creature.y,
+          creature.radiusX * 1.3
+        );
+        bodyGradient.addColorStop(0, "#f6d7af");
+        bodyGradient.addColorStop(0.38, "#d66f8d");
+        bodyGradient.addColorStop(0.74, "#5b2348");
+        bodyGradient.addColorStop(1, "#26131f");
+
+        ctx.beginPath();
+        for (let i = 0; i <= 64; i += 1) {
+          const angle = (i / 64) * TAU;
+          const point = bodyPoint(angle, creature, time);
+          if (i === 0) {
+            ctx.moveTo(point.x, point.y);
+          } else {
+            ctx.lineTo(point.x, point.y);
+          }
+        }
+        ctx.closePath();
+        ctx.fillStyle = bodyGradient;
+        ctx.fill();
+
+        ctx.save();
+        ctx.globalCompositeOperation = "screen";
+        for (const touch of touches) {
+          const glow = ctx.createRadialGradient(touch.x, touch.y, 6, touch.x, touch.y, 62);
+          glow.addColorStop(0, `rgba(255, 214, 174, ${0.28 * touch.life})`);
+          glow.addColorStop(0.36, `rgba(255, 126, 147, ${0.18 * touch.life})`);
+          glow.addColorStop(1, "rgba(0, 0, 0, 0)");
+          ctx.fillStyle = glow;
+          ctx.fillRect(touch.x - 62, touch.y - 62, 124, 124);
+        }
+        ctx.restore();
+
+        const cheekLift = clamp(trust * 0.3 + creature.petGlow * 0.12, 0, 0.42);
+        const eyeY = creature.y - creature.radiusY * 0.16;
+        const eyeGap = creature.radiusX * 0.28;
+        const gazeX = clamp((pointer.x - creature.x) / 34, -8, 8);
+        const gazeY = clamp((pointer.y - creature.y) / 34, -8, 8);
+        const blink = 0.28 + Math.sin(time * 1.9) * 0.04 + tension * 0.08 - trust * 0.06;
+        const pupilScale = 1 - clamp(trust * 0.18, 0, 0.16);
+
+        function drawEye(centerX) {
+          ctx.fillStyle = "rgba(248, 239, 223, 0.96)";
+          ctx.beginPath();
+          ctx.ellipse(centerX, eyeY, 30, 22 - blink * 8, 0, 0, TAU);
+          ctx.fill();
+
+          ctx.fillStyle = "#201117";
+          ctx.beginPath();
+          ctx.arc(centerX + gazeX, eyeY + gazeY, 10 * pupilScale, 0, TAU);
+          ctx.fill();
+
+          ctx.fillStyle = "rgba(255,255,255,0.88)";
+          ctx.beginPath();
+          ctx.arc(centerX + gazeX - 4, eyeY + gazeY - 4, 3.2, 0, TAU);
+          ctx.fill();
+        }
+
+        drawEye(creature.x - eyeGap);
+        drawEye(creature.x + eyeGap);
+
+        const mouthY = creature.y + creature.radiusY * 0.1;
+        const smile = clamp(trust * 0.38 + creature.petGlow * 0.18 - tension * 0.26, -0.1, 0.44);
+        const mouthWidth = creature.radiusX * 0.19;
+        ctx.strokeStyle = "rgba(47, 18, 31, 0.92)";
+        ctx.lineWidth = 5;
+        ctx.lineCap = "round";
+        ctx.beginPath();
+        ctx.moveTo(creature.x - mouthWidth, mouthY + 6);
+        ctx.quadraticCurveTo(creature.x, mouthY - smile * 38, creature.x + mouthWidth, mouthY + 6);
+        ctx.stroke();
+
+        ctx.strokeStyle = `rgba(255, 186, 166, ${0.26 + cheekLift * 0.6})`;
+        ctx.lineWidth = 10;
+        ctx.beginPath();
+        ctx.arc(creature.x - eyeGap * 1.1, mouthY - 10, 18 + cheekLift * 16, 0.2 * Math.PI, 0.86 * Math.PI);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(creature.x + eyeGap * 1.1, mouthY - 10, 18 + cheekLift * 16, 0.14 * Math.PI, 0.8 * Math.PI);
+        ctx.stroke();
+
+        for (let side = -1; side <= 1; side += 2) {
+          ctx.strokeStyle = `rgba(131, 218, 214, ${0.18 + trust * 0.1})`;
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(creature.x + side * creature.radiusX * 0.6, creature.y - 8);
+          ctx.quadraticCurveTo(
+            creature.x + side * creature.radiusX * 0.82,
+            creature.y - creature.radiusY * 0.18,
+            creature.x + side * creature.radiusX * 0.76,
+            creature.y + creature.radiusY * 0.22
+          );
+          ctx.stroke();
+        }
+
+        for (let i = 0; i < 6; i += 1) {
+          const orbitAngle = time * (0.24 + i * 0.04) + i * 1.1;
+          const orbitRadius = creature.radiusX * (0.9 + i * 0.08);
+          const ox = creature.x + Math.cos(orbitAngle) * orbitRadius;
+          const oy = creature.y + Math.sin(orbitAngle * 1.3) * (creature.radiusY * 0.62 + i * 5);
+          ctx.fillStyle = i % 2 === 0 ? "rgba(131, 218, 214, 0.32)" : "rgba(244, 201, 149, 0.28)";
+          ctx.fillRect(ox - 3, oy - 3, 6, 6);
+        }
+      }
+
+      function updateReadout(creature) {
+        const friendliness = trust - tension;
+        let temperament = "watchful";
+        let reading = "Move close to pull the eyes. Press and drag in short strokes to pet the cheek and forehead. Fast pokes make the body tense and scoot away.";
+
+        if (friendliness > 0.34) {
+          temperament = "melting";
+          reading = "Slow grooming is landing. The creature softens its mouth, keeps your gaze, and lets the blush spread across the forehead instead of hiding in one spot.";
+        } else if (friendliness > 0.08) {
+          temperament = "warming";
+          reading = "The membrane is starting to trust the touch. Keep the stroke short and gentle to open brighter cheek pressure.";
+        } else if (tension > 0.54) {
+          temperament = "startled";
+          reading = "The touch is too abrupt. Ease off the speed and re-approach from the side so the body stops bracing.";
+        }
+
+        temperamentValue.textContent = temperament;
+        blushValue.textContent = clamp(0.22 + creature.petGlow * 0.32 + trust * 0.3, 0, 0.99).toFixed(2);
+
+        const gazeDx = pointer.x - creature.x;
+        const gazeLabel =
+          Math.abs(gazeDx) < 28 ? "centered" : gazeDx < 0 ? "left curious" : "right curious";
+        gazeValue.textContent = gazeLabel;
+        readingText.textContent = reading;
+      }
+
+      function frame(now) {
+        const dt = Math.min((now - lastTime) / 1000, 0.033);
+        lastTime = now;
+        const time = now / 1000;
+
+        pointer.x = lerp(pointer.x, pointer.tx, 0.18);
+        pointer.y = lerp(pointer.y, pointer.ty, 0.18);
+        pointer.speed = Math.hypot(pointer.x - pointer.px, pointer.y - pointer.py) / Math.max(dt * 60, 0.001);
+        pointer.px = pointer.x;
+        pointer.py = pointer.y;
+
+        trust = clamp(lerp(trust, 0.38, 0.012), 0, 1);
+        tension = clamp(lerp(tension, 0.24, 0.016), 0, 1);
+        chirp = clamp(lerp(chirp, 0.12, 0.02), 0, 1);
+
+        const creature = creatureState(time);
+
+        if (pointer.down && creature.proximity > 0.12 && Math.random() < 0.74) {
+          emitPetReaction(pointer.x, pointer.y, pointer.speed);
+        }
+
+        for (let i = touches.length - 1; i >= 0; i -= 1) {
+          touches[i].life -= dt * 0.72;
+          if (touches[i].life <= 0) {
+            touches.splice(i, 1);
+          }
+        }
+
+        if (bubbleTimer > 0) {
+          bubbleTimer -= dt;
+          if (bubbleTimer <= 0) {
+            bubble.classList.remove("visible");
+          }
+        }
+
+        drawBackground(time, creature);
+        drawTouchFields(time);
+        drawCreature(time, creature);
+        updateReadout(creature);
+
+        requestAnimationFrame(frame);
+      }
+
+      function setPointer(clientX, clientY) {
+        pointer.tx = clientX;
+        pointer.ty = clientY;
+      }
+
+      window.addEventListener("mousemove", (event) => {
+        setPointer(event.clientX, event.clientY);
+      });
+
+      window.addEventListener("mousedown", (event) => {
+        pointer.down = true;
+        setPointer(event.clientX, event.clientY);
+        emitPetReaction(event.clientX, event.clientY, pointer.speed + 4);
+      });
+
+      window.addEventListener("mouseup", () => {
+        pointer.down = false;
+      });
+
+      window.addEventListener("mouseleave", () => {
+        pointer.down = false;
+      });
+
+      window.addEventListener(
+        "touchstart",
+        (event) => {
+          const touch = event.touches[0];
+          if (!touch) return;
+          pointer.down = true;
+          setPointer(touch.clientX, touch.clientY);
+          emitPetReaction(touch.clientX, touch.clientY, 8);
+        },
+        { passive: true }
+      );
+
+      window.addEventListener(
+        "touchmove",
+        (event) => {
+          const touch = event.touches[0];
+          if (!touch) return;
+          setPointer(touch.clientX, touch.clientY);
+        },
+        { passive: true }
+      );
+
+      window.addEventListener(
+        "touchend",
+        () => {
+          pointer.down = false;
+        },
+        { passive: true }
+      );
+
+      window.addEventListener("resize", resize);
+
+      resize();
+      requestAnimationFrame((time) => {
+        lastTime = time;
+        frame(time);
+      });
+    </script>
+  </body>
+</html>

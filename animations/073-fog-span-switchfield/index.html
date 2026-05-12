@@ -1,0 +1,1043 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>#073 Fog Span Switchfield</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --paper: #ece4d7;
+        --paper-deep: #e3d8c7;
+        --fog: #f7f1e8;
+        --ink: #1f2127;
+        --muted: rgba(31, 33, 39, 0.62);
+        --line: rgba(40, 41, 45, 0.12);
+        --line-strong: rgba(40, 41, 45, 0.22);
+        --cyan: #8cb6c7;
+        --sage: #98b59e;
+        --sand: #d2b48e;
+        --rust: #cc8f73;
+        --shadow: 0 24px 80px rgba(39, 33, 22, 0.14);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        background:
+          radial-gradient(circle at 16% 18%, rgba(140, 182, 199, 0.18), transparent 20%),
+          radial-gradient(circle at 78% 14%, rgba(204, 143, 115, 0.16), transparent 18%),
+          radial-gradient(circle at 52% 86%, rgba(152, 181, 158, 0.18), transparent 24%),
+          linear-gradient(180deg, #f5efe5 0%, var(--paper) 50%, var(--paper-deep) 100%);
+        color: var(--ink);
+        font-family: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+      }
+
+      body {
+        overflow: hidden;
+      }
+
+      body::before,
+      body::after {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+      }
+
+      body::before {
+        opacity: 0.08;
+        background-image:
+          linear-gradient(rgba(27, 27, 27, 0.3) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(27, 27, 27, 0.3) 1px, transparent 1px);
+        background-size: 86px 86px;
+        mask-image: radial-gradient(circle at 54% 42%, black 36%, transparent 86%);
+      }
+
+      body::after {
+        opacity: 0.05;
+        background-image:
+          linear-gradient(rgba(255, 255, 255, 0.8) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.8) 1px, transparent 1px);
+        background-size: 5px 5px;
+        mix-blend-mode: screen;
+      }
+
+      canvas {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        display: block;
+      }
+
+      a {
+        color: inherit;
+      }
+
+      .shell {
+        position: fixed;
+        inset: 16px;
+        display: grid;
+        grid-template-columns: minmax(280px, 332px) minmax(0, 1fr);
+        grid-template-rows: auto 1fr auto;
+        gap: 14px;
+        pointer-events: none;
+      }
+
+      .panel,
+      .scene-card,
+      .notes,
+      .back {
+        pointer-events: auto;
+        border: 1px solid var(--line);
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(245, 238, 228, 0.78)),
+          rgba(244, 236, 226, 0.72);
+        backdrop-filter: blur(18px);
+        box-shadow: var(--shadow);
+      }
+
+      .panel,
+      .scene-card,
+      .notes {
+        position: relative;
+        overflow: hidden;
+        border-radius: 28px;
+      }
+
+      .panel::after,
+      .scene-card::after,
+      .notes::after {
+        content: "";
+        position: absolute;
+        inset: 1px;
+        border-radius: inherit;
+        border: 1px solid rgba(255, 255, 255, 0.55);
+        pointer-events: none;
+      }
+
+      .panel {
+        grid-column: 1;
+        grid-row: 1 / span 2;
+        align-self: start;
+        padding: 16px;
+        display: grid;
+        gap: 12px;
+        align-content: start;
+      }
+
+      .scene-card {
+        grid-column: 2;
+        grid-row: 1 / span 2;
+        min-height: min(79vh, 920px);
+        padding: 18px;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(220px, 264px);
+        grid-template-rows: auto 1fr auto;
+        gap: 12px;
+      }
+
+      .notes {
+        grid-column: 1 / -1;
+        grid-row: 3;
+        padding: 14px;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .scene-head,
+      .ledger,
+      .prompt-card,
+      .timeline,
+      .note-card,
+      .chip,
+      .meter {
+        border: 1px solid rgba(36, 37, 40, 0.1);
+        border-radius: 24px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.56), rgba(255, 255, 255, 0.2)),
+          rgba(255, 255, 255, 0.24);
+      }
+
+      .scene-head,
+      .ledger,
+      .prompt-card,
+      .timeline,
+      .note-card {
+        backdrop-filter: blur(10px);
+      }
+
+      .scene-head {
+        grid-column: 1 / -1;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 12px;
+        align-items: end;
+        padding: 14px 15px;
+      }
+
+      .ledger,
+      .prompt-card {
+        display: grid;
+        gap: 10px;
+        padding: 13px 14px 14px;
+      }
+
+      .timeline {
+        grid-column: 1 / -1;
+        padding: 12px 14px 14px;
+        display: grid;
+        gap: 10px;
+      }
+
+      .note-card {
+        padding: 12px 13px;
+      }
+
+      .chip-row,
+      .meter-stack,
+      .beat-row,
+      .legend-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .chip {
+        padding: 8px 10px;
+      }
+
+      .eyebrow,
+      .small,
+      .chip,
+      .beat,
+      .value,
+      .meter-label,
+      .drag-hint {
+        font-family: "Azeret Mono", "IBM Plex Mono", "SFMono-Regular", monospace;
+        text-transform: uppercase;
+        letter-spacing: 0.15em;
+        font-size: 0.68rem;
+      }
+
+      .eyebrow,
+      .small,
+      .drag-hint {
+        color: var(--muted);
+      }
+
+      h1,
+      h2,
+      p {
+        margin: 0;
+      }
+
+      h1 {
+        max-width: 7ch;
+        font-size: clamp(2rem, 4.3vw, 4.4rem);
+        line-height: 0.9;
+        letter-spacing: -0.05em;
+      }
+
+      h2 {
+        font-size: 0.98rem;
+        line-height: 1.1;
+      }
+
+      .body,
+      .note-card p,
+      .ledger p,
+      .prompt-card p,
+      .timeline p {
+        color: rgba(31, 33, 39, 0.76);
+        line-height: 1.45;
+      }
+
+      .body {
+        font-size: 1rem;
+      }
+
+      .scene-stage {
+        position: relative;
+        min-height: 420px;
+        border-radius: 26px;
+        overflow: hidden;
+        border: 1px solid rgba(36, 37, 40, 0.1);
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.34), transparent 16%),
+          linear-gradient(180deg, rgba(250, 245, 238, 0.68), rgba(229, 220, 207, 0.54));
+      }
+
+      .stage-overlay,
+      .drag-hint {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+      }
+
+      .drag-hint {
+        inset: auto 18px 18px auto;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        width: fit-content;
+        padding: 10px 12px;
+        border-radius: 999px;
+        border: 1px solid rgba(36, 37, 40, 0.12);
+        background: rgba(255, 255, 255, 0.72);
+      }
+
+      .drag-dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 999px;
+        background: var(--cyan);
+        box-shadow: 0 0 0 6px rgba(140, 182, 199, 0.18);
+      }
+
+      .overlay-label {
+        position: absolute;
+        min-width: 116px;
+        padding: 10px 11px;
+        border-radius: 18px;
+        border: 1px solid rgba(31, 33, 39, 0.08);
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(10px);
+        box-shadow: 0 18px 40px rgba(72, 60, 41, 0.1);
+        transform: translate(-50%, -50%);
+      }
+
+      .overlay-label strong {
+        display: block;
+        font-size: 0.8rem;
+      }
+
+      .overlay-label span {
+        display: block;
+        margin-top: 4px;
+        color: var(--muted);
+        font-size: 0.72rem;
+        line-height: 1.35;
+      }
+
+      .meter {
+        padding: 10px 11px;
+        display: grid;
+        gap: 6px;
+        min-width: 112px;
+      }
+
+      .meter-track {
+        position: relative;
+        height: 8px;
+        border-radius: 999px;
+        overflow: hidden;
+        background: rgba(31, 33, 39, 0.08);
+      }
+
+      .meter-fill {
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: 40%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, var(--cyan), var(--rust));
+      }
+
+      .timeline-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .beat {
+        display: grid;
+        gap: 6px;
+        padding: 10px 11px;
+        border-radius: 18px;
+        border: 1px solid rgba(31, 33, 39, 0.08);
+        background: rgba(255, 255, 255, 0.46);
+      }
+
+      .beat strong {
+        color: rgba(31, 33, 39, 0.88);
+        font-size: 0.82rem;
+        letter-spacing: normal;
+        text-transform: none;
+        font-family: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+      }
+
+      .back {
+        position: fixed;
+        left: 16px;
+        bottom: 16px;
+        z-index: 4;
+        padding: 10px 14px;
+        border-radius: 999px;
+        text-decoration: none;
+      }
+
+      @media (max-width: 960px) {
+        body {
+          overflow: auto;
+        }
+
+        .shell {
+          position: relative;
+          inset: auto;
+          padding: 16px;
+          display: flex;
+          flex-direction: column;
+        }
+
+        .panel,
+        .scene-card,
+        .notes {
+          min-height: auto;
+        }
+
+        .scene-card {
+          grid-template-columns: 1fr;
+        }
+
+        .notes,
+        .timeline-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .scene-stage {
+          min-height: 56vh;
+        }
+
+        .back {
+          position: static;
+          margin: 0 16px 16px;
+          width: fit-content;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="canvas" aria-hidden="true"></canvas>
+
+    <main class="shell">
+      <section class="panel">
+        <p class="eyebrow">#073 / pale fog infrastructure</p>
+        <div>
+          <h1>Fog Span Switchfield</h1>
+          <p class="body">
+            A quiet bridge-and-gate landscape that deliberately steps out of the
+            recent crimson convoy worlds and the pale inhabited village loop.
+            The motion lives in fog pressure, suspended membranes, and rerouted
+            catwalk spans rather than another pulse button or mode rail.
+          </p>
+        </div>
+
+        <div class="chip-row">
+          <div class="chip">drag anchors</div>
+          <div class="chip">diagonal bridges</div>
+          <div class="chip">specimen spacing</div>
+        </div>
+
+        <div class="prompt-card">
+          <p class="small">Interaction</p>
+          <p>
+            Pull the three brass anchor rings inside the scene. Each drag
+            changes bridge sag, gate opening, and particle traffic across the
+            same suspended field, so the page behaves like a reroutable system
+            instead of a detached interface shell.
+          </p>
+        </div>
+
+        <div class="ledger">
+          <p class="small">Live field readings</p>
+          <div class="meter-stack">
+            <div class="meter">
+              <span class="meter-label">Span tilt</span>
+              <div class="meter-track"><div class="meter-fill" id="tilt-fill"></div></div>
+              <span class="value" id="tilt-value">00</span>
+            </div>
+            <div class="meter">
+              <span class="meter-label">Gate spread</span>
+              <div class="meter-track"><div class="meter-fill" id="spread-fill"></div></div>
+              <span class="value" id="spread-value">00</span>
+            </div>
+            <div class="meter">
+              <span class="meter-label">Fog shear</span>
+              <div class="meter-track"><div class="meter-fill" id="shear-fill"></div></div>
+              <span class="value" id="shear-value">00</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="scene-card">
+        <div class="scene-head">
+          <div>
+            <p class="eyebrow">switchfield deck</p>
+            <h2>Drag one anchor and the whole suspended district retunes.</h2>
+          </div>
+          <div class="chip">no pulse button</div>
+        </div>
+
+        <div class="scene-stage" id="scene-stage">
+          <div class="stage-overlay" id="stage-overlay" aria-hidden="true">
+            <div class="overlay-label" id="label-0">
+              <strong>Observation bridge</strong>
+              <span>Suspended footpath with current markers and hanging gate cloth.</span>
+            </div>
+            <div class="overlay-label" id="label-1">
+              <strong>Valve porch</strong>
+              <span>Drag anchors here to redistribute pressure and route density.</span>
+            </div>
+            <div class="overlay-label" id="label-2">
+              <strong>Fog archive grid</strong>
+              <span>Measured empty space keeps the field calm instead of village-like.</span>
+            </div>
+          </div>
+          <div class="drag-hint">
+            <span class="drag-dot"></span>
+            <span>drag the rings in the scene</span>
+          </div>
+        </div>
+
+        <div class="ledger">
+          <p class="small">Scene legend</p>
+          <div class="legend-list">
+            <div class="chip">pylons</div>
+            <div class="chip">membrane gates</div>
+            <div class="chip">fog current</div>
+            <div class="chip">bridge traffic</div>
+          </div>
+          <p>
+            The field is intentionally sparse and infrastructural: diagonal
+            spans, interrupted ground grids, and broad fog margins keep it away
+            from the recent cute-settlement habit.
+          </p>
+        </div>
+
+        <div class="timeline">
+          <p class="small">Motion cycle</p>
+          <div class="timeline-grid">
+            <div class="beat">
+              <strong>Drift</strong>
+              <span>The basin fog moves first and everything else follows.</span>
+            </div>
+            <div class="beat">
+              <strong>Sag</strong>
+              <span>Bridge threads relax or tighten with the new anchor geometry.</span>
+            </div>
+            <div class="beat">
+              <strong>Open</strong>
+              <span>Membrane shutters widen around the most stressed span.</span>
+            </div>
+            <div class="beat">
+              <strong>Settle</strong>
+              <span>Particles redistribute into measured lines rather than bursts.</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="notes">
+        <article class="note-card">
+          <p class="small">Idea</p>
+          <p>
+            This page translates the strongest open gap from the recent set:
+            pale infrastructure without turning it back into a harbor village,
+            canal commons, or another inhabited service mural.
+          </p>
+        </article>
+        <article class="note-card">
+          <p class="small">Interaction</p>
+          <p>
+            The user does not press a scene-wide trigger. They physically
+            reroute the field by dragging anchors, which changes current speed,
+            bridge sag, and local opening across the same body.
+          </p>
+        </article>
+        <article class="note-card">
+          <p class="small">Next</p>
+          <p>
+            A stronger follow-up could add a wide weather front or a timed
+            survey tram that reads the rerouted bridge logic without turning the
+            piece back into a dashboard.
+          </p>
+        </article>
+      </section>
+    </main>
+
+    <a class="back" href="../../index.html">Back to index</a>
+
+    <script>
+      const canvas = document.getElementById("canvas");
+      const ctx = canvas.getContext("2d");
+      const stage = document.getElementById("scene-stage");
+      const overlay = document.getElementById("stage-overlay");
+      const labels = [
+        document.getElementById("label-0"),
+        document.getElementById("label-1"),
+        document.getElementById("label-2"),
+      ];
+      const fills = {
+        tilt: document.getElementById("tilt-fill"),
+        spread: document.getElementById("spread-fill"),
+        shear: document.getElementById("shear-fill"),
+      };
+      const values = {
+        tilt: document.getElementById("tilt-value"),
+        spread: document.getElementById("spread-value"),
+        shear: document.getElementById("shear-value"),
+      };
+
+      const state = {
+        width: 0,
+        height: 0,
+        pointer: { x: window.innerWidth * 0.6, y: window.innerHeight * 0.52, active: false },
+        dragIndex: -1,
+        time: 0,
+        fogBands: [],
+        particles: [],
+        anchors: [
+          { x: 0.2, y: 0.72, r: 18, color: "#8cb6c7" },
+          { x: 0.42, y: 0.4, r: 18, color: "#d2b48e" },
+          { x: 0.64, y: 0.6, r: 18, color: "#cc8f73" },
+          { x: 0.84, y: 0.28, r: 18, color: "#98b59e" },
+        ],
+      };
+
+      const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+      const lerp = (a, b, t) => a + (b - a) * t;
+
+      function resize() {
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        state.width = window.innerWidth;
+        state.height = window.innerHeight;
+        canvas.width = state.width * dpr;
+        canvas.height = state.height * dpr;
+        canvas.style.width = `${state.width}px`;
+        canvas.style.height = `${state.height}px`;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+
+      function seedField() {
+        state.fogBands = Array.from({ length: 11 }, (_, index) => ({
+          y: 0.18 + index * 0.065 + Math.random() * 0.016,
+          amp: 18 + Math.random() * 32,
+          speed: 0.08 + Math.random() * 0.16,
+          width: 180 + Math.random() * 220,
+          opacity: 0.08 + Math.random() * 0.08,
+        }));
+
+        state.particles = Array.from({ length: 180 }, () => ({
+          t: Math.random(),
+          speed: 0.03 + Math.random() * 0.1,
+          lane: Math.floor(Math.random() * 3),
+          offset: -16 + Math.random() * 32,
+          size: 1.3 + Math.random() * 2.4,
+        }));
+      }
+
+      function stageRect() {
+        const rect = stage.getBoundingClientRect();
+        return {
+          x: rect.left + 22,
+          y: rect.top + 22,
+          w: rect.width - 44,
+          h: rect.height - 44,
+        };
+      }
+
+      function worldPoint(anchor) {
+        const rect = stageRect();
+        return {
+          x: rect.x + anchor.x * rect.w,
+          y: rect.y + anchor.y * rect.h,
+        };
+      }
+
+      function updatePointer(event, active = true) {
+        state.pointer.x = event.clientX;
+        state.pointer.y = event.clientY;
+        state.pointer.active = active;
+      }
+
+      function pickAnchor(x, y) {
+        for (let i = 1; i < state.anchors.length - 1; i += 1) {
+          const point = worldPoint(state.anchors[i]);
+          if (Math.hypot(point.x - x, point.y - y) < 28) {
+            return i;
+          }
+        }
+        return -1;
+      }
+
+      function setAnchorFromPointer(index, x, y) {
+        if (index < 1 || index > state.anchors.length - 2) return;
+        const rect = stageRect();
+        const previous = state.anchors[index - 1];
+        const next = state.anchors[index + 1];
+        const nx = clamp((x - rect.x) / rect.w, previous.x + 0.09, next.x - 0.09);
+        const ny = clamp((y - rect.y) / rect.h, 0.18, 0.82);
+        state.anchors[index].x = nx;
+        state.anchors[index].y = ny;
+      }
+
+      function catmullRom(points, t) {
+        const scaled = t * (points.length - 1);
+        const index = Math.floor(scaled);
+        const local = scaled - index;
+        const p0 = points[Math.max(0, index - 1)];
+        const p1 = points[index];
+        const p2 = points[Math.min(points.length - 1, index + 1)];
+        const p3 = points[Math.min(points.length - 1, index + 2)];
+        return {
+          x:
+            0.5 *
+            ((2 * p1.x) +
+              (-p0.x + p2.x) * local +
+              (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) * local * local +
+              (-p0.x + 3 * p1.x - 3 * p2.x + p3.x) * local * local * local),
+          y:
+            0.5 *
+            ((2 * p1.y) +
+              (-p0.y + p2.y) * local +
+              (2 * p0.y - 5 * p1.y + 4 * p2.y - p3.y) * local * local +
+              (-p0.y + 3 * p1.y - 3 * p2.y + p3.y) * local * local * local),
+        };
+      }
+
+      function buildRoute(samples = 140) {
+        const points = state.anchors.map(worldPoint);
+        return Array.from({ length: samples }, (_, index) => catmullRom(points, index / (samples - 1)));
+      }
+
+      function updateReadings(route) {
+        const a = state.anchors;
+        const tilt = clamp(Math.abs(a[3].y - a[0].y) * 160, 0, 99);
+        const spread = clamp((Math.abs(a[1].y - a[2].y) + Math.abs(a[1].x - a[2].x)) * 120, 0, 99);
+        const pointerNorm = state.pointer.active
+          ? Math.abs((state.pointer.x / state.width) - 0.5) * 120
+          : 28;
+        const shear = clamp(pointerNorm + Math.abs(route[32].y - route[108].y) * 0.06, 0, 99);
+
+        const metrics = { tilt, spread, shear };
+        Object.entries(metrics).forEach(([key, value]) => {
+          fills[key].style.width = `${value}%`;
+          values[key].textContent = `${Math.round(value).toString().padStart(2, "0")}`;
+        });
+      }
+
+      function drawBackground(rect) {
+        const sky = ctx.createLinearGradient(0, rect.y, 0, rect.y + rect.h);
+        sky.addColorStop(0, "rgba(245, 241, 233, 0.92)");
+        sky.addColorStop(0.44, "rgba(234, 226, 214, 0.9)");
+        sky.addColorStop(1, "rgba(218, 207, 192, 0.94)");
+        ctx.fillStyle = sky;
+        ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
+
+        ctx.save();
+        ctx.strokeStyle = "rgba(37, 39, 45, 0.08)";
+        ctx.lineWidth = 1;
+        for (let x = rect.x; x <= rect.x + rect.w; x += rect.w / 9) {
+          ctx.beginPath();
+          ctx.moveTo(x, rect.y + rect.h * 0.58);
+          ctx.lineTo(x + rect.w * 0.06, rect.y + rect.h);
+          ctx.stroke();
+        }
+        for (let y = rect.y + rect.h * 0.52; y <= rect.y + rect.h; y += rect.h / 8) {
+          ctx.beginPath();
+          ctx.moveTo(rect.x, y);
+          ctx.lineTo(rect.x + rect.w, y - rect.h * 0.04);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      function drawLandforms(rect) {
+        const masses = [
+          { x: 0.08, y: 0.82, w: 0.26, h: 0.16 },
+          { x: 0.33, y: 0.74, w: 0.18, h: 0.12 },
+          { x: 0.68, y: 0.7, w: 0.26, h: 0.14 },
+        ];
+
+        masses.forEach((mass, index) => {
+          const x = rect.x + rect.w * mass.x;
+          const y = rect.y + rect.h * mass.y;
+          const w = rect.w * mass.w;
+          const h = rect.h * mass.h;
+          const gradient = ctx.createLinearGradient(x, y, x, y + h);
+          gradient.addColorStop(0, "rgba(255,255,255,0.24)");
+          gradient.addColorStop(1, index === 1 ? "rgba(198, 180, 158, 0.32)" : "rgba(173, 185, 170, 0.24)");
+          ctx.fillStyle = gradient;
+          ctx.beginPath();
+          ctx.moveTo(x, y + h * 0.3);
+          ctx.bezierCurveTo(x + w * 0.16, y - h * 0.1, x + w * 0.5, y - h * 0.06, x + w * 0.74, y + h * 0.18);
+          ctx.bezierCurveTo(x + w * 0.92, y + h * 0.28, x + w * 0.98, y + h * 0.74, x + w, y + h);
+          ctx.lineTo(x, y + h);
+          ctx.closePath();
+          ctx.fill();
+        });
+      }
+
+      function drawFog(rect) {
+        state.fogBands.forEach((band, index) => {
+          const y = rect.y + rect.h * band.y;
+          const drift = Math.sin(state.time * band.speed + index * 0.8) * rect.w * 0.03;
+          const gradient = ctx.createLinearGradient(rect.x, y, rect.x + rect.w, y + band.amp);
+          gradient.addColorStop(0, `rgba(255,255,255,${band.opacity * 0.4})`);
+          gradient.addColorStop(0.5, `rgba(255,255,255,${band.opacity})`);
+          gradient.addColorStop(1, "rgba(255,255,255,0)");
+          ctx.fillStyle = gradient;
+          ctx.beginPath();
+          ctx.moveTo(rect.x - 80, y);
+          for (let x = rect.x - 80; x <= rect.x + rect.w + 80; x += 28) {
+            const wave = Math.sin((x * 0.008) + state.time * band.speed * 2 + index) * band.amp;
+            ctx.lineTo(x + drift, y + wave);
+          }
+          ctx.lineTo(rect.x + rect.w + 120, y + rect.h * 0.14);
+          ctx.lineTo(rect.x - 120, y + rect.h * 0.14);
+          ctx.closePath();
+          ctx.fill();
+        });
+      }
+
+      function drawBridge(route) {
+        ctx.save();
+        ctx.lineJoin = "round";
+        ctx.lineCap = "round";
+
+        for (let offset = -10; offset <= 10; offset += 10) {
+          ctx.beginPath();
+          route.forEach((point, index) => {
+            const shift = Math.sin(index * 0.08 + state.time * 1.4) * offset * 0.06;
+            const x = point.x;
+            const y = point.y + offset + shift;
+            if (index === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+          });
+          ctx.strokeStyle = offset === 0 ? "rgba(30, 32, 38, 0.54)" : "rgba(30, 32, 38, 0.18)";
+          ctx.lineWidth = offset === 0 ? 2.2 : 1.1;
+          ctx.stroke();
+        }
+
+        for (let i = 8; i < route.length - 8; i += 8) {
+          const point = route[i];
+          const support = rectBottom(route, i);
+          ctx.strokeStyle = "rgba(36, 37, 40, 0.16)";
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(point.x, point.y + 11);
+          ctx.lineTo(point.x, support);
+          ctx.stroke();
+        }
+
+        ctx.restore();
+      }
+
+      function rectBottom(route, index) {
+        const rect = stageRect();
+        const point = route[index];
+        const slope = Math.sin(index * 0.18 + state.time * 0.8) * rect.h * 0.03;
+        return rect.y + rect.h * 0.9 + slope + (point.x / rect.w) * 12;
+      }
+
+      function drawPylons(route) {
+        const picks = [0, 32, 72, 104, route.length - 1];
+        picks.forEach((pick, idx) => {
+          const point = route[pick];
+          const topY = point.y - 34 - idx * 4;
+          ctx.strokeStyle = "rgba(36, 37, 40, 0.42)";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(point.x, point.y + 14);
+          ctx.lineTo(point.x, topY);
+          ctx.stroke();
+
+          ctx.beginPath();
+          ctx.moveTo(point.x - 10, topY + 14);
+          ctx.lineTo(point.x, topY);
+          ctx.lineTo(point.x + 10, topY + 14);
+          ctx.stroke();
+
+          ctx.fillStyle = idx % 2 ? "rgba(140, 182, 199, 0.82)" : "rgba(204, 143, 115, 0.8)";
+          ctx.beginPath();
+          ctx.arc(point.x, topY - 4, 3.4, 0, Math.PI * 2);
+          ctx.fill();
+        });
+      }
+
+      function drawMembranes(route) {
+        for (let i = 18; i < route.length - 18; i += 22) {
+          const point = route[i];
+          const stress = clamp(
+            0.24 +
+              Math.abs(state.pointer.x - point.x) / state.width * 0.22 +
+              Math.sin(state.time * 1.2 + i * 0.04) * 0.08,
+            0.16,
+            0.62,
+          );
+          const width = 12 + stress * 30;
+          const height = 28 + stress * 56;
+          ctx.save();
+          ctx.translate(point.x, point.y + 14);
+          ctx.rotate(Math.sin(i * 0.09 + state.time * 1.4) * 0.08);
+          const gradient = ctx.createLinearGradient(0, 0, 0, height);
+          gradient.addColorStop(0, "rgba(255,255,255,0.46)");
+          gradient.addColorStop(1, i % 3 === 0 ? "rgba(140, 182, 199, 0.16)" : "rgba(204, 143, 115, 0.14)");
+          ctx.fillStyle = gradient;
+          ctx.beginPath();
+          ctx.moveTo(-width * 0.42, 0);
+          ctx.quadraticCurveTo(-width * 0.1, height * 0.38, -width * 0.18, height);
+          ctx.lineTo(width * 0.18, height);
+          ctx.quadraticCurveTo(width * 0.1, height * 0.38, width * 0.42, 0);
+          ctx.closePath();
+          ctx.fill();
+          ctx.restore();
+        }
+      }
+
+      function drawParticles(route) {
+        state.particles.forEach((particle, index) => {
+          particle.t = (particle.t + particle.speed * 0.0022) % 1;
+          const t = (particle.t + particle.lane * 0.06) % 1;
+          const sample = route[Math.floor(t * (route.length - 1))];
+          const next = route[Math.min(route.length - 1, Math.floor(t * (route.length - 1)) + 1)];
+          const angle = Math.atan2(next.y - sample.y, next.x - sample.x);
+          const lift = Math.sin(state.time * 2.4 + index * 0.4) * 4;
+          const x = sample.x + Math.cos(angle + Math.PI / 2) * particle.offset * 0.12;
+          const y = sample.y + Math.sin(angle + Math.PI / 2) * particle.offset * 0.12 + lift;
+
+          ctx.fillStyle = particle.lane === 1 ? "rgba(140, 182, 199, 0.74)" : "rgba(31, 33, 39, 0.5)";
+          ctx.beginPath();
+          ctx.roundRect(x - particle.size, y - particle.size * 0.6, particle.size * 2, particle.size * 1.2, 1.4);
+          ctx.fill();
+        });
+      }
+
+      function drawAnchors() {
+        const rect = stageRect();
+        state.anchors.forEach((anchor, index) => {
+          if (index === 0 || index === state.anchors.length - 1) return;
+          const point = worldPoint(anchor);
+          const active = state.dragIndex === index;
+          const pulse = 1 + Math.sin(state.time * 2.2 + index) * 0.08;
+
+          ctx.strokeStyle = "rgba(31, 33, 39, 0.46)";
+          ctx.lineWidth = 1.4;
+          ctx.beginPath();
+          ctx.moveTo(point.x, point.y);
+          ctx.lineTo(point.x, rect.y + rect.h * 0.92);
+          ctx.stroke();
+
+          ctx.fillStyle = "rgba(255,255,255,0.66)";
+          ctx.beginPath();
+          ctx.arc(point.x, point.y, anchor.r * pulse, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.strokeStyle = anchor.color;
+          ctx.lineWidth = active ? 4 : 3;
+          ctx.beginPath();
+          ctx.arc(point.x, point.y, anchor.r * pulse, 0, Math.PI * 2);
+          ctx.stroke();
+
+          ctx.beginPath();
+          ctx.arc(point.x, point.y, anchor.r * 0.42, 0, Math.PI * 2);
+          ctx.strokeStyle = "rgba(31, 33, 39, 0.34)";
+          ctx.lineWidth = 1.3;
+          ctx.stroke();
+        });
+      }
+
+      function drawArchiveMarks(rect) {
+        ctx.save();
+        ctx.strokeStyle = "rgba(31, 33, 39, 0.08)";
+        ctx.lineWidth = 1;
+        for (let i = 0; i < 9; i += 1) {
+          const x = rect.x + rect.w * (0.1 + i * 0.09);
+          const y = rect.y + rect.h * (0.16 + (i % 3) * 0.08);
+          ctx.beginPath();
+          ctx.moveTo(x, y);
+          ctx.lineTo(x + 18, y);
+          ctx.lineTo(x + 22, y + 18);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      function placeLabels(route) {
+        const positions = [
+          route[34],
+          route[70],
+          { x: stageRect().x + stageRect().w * 0.76, y: stageRect().y + stageRect().h * 0.72 },
+        ];
+        const offsets = [
+          { x: -36, y: -64 },
+          { x: 44, y: -74 },
+          { x: 24, y: -16 },
+        ];
+        positions.forEach((point, index) => {
+          labels[index].style.left = `${point.x + offsets[index].x - stage.getBoundingClientRect().left}px`;
+          labels[index].style.top = `${point.y + offsets[index].y - stage.getBoundingClientRect().top}px`;
+        });
+      }
+
+      function render() {
+        state.time += 0.016;
+        ctx.clearRect(0, 0, state.width, state.height);
+
+        const rect = stageRect();
+        drawBackground(rect);
+        drawLandforms(rect);
+        drawFog(rect);
+        drawArchiveMarks(rect);
+        const route = buildRoute();
+        drawBridge(route);
+        drawPylons(route);
+        drawMembranes(route);
+        drawParticles(route);
+        drawAnchors();
+        placeLabels(route);
+        updateReadings(route);
+
+        requestAnimationFrame(render);
+      }
+
+      window.addEventListener("pointerdown", (event) => {
+        updatePointer(event, true);
+        const picked = pickAnchor(event.clientX, event.clientY);
+        if (picked !== -1) {
+          state.dragIndex = picked;
+        }
+      });
+
+      window.addEventListener("pointermove", (event) => {
+        updatePointer(event, true);
+        if (state.dragIndex !== -1) {
+          setAnchorFromPointer(state.dragIndex, event.clientX, event.clientY);
+        }
+      });
+
+      window.addEventListener("pointerup", () => {
+        state.dragIndex = -1;
+      });
+
+      window.addEventListener("pointerleave", () => {
+        state.pointer.active = false;
+        state.dragIndex = -1;
+      });
+
+      window.addEventListener("resize", resize);
+
+      resize();
+      seedField();
+      render();
+    </script>
+  </body>
+</html>

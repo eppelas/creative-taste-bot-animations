@@ -1,0 +1,1032 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>#070 Rain Plastic Florist</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #071017;
+        --bg-deep: #02070b;
+        --mist: rgba(197, 223, 228, 0.16);
+        --ink: #edf0ee;
+        --muted: rgba(237, 240, 238, 0.66);
+        --line: rgba(237, 240, 238, 0.12);
+        --line-strong: rgba(237, 240, 238, 0.24);
+        --mint: #8cbfa9;
+        --aqua: #8dc5d4;
+        --rose: #d58d87;
+        --amber: #dfb26d;
+        --plum: #857a93;
+        --shadow: 0 34px 100px rgba(0, 0, 0, 0.34);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        background:
+          radial-gradient(circle at 18% 16%, rgba(141, 197, 212, 0.12), transparent 22%),
+          radial-gradient(circle at 78% 18%, rgba(213, 141, 135, 0.12), transparent 24%),
+          radial-gradient(circle at 52% 84%, rgba(140, 191, 169, 0.1), transparent 28%),
+          linear-gradient(180deg, #0a141b 0%, var(--bg) 56%, var(--bg-deep) 100%);
+        color: var(--ink);
+        font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", serif;
+      }
+
+      body {
+        overflow: hidden;
+      }
+
+      body::before,
+      body::after {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+      }
+
+      body::before {
+        opacity: 0.09;
+        background-image:
+          linear-gradient(rgba(255, 255, 255, 0.16) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.16) 1px, transparent 1px);
+        background-size: 108px 108px;
+        mask-image: radial-gradient(circle at 50% 46%, black 38%, transparent 92%);
+      }
+
+      body::after {
+        opacity: 0.14;
+        background-image:
+          linear-gradient(rgba(255, 255, 255, 0.56) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.56) 1px, transparent 1px);
+        background-size: 4px 4px;
+        mix-blend-mode: soft-light;
+      }
+
+      canvas {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        display: block;
+      }
+
+      a {
+        color: inherit;
+      }
+
+      .shell {
+        position: fixed;
+        inset: 16px;
+        display: grid;
+        grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+        grid-template-rows: auto 1fr auto;
+        gap: 14px;
+        pointer-events: none;
+      }
+
+      .panel,
+      .notes,
+      .world-card,
+      .back {
+        pointer-events: auto;
+        border: 1px solid var(--line);
+        background:
+          linear-gradient(180deg, rgba(15, 24, 31, 0.86), rgba(7, 13, 18, 0.72)),
+          rgba(5, 9, 13, 0.62);
+        backdrop-filter: blur(20px);
+        box-shadow: var(--shadow);
+      }
+
+      .panel,
+      .notes,
+      .world-card {
+        border-radius: 30px;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .panel::after,
+      .notes::after,
+      .world-card::after {
+        content: "";
+        position: absolute;
+        inset: 1px;
+        border-radius: inherit;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        pointer-events: none;
+      }
+
+      .panel {
+        grid-column: 1;
+        grid-row: 1 / span 2;
+        align-self: start;
+        padding: 16px 17px 17px;
+        display: grid;
+        gap: 11px;
+        align-content: start;
+      }
+
+      .world-card {
+        grid-column: 2;
+        grid-row: 1 / span 2;
+        align-self: stretch;
+        min-height: min(79vh, 920px);
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(220px, 280px);
+        grid-template-rows: auto 1fr auto;
+        gap: 12px;
+        padding: 18px;
+      }
+
+      .world-head,
+      .ledger,
+      .detail,
+      .timeline {
+        border: 1px solid rgba(237, 240, 238, 0.1);
+        border-radius: 24px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03)),
+          rgba(255, 255, 255, 0.02);
+      }
+
+      .world-head,
+      .ledger,
+      .detail,
+      .timeline {
+        backdrop-filter: blur(10px);
+      }
+
+      .world-head {
+        grid-column: 1 / -1;
+        padding: 14px 15px;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 10px;
+        align-items: end;
+      }
+
+      .detail {
+        align-self: end;
+        padding: 13px 14px 14px;
+        display: grid;
+        gap: 11px;
+      }
+
+      .ledger {
+        padding: 13px 14px 14px;
+        display: grid;
+        gap: 10px;
+      }
+
+      .timeline {
+        grid-column: 1 / -1;
+        padding: 12px 14px 14px;
+        display: grid;
+        gap: 10px;
+      }
+
+      .notes {
+        grid-column: 1 / -1;
+        grid-row: 3;
+        padding: 14px;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .note-card {
+        border: 1px solid rgba(237, 240, 238, 0.09);
+        border-radius: 22px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03)),
+          rgba(255, 255, 255, 0.02);
+        padding: 12px 13px;
+      }
+
+      .back {
+        position: fixed;
+        right: 16px;
+        bottom: 16px;
+        border-radius: 999px;
+        padding: 11px 14px;
+        text-decoration: none;
+        font-family: "Azeret Mono", "IBM Plex Mono", "SFMono-Regular", monospace;
+        font-size: 0.74rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+
+      h1,
+      h2,
+      p {
+        margin: 0;
+      }
+
+      .eyebrow,
+      .meta,
+      .small,
+      .chip,
+      .value {
+        font-family: "Azeret Mono", "IBM Plex Mono", "SFMono-Regular", monospace;
+      }
+
+      .eyebrow,
+      .small {
+        font-size: 11px;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      h1 {
+        font-size: clamp(1.9rem, 4vw, 3.9rem);
+        line-height: 0.9;
+        letter-spacing: -0.05em;
+        max-width: 8ch;
+      }
+
+      .body,
+      .note-card p,
+      .world-copy,
+      .detail p,
+      .ledger p {
+        color: rgba(237, 240, 238, 0.78);
+        line-height: 1.55;
+      }
+
+      .body {
+        font-size: 0.98rem;
+      }
+
+      .meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.8rem;
+        font-size: 0.72rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      .chip-row,
+      .timeline-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .chip {
+        border: 1px solid rgba(237, 240, 238, 0.12);
+        border-radius: 999px;
+        padding: 7px 10px;
+        font-size: 0.68rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: rgba(237, 240, 238, 0.76);
+        background: rgba(255, 255, 255, 0.04);
+      }
+
+      .value-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .value-block {
+        border: 1px solid rgba(237, 240, 238, 0.08);
+        border-radius: 18px;
+        padding: 10px 11px;
+        background: rgba(255, 255, 255, 0.03);
+      }
+
+      .value {
+        display: block;
+        margin-top: 0.35rem;
+        font-size: 1rem;
+        color: var(--ink);
+      }
+
+      .timeline-step {
+        flex: 1 1 130px;
+        min-width: 0;
+        border: 1px solid rgba(237, 240, 238, 0.08);
+        border-radius: 18px;
+        padding: 10px 11px;
+        background: rgba(255, 255, 255, 0.03);
+      }
+
+      .timeline-step strong {
+        display: block;
+        font-size: 0.9rem;
+        margin-top: 0.3rem;
+        letter-spacing: -0.02em;
+      }
+
+      .small {
+        color: rgba(237, 240, 238, 0.56);
+      }
+
+      #focusReadout {
+        color: var(--amber);
+      }
+
+      #taskReadout {
+        color: var(--mint);
+      }
+
+      #weatherReadout {
+        color: var(--aqua);
+      }
+
+      @media (max-width: 1180px) {
+        .shell {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .world-card {
+          grid-column: 1;
+          grid-row: 2;
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .notes {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+
+      @media (max-width: 720px) {
+        body {
+          overflow-y: auto;
+        }
+
+        canvas {
+          position: fixed;
+        }
+
+        .shell {
+          position: relative;
+          inset: auto;
+          min-height: 100vh;
+          padding: 12px;
+          gap: 12px;
+        }
+
+        .panel,
+        .notes,
+        .world-card {
+          border-radius: 22px;
+        }
+
+        .panel,
+        .world-card,
+        .notes {
+          grid-column: 1;
+          grid-row: auto;
+        }
+
+        .panel,
+        .timeline,
+        .ledger,
+        .detail {
+          padding: 14px;
+        }
+
+        .world-card {
+          min-height: 0;
+          padding: 14px;
+          grid-template-rows: auto auto auto auto;
+        }
+
+        .world-head {
+          grid-template-columns: minmax(0, 1fr);
+          padding: 14px;
+        }
+
+        .chip-row {
+          justify-content: flex-start;
+        }
+
+        .timeline-row {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .value-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .back {
+          right: 12px;
+          bottom: 12px;
+          padding: 10px 12px;
+          font-size: 0.68rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="scene"></canvas>
+
+    <main class="shell">
+      <section class="panel">
+        <p class="eyebrow">Code Animation Study #070</p>
+        <h1>Rain Plastic Florist</h1>
+        <p class="body">
+          A story-driven florist workroom built from the strongest May 11 human
+          correction: one believable worker, translucent strip curtains, wet
+          buckets, and bouquet tasks carry the style instead of another plain
+          portrait, control sheet, or creature ledger.
+        </p>
+        <div class="meta">
+          <span>Rainy editorial workroom</span>
+          <span>Canvas scene choreography</span>
+          <span>Pointer rack focus</span>
+        </div>
+      </section>
+
+      <section class="world-card" aria-label="Scene ledger">
+        <div class="world-head">
+          <div>
+            <p class="small">Workroom zones</p>
+            <p class="world-copy">
+              Intake buckets, trimming bench, strip-curtain aisle, and a cool
+              packing shelf all breathe together while the worker shifts
+              attention through the rain.
+            </p>
+          </div>
+          <div class="chip-row" aria-hidden="true">
+            <span class="chip">wet plastic</span>
+            <span class="chip">flower fog</span>
+            <span class="chip">night delivery</span>
+          </div>
+        </div>
+
+        <div class="ledger">
+          <p class="small">Live readout</p>
+          <div class="value-grid">
+            <div class="value-block">
+              <span class="small">Focus</span>
+              <span class="value" id="focusReadout">bench</span>
+            </div>
+            <div class="value-block">
+              <span class="small">Task</span>
+              <span class="value" id="taskReadout">trim stems</span>
+            </div>
+            <div class="value-block">
+              <span class="small">Weather</span>
+              <span class="value" id="weatherReadout">fine rain</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="detail">
+          <p class="small">Scene rule</p>
+          <p>
+            The person never turns into a portrait target. The mood comes from
+            watery surfaces, suspended bouquets, manual repetition, and the
+            focus logic sliding across one narrow nocturnal room.
+          </p>
+        </div>
+
+        <div class="timeline">
+          <p class="small">Task cycle</p>
+          <div class="timeline-row">
+            <div class="timeline-step">
+              <span class="small">01</span>
+              <strong>Receive</strong>
+              <p class="small">Buckets collect rain-chilled stems from the dock.</p>
+            </div>
+            <div class="timeline-step">
+              <span class="small">02</span>
+              <strong>Strip</strong>
+              <p class="small">Plastic curtains shed droplets and reset the aisle glow.</p>
+            </div>
+            <div class="timeline-step">
+              <span class="small">03</span>
+              <strong>Bind</strong>
+              <p class="small">Bench flashes tighten thread and nudge bouquet sway.</p>
+            </div>
+            <div class="timeline-step">
+              <span class="small">04</span>
+              <strong>Cool</strong>
+              <p class="small">Finished bunches dim into the shelf mist before exit.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="notes" aria-label="Review notes">
+        <article class="note-card">
+          <p class="small">Idea</p>
+          <p>
+            Shift the human lane away from portrait ambition and toward one
+            narrow nocturnal task world where wet flowers, plastic curtains,
+            and reflective surfaces do the expressive work.
+          </p>
+        </article>
+        <article class="note-card">
+          <p class="small">Interaction</p>
+          <p>
+            Pointer movement acts like rack focus plus weather bias: nearby
+            zones sharpen, brighten, and attract the worker’s attention while
+            distant areas soften into rain and reflection.
+          </p>
+        </article>
+        <article class="note-card">
+          <p class="small">Next</p>
+          <p>
+            Grow this into a larger florist-night economy with deliveries,
+            ledger tags, cooler rooms, and more believable multi-person task
+            choreography without turning it into a dashboard.
+          </p>
+        </article>
+      </section>
+    </main>
+
+    <a class="back" href="../../index.html">Back to index</a>
+
+    <script>
+      const canvas = document.getElementById("scene");
+      const ctx = canvas.getContext("2d");
+
+      const focusReadout = document.getElementById("focusReadout");
+      const taskReadout = document.getElementById("taskReadout");
+      const weatherReadout = document.getElementById("weatherReadout");
+
+      const pointer = {
+        x: window.innerWidth * 0.58,
+        y: window.innerHeight * 0.52,
+        tx: window.innerWidth * 0.58,
+        ty: window.innerHeight * 0.52,
+        heat: 0,
+      };
+
+      const tasks = [
+        { name: "dock", label: "receive stems", x: 0.16, y: 0.64 },
+        { name: "bench", label: "trim stems", x: 0.46, y: 0.62 },
+        { name: "aisle", label: "shake curtains", x: 0.65, y: 0.5 },
+        { name: "cooler", label: "stack bunches", x: 0.84, y: 0.54 },
+      ];
+
+      const bouquetColumns = [];
+      const petals = [];
+      const droplets = [];
+      const sparkles = [];
+
+      let width = 0;
+      let height = 0;
+      let time = 0;
+      let flash = 0;
+
+      function random(min, max) {
+        return min + Math.random() * (max - min);
+      }
+
+      function resize() {
+        width = window.innerWidth;
+        height = window.innerHeight;
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = Math.round(width * dpr);
+        canvas.height = Math.round(height * dpr);
+        canvas.style.width = width + "px";
+        canvas.style.height = height + "px";
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        buildScene();
+      }
+
+      function buildScene() {
+        bouquetColumns.length = 0;
+        petals.length = 0;
+        droplets.length = 0;
+        sparkles.length = 0;
+
+        const columns = Math.max(9, Math.round(width / 130));
+        for (let i = 0; i < columns; i += 1) {
+          bouquetColumns.push({
+            x: ((i + 0.6) / columns) * width,
+            top: random(height * 0.12, height * 0.28),
+            length: random(height * 0.18, height * 0.35),
+            sway: random(0.5, 1.4),
+            hue: i % 4,
+            density: Math.round(random(5, 9)),
+          });
+        }
+
+        const petalCount = Math.round(width * height * 0.00012);
+        for (let i = 0; i < petalCount; i += 1) {
+          petals.push({
+            x: random(0, width),
+            y: random(height * 0.18, height * 0.95),
+            size: random(2, 8),
+            drift: random(0.2, 1.2),
+            speed: random(0.12, 0.36),
+            phase: random(0, Math.PI * 2),
+            tint: Math.floor(random(0, 4)),
+          });
+        }
+
+        const dropCount = Math.round(width * 0.24);
+        for (let i = 0; i < dropCount; i += 1) {
+          droplets.push({
+            x: random(-width * 0.2, width * 1.2),
+            y: random(-height, height),
+            speed: random(6, 14),
+            length: random(20, 72),
+            wobble: random(0.1, 1.2),
+            thick: random(0.4, 1.6),
+          });
+        }
+
+        for (let i = 0; i < 28; i += 1) {
+          sparkles.push({
+            x: random(width * 0.12, width * 0.88),
+            y: random(height * 0.18, height * 0.82),
+            radius: random(14, 54),
+            alpha: random(0.02, 0.12),
+            phase: random(0, Math.PI * 2),
+          });
+        }
+      }
+
+      function lerp(a, b, t) {
+        return a + (b - a) * t;
+      }
+
+      function zoneDistance(zone) {
+        const zx = zone.x * width;
+        const zy = zone.y * height;
+        return Math.hypot(pointer.x - zx, pointer.y - zy);
+      }
+
+      function activeTask() {
+        return tasks.reduce((best, zone) =>
+          zoneDistance(zone) < zoneDistance(best) ? zone : best
+        );
+      }
+
+      function updateReadouts(zone) {
+        focusReadout.textContent = zone.name;
+        taskReadout.textContent = zone.label;
+
+        const rainBias = (pointer.x / Math.max(1, width) - 0.5) * 2;
+        if (flash > 0.28) {
+          weatherReadout.textContent = "processing flash";
+        } else if (rainBias < -0.24) {
+          weatherReadout.textContent = "crosswind rain";
+        } else if (rainBias > 0.26) {
+          weatherReadout.textContent = "warm drip haze";
+        } else {
+          weatherReadout.textContent = "fine rain";
+        }
+      }
+
+      function drawBackground() {
+        const grad = ctx.createLinearGradient(0, 0, 0, height);
+        grad.addColorStop(0, "#0a151d");
+        grad.addColorStop(0.54, "#081018");
+        grad.addColorStop(1, "#04070b");
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, width, height);
+
+        ctx.fillStyle = "rgba(130, 191, 204, 0.08)";
+        ctx.beginPath();
+        ctx.ellipse(width * 0.16, height * 0.2, width * 0.22, height * 0.18, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = "rgba(213, 141, 135, 0.08)";
+        ctx.beginPath();
+        ctx.ellipse(width * 0.78, height * 0.18, width * 0.24, height * 0.16, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        for (const sparkle of sparkles) {
+          const pulse = 0.5 + 0.5 * Math.sin(time * 0.0014 + sparkle.phase);
+          ctx.fillStyle = `rgba(255,255,255,${sparkle.alpha * pulse})`;
+          ctx.beginPath();
+          ctx.arc(sparkle.x, sparkle.y, sparkle.radius * pulse, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      function drawWindowGrid() {
+        const windowLeft = width * 0.08;
+        const windowTop = height * 0.08;
+        const windowWidth = width * 0.84;
+        const windowHeight = height * 0.66;
+
+        ctx.strokeStyle = "rgba(228, 236, 239, 0.12)";
+        ctx.lineWidth = 1.2;
+        for (let i = 0; i <= 6; i += 1) {
+          const x = windowLeft + (windowWidth / 6) * i;
+          ctx.beginPath();
+          ctx.moveTo(x, windowTop);
+          ctx.lineTo(x, windowTop + windowHeight);
+          ctx.stroke();
+        }
+
+        for (let i = 0; i <= 3; i += 1) {
+          const y = windowTop + (windowHeight / 3) * i;
+          ctx.beginPath();
+          ctx.moveTo(windowLeft, y);
+          ctx.lineTo(windowLeft + windowWidth, y);
+          ctx.stroke();
+        }
+
+        const city = ctx.createLinearGradient(0, windowTop, 0, windowTop + windowHeight);
+        city.addColorStop(0, "rgba(132, 192, 205, 0.08)");
+        city.addColorStop(1, "rgba(9, 18, 24, 0)");
+        ctx.fillStyle = city;
+        ctx.fillRect(windowLeft, windowTop, windowWidth, windowHeight);
+
+        for (let i = 0; i < 18; i += 1) {
+          const bx = windowLeft + i * (windowWidth / 18) + (i % 3) * 4;
+          const bw = random(18, 40);
+          const bh = random(height * 0.08, height * 0.22);
+          ctx.fillStyle = `rgba(255,255,255,${0.02 + (i % 4) * 0.01})`;
+          ctx.fillRect(bx, windowTop + windowHeight - bh, bw, bh);
+        }
+      }
+
+      function drawRain() {
+        const angle = lerp(-0.18, 0.18, pointer.x / Math.max(1, width));
+        ctx.lineCap = "round";
+        for (const drop of droplets) {
+          drop.y += drop.speed + pointer.heat * 1.4;
+          drop.x += angle * drop.speed * 2 + Math.sin(time * 0.0012 + drop.wobble) * 0.15;
+          if (drop.y - drop.length > height) {
+            drop.y = -drop.length;
+            drop.x = random(-width * 0.16, width * 1.16);
+          }
+          if (drop.x < -width * 0.2) {
+            drop.x = width * 1.1;
+          }
+          if (drop.x > width * 1.2) {
+            drop.x = -width * 0.1;
+          }
+
+          ctx.strokeStyle = `rgba(210, 230, 235, ${0.08 + drop.thick * 0.05})`;
+          ctx.lineWidth = drop.thick;
+          ctx.beginPath();
+          ctx.moveTo(drop.x, drop.y);
+          ctx.lineTo(drop.x + angle * drop.length, drop.y + drop.length);
+          ctx.stroke();
+        }
+      }
+
+      function drawCurtains() {
+        const strips = Math.max(8, Math.round(width / 150));
+        for (let i = 0; i < strips; i += 1) {
+          const x = width * 0.22 + (width * 0.58 / strips) * i;
+          const sway = Math.sin(time * 0.0015 + i * 0.8) * 10 + (pointer.x - x) * 0.018;
+          const alpha = 0.08 + Math.max(0, 0.1 - Math.abs(pointer.x - x) / width * 0.1);
+          ctx.fillStyle = `rgba(224, 236, 240, ${alpha})`;
+          ctx.beginPath();
+          ctx.moveTo(x, height * 0.14);
+          ctx.quadraticCurveTo(x + sway, height * 0.44, x + sway * 0.4, height * 0.84);
+          ctx.lineTo(x + 32 + sway * 0.4, height * 0.84);
+          ctx.quadraticCurveTo(x + 26 + sway, height * 0.42, x + 28, height * 0.14);
+          ctx.closePath();
+          ctx.fill();
+
+          ctx.strokeStyle = "rgba(255,255,255,0.06)";
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(x + 15, height * 0.14);
+          ctx.quadraticCurveTo(x + 18 + sway, height * 0.42, x + 16 + sway * 0.4, height * 0.84);
+          ctx.stroke();
+        }
+      }
+
+      function drawBouquets() {
+        for (const column of bouquetColumns) {
+          const focus = Math.max(0, 1 - Math.abs(pointer.x - column.x) / (width * 0.32));
+          const sway = Math.sin(time * 0.0016 * column.sway + column.x * 0.01) * 14 + focus * 8 - pointer.heat * 10;
+          const baseX = column.x + sway;
+          const top = column.top;
+          const bottom = top + column.length;
+
+          ctx.strokeStyle = `rgba(214, 233, 224, ${0.16 + focus * 0.12})`;
+          ctx.lineWidth = 1.8;
+          ctx.beginPath();
+          ctx.moveTo(baseX, top - 20);
+          ctx.lineTo(baseX, bottom);
+          ctx.stroke();
+
+          for (let j = 0; j < column.density; j += 1) {
+            const ratio = j / Math.max(1, column.density - 1);
+            const py = lerp(top, bottom, ratio);
+            const offset = Math.sin(time * 0.0018 + j * 1.3 + column.x * 0.02) * 10;
+            const radius = 9 + ratio * 13 + focus * 5;
+            let fill = "rgba(140, 191, 169, 0.5)";
+            if (column.hue === 1) fill = "rgba(213, 141, 135, 0.48)";
+            if (column.hue === 2) fill = "rgba(141, 197, 212, 0.46)";
+            if (column.hue === 3) fill = "rgba(223, 178, 109, 0.46)";
+
+            ctx.fillStyle = fill;
+            ctx.beginPath();
+            ctx.ellipse(baseX + offset, py, radius, radius * 0.7, offset * 0.03, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = "rgba(255,255,255,0.08)";
+            ctx.beginPath();
+            ctx.ellipse(baseX + offset - radius * 0.2, py - radius * 0.12, radius * 0.34, radius * 0.22, 0, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+      }
+
+      function drawWorkBench() {
+        const benchY = height * 0.76;
+        const benchH = height * 0.09;
+        const benchX = width * 0.22;
+        const benchW = width * 0.48;
+
+        const grad = ctx.createLinearGradient(benchX, benchY, benchX, benchY + benchH);
+        grad.addColorStop(0, "rgba(76, 88, 95, 0.68)");
+        grad.addColorStop(1, "rgba(25, 31, 36, 0.92)");
+        ctx.fillStyle = grad;
+        ctx.fillRect(benchX, benchY, benchW, benchH);
+
+        ctx.fillStyle = `rgba(255,255,255,${0.06 + flash * 0.18})`;
+        ctx.fillRect(benchX, benchY + 6, benchW, 3);
+
+        for (let i = 0; i < 5; i += 1) {
+          const bx = benchX + 36 + i * (benchW / 5);
+          ctx.fillStyle = "rgba(141, 197, 212, 0.08)";
+          ctx.fillRect(bx, benchY + 10, 30, benchH - 20);
+        }
+
+        for (let i = 0; i < 4; i += 1) {
+          const bucketX = width * (0.14 + i * 0.12);
+          const bucketY = height * (0.72 + (i % 2) * 0.02);
+          ctx.fillStyle = "rgba(54, 76, 87, 0.72)";
+          ctx.beginPath();
+          ctx.roundRect(bucketX, bucketY, 48, 74, 12);
+          ctx.fill();
+          ctx.fillStyle = "rgba(188, 218, 224, 0.16)";
+          ctx.fillRect(bucketX + 6, bucketY + 8, 36, 12);
+        }
+      }
+
+      function drawWorker(zone) {
+        const zoneX = zone.x * width;
+        const zoneY = zone.y * height;
+        const headTilt = (pointer.x - zoneX) * 0.00008;
+        const shift = Math.sin(time * 0.0018) * 6;
+        const bodyX = lerp(width * 0.44, zoneX, 0.34);
+        const bodyY = height * 0.58 + Math.sin(time * 0.0013) * 4;
+
+        ctx.save();
+        ctx.translate(bodyX, bodyY + shift);
+
+        ctx.strokeStyle = "rgba(231, 238, 240, 0.52)";
+        ctx.lineWidth = 4.4;
+        ctx.lineCap = "round";
+
+        ctx.beginPath();
+        ctx.moveTo(0, 14);
+        ctx.lineTo(0, 116);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(0, 46);
+        ctx.lineTo(-34 + headTilt * 320, 84);
+        ctx.moveTo(0, 54);
+        ctx.lineTo(42, 86 - flash * 10);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(0, 116);
+        ctx.lineTo(-26, 166);
+        ctx.moveTo(0, 116);
+        ctx.lineTo(24, 168);
+        ctx.stroke();
+
+        ctx.fillStyle = "rgba(226, 232, 235, 0.18)";
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 18, 22, headTilt, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = "rgba(141, 197, 212, 0.12)";
+        ctx.beginPath();
+        ctx.ellipse(0, 58, 32, 50, 0.08, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+      }
+
+      function drawPetals() {
+        for (const petal of petals) {
+          petal.x += Math.sin(time * 0.0009 + petal.phase) * 0.18 + pointer.heat * 0.3;
+          petal.y -= petal.speed;
+          petal.phase += 0.005 * petal.drift;
+          if (petal.y < height * 0.12) {
+            petal.y = height * 0.94;
+            petal.x = random(width * 0.08, width * 0.92);
+          }
+
+          let fill = "rgba(140, 191, 169, 0.18)";
+          if (petal.tint === 1) fill = "rgba(213, 141, 135, 0.18)";
+          if (petal.tint === 2) fill = "rgba(141, 197, 212, 0.18)";
+          if (petal.tint === 3) fill = "rgba(223, 178, 109, 0.18)";
+
+          ctx.fillStyle = fill;
+          ctx.beginPath();
+          ctx.ellipse(
+            petal.x,
+            petal.y + Math.sin(petal.phase + time * 0.0011) * 8,
+            petal.size * 0.9,
+            petal.size * 0.5,
+            petal.phase,
+            0,
+            Math.PI * 2
+          );
+          ctx.fill();
+        }
+      }
+
+      function drawReflections() {
+        ctx.fillStyle = "rgba(255,255,255,0.04)";
+        ctx.fillRect(0, height * 0.82, width, height * 0.18);
+
+        const bands = 8;
+        for (let i = 0; i < bands; i += 1) {
+          const x = (i / bands) * width;
+          const alpha = 0.04 + Math.sin(time * 0.0014 + i) * 0.01 + flash * 0.05;
+          ctx.fillStyle = `rgba(141, 197, 212, ${alpha})`;
+          ctx.fillRect(x, height * 0.84 + Math.sin(time * 0.0018 + i) * 6, width / bands * 0.7, 3);
+        }
+      }
+
+      function drawFlash() {
+        if (flash <= 0.001) return;
+        ctx.fillStyle = `rgba(255,255,255,${flash * 0.12})`;
+        ctx.fillRect(width * 0.18, height * 0.24, width * 0.58, height * 0.5);
+
+        ctx.strokeStyle = `rgba(255, 235, 196, ${flash * 0.42})`;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(width * 0.24, height * 0.62);
+        ctx.lineTo(width * 0.66, height * 0.62);
+        ctx.stroke();
+      }
+
+      function drawScene() {
+        drawBackground();
+        drawWindowGrid();
+        drawRain();
+        drawCurtains();
+        drawBouquets();
+        drawWorkBench();
+        const zone = activeTask();
+        drawWorker(zone);
+        drawPetals();
+        drawReflections();
+        drawFlash();
+        updateReadouts(zone);
+      }
+
+      function frame(now) {
+        time = now;
+        pointer.x = lerp(pointer.x, pointer.tx, 0.08);
+        pointer.y = lerp(pointer.y, pointer.ty, 0.08);
+        pointer.heat = lerp(pointer.heat, 0, 0.035);
+        flash *= 0.94;
+
+        ctx.clearRect(0, 0, width, height);
+        drawScene();
+        requestAnimationFrame(frame);
+      }
+
+      window.addEventListener("mousemove", (event) => {
+        pointer.tx = event.clientX;
+        pointer.ty = event.clientY;
+        pointer.heat = Math.min(1, pointer.heat + 0.08);
+      });
+
+      window.addEventListener("touchmove", (event) => {
+        const touch = event.touches[0];
+        if (!touch) return;
+        pointer.tx = touch.clientX;
+        pointer.ty = touch.clientY;
+        pointer.heat = Math.min(1, pointer.heat + 0.08);
+      }, { passive: true });
+
+      window.addEventListener("click", () => {
+        flash = 1;
+        pointer.heat = 1;
+      });
+
+      window.addEventListener("resize", resize);
+
+      resize();
+      requestAnimationFrame(frame);
+    </script>
+  </body>
+</html>

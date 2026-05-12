@@ -1,0 +1,1276 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>#067 Moss Courier Hollow</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --paper: #efe4d3;
+        --paper-bright: #fbf5ec;
+        --paper-deep: #d8c2ad;
+        --ink: #2a352d;
+        --muted: rgba(42, 53, 45, 0.68);
+        --line: rgba(42, 53, 45, 0.14);
+        --line-strong: rgba(42, 53, 45, 0.26);
+        --mint: #95bda3;
+        --sage: #708d72;
+        --pond: #8dbec0;
+        --clay: #d28f72;
+        --amber: #d1a15e;
+        --plum: #8f7d90;
+        --cream: rgba(255, 251, 245, 0.72);
+        --shadow: 0 28px 100px rgba(97, 73, 49, 0.16);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        background:
+          radial-gradient(circle at 18% 14%, rgba(255, 255, 255, 0.9), transparent 18%),
+          radial-gradient(circle at 82% 18%, rgba(141, 190, 192, 0.14), transparent 22%),
+          radial-gradient(circle at 18% 84%, rgba(210, 143, 114, 0.12), transparent 24%),
+          radial-gradient(circle at 76% 82%, rgba(149, 189, 163, 0.14), transparent 26%),
+          linear-gradient(180deg, #f7f0e8 0%, var(--paper) 58%, var(--paper-deep) 100%);
+        color: var(--ink);
+        font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", serif;
+      }
+
+      body {
+        overflow: hidden;
+      }
+
+      body::before,
+      body::after {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+      }
+
+      body::before {
+        opacity: 0.08;
+        background-image:
+          linear-gradient(rgba(42, 53, 45, 0.12) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(42, 53, 45, 0.12) 1px, transparent 1px);
+        background-size: 88px 88px;
+        mask-image: radial-gradient(circle at 50% 42%, black 38%, transparent 92%);
+      }
+
+      body::after {
+        opacity: 0.14;
+        background-image:
+          linear-gradient(rgba(255, 255, 255, 0.78) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.78) 1px, transparent 1px);
+        background-size: 4px 4px;
+        mix-blend-mode: soft-light;
+      }
+
+      canvas {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        display: block;
+        z-index: 0;
+      }
+
+      a {
+        color: inherit;
+      }
+
+      .shell {
+        position: relative;
+        z-index: 1;
+        min-height: 100vh;
+        padding: 16px;
+        display: grid;
+        grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
+        grid-template-rows: auto 1fr auto;
+        gap: 14px;
+      }
+
+      .panel,
+      .world-panel,
+      .footer-card,
+      .back {
+        border: 1px solid var(--line);
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.66), rgba(251, 245, 236, 0.38)),
+          rgba(255, 249, 241, 0.38);
+        backdrop-filter: blur(18px);
+        box-shadow: var(--shadow);
+      }
+
+      .panel,
+      .world-panel {
+        position: relative;
+        border-radius: 30px;
+        overflow: hidden;
+      }
+
+      .panel::after,
+      .world-panel::after {
+        content: "";
+        position: absolute;
+        inset: 1px;
+        border-radius: inherit;
+        border: 1px solid rgba(255, 255, 255, 0.42);
+        pointer-events: none;
+      }
+
+      .panel {
+        padding: 16px 17px 17px;
+        display: grid;
+        align-content: start;
+        gap: 11px;
+      }
+
+      .intro {
+        grid-column: 1;
+        grid-row: 1;
+      }
+
+      .status {
+        grid-column: 1;
+        grid-row: 2;
+      }
+
+      .world-panel {
+        grid-column: 2;
+        grid-row: 1 / span 2;
+        min-height: min(79vh, 920px);
+      }
+
+      .world-overlay {
+        position: relative;
+        z-index: 1;
+        min-height: 100%;
+        padding: 18px;
+        display: grid;
+        grid-template-columns: 1.18fr 0.82fr;
+        grid-template-rows: auto 1fr auto;
+        gap: 12px;
+        pointer-events: none;
+      }
+
+      .world-head,
+      .route-card,
+      .vignette-card,
+      .scene-card,
+      .footer-card,
+      .back {
+        position: relative;
+        border: 1px solid rgba(42, 53, 45, 0.1);
+        border-radius: 24px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.34), rgba(255, 249, 241, 0.16)),
+          rgba(255, 255, 255, 0.12);
+      }
+
+      .world-head,
+      .route-card,
+      .vignette-card,
+      .scene-card,
+      .footer-card {
+        backdrop-filter: blur(10px);
+      }
+
+      .world-head {
+        grid-column: 1 / -1;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 12px;
+        align-items: end;
+        padding: 15px 16px;
+      }
+
+      .lower {
+        grid-column: 1 / -1;
+        display: grid;
+        grid-template-columns: 1.05fr 0.95fr;
+        gap: 12px;
+        align-items: end;
+      }
+
+      .routes {
+        display: grid;
+        gap: 12px;
+      }
+
+      .right-stack {
+        display: grid;
+        gap: 12px;
+      }
+
+      .route-card,
+      .vignette-card,
+      .scene-card {
+        padding: 12px 14px;
+        pointer-events: auto;
+      }
+
+      .route-card {
+        display: grid;
+        gap: 10px;
+      }
+
+      .route-lines {
+        display: grid;
+        gap: 8px;
+      }
+
+      .route-line {
+        display: grid;
+        gap: 5px;
+      }
+
+      .route-top,
+      .mini-row,
+      .facts {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+
+      .route-track {
+        position: relative;
+        height: 10px;
+        border-radius: 999px;
+        overflow: hidden;
+        background: rgba(42, 53, 45, 0.08);
+      }
+
+      .route-fill {
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: 50%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, var(--pond), var(--amber));
+        transform-origin: left center;
+      }
+
+      .scene-card {
+        min-height: 172px;
+      }
+
+      .vignette-card {
+        min-height: 142px;
+      }
+
+      .notes {
+        grid-column: 1 / -1;
+        grid-row: 3;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+
+      .eyebrow,
+      .pill,
+      .back,
+      .tiny,
+      .facts,
+      .route-top,
+      .small-label {
+        font-family: "Azeret Mono", "IBM Plex Mono", monospace;
+      }
+
+      .eyebrow,
+      .pill,
+      .back,
+      .tiny,
+      .small-label {
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        font-size: 0.7rem;
+      }
+
+      .back {
+        display: inline-flex;
+        align-items: center;
+        justify-self: start;
+        gap: 8px;
+        padding: 11px 14px;
+        border-radius: 999px;
+        text-decoration: none;
+      }
+
+      .pill-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 10px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.42);
+        border: 1px solid rgba(42, 53, 45, 0.08);
+      }
+
+      .dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 999px;
+        background: currentColor;
+        opacity: 0.9;
+      }
+
+      .intro h1 {
+        font-size: clamp(2.5rem, 5vw, 4.9rem);
+        line-height: 0.9;
+        letter-spacing: -0.04em;
+      }
+
+      .intro h1 span {
+        color: var(--sage);
+      }
+
+      .lede,
+      .muted,
+      .footer-copy,
+      .route-copy,
+      .vignette-copy {
+        color: var(--muted);
+      }
+
+      .lede,
+      .footer-copy,
+      .route-copy,
+      .vignette-copy {
+        line-height: 1.5;
+      }
+
+      .world-head h2 {
+        font-size: clamp(2rem, 3vw, 3.1rem);
+        line-height: 0.94;
+      }
+
+      .world-head h2 span {
+        color: var(--clay);
+      }
+
+      .scene-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+        margin-top: 12px;
+      }
+
+      .scene-fragment {
+        border-radius: 18px;
+        padding: 10px;
+        min-height: 74px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.28), rgba(255, 249, 241, 0.12)),
+          rgba(255, 255, 255, 0.12);
+        border: 1px solid rgba(42, 53, 45, 0.08);
+      }
+
+      .scene-fragment strong,
+      .route-card strong,
+      .footer-card h3,
+      .vignette-card strong {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 0.95rem;
+      }
+
+      .mini-swatch {
+        display: inline-block;
+        width: 11px;
+        height: 11px;
+        border-radius: 999px;
+        margin-right: 6px;
+        vertical-align: middle;
+      }
+
+      .footer-card {
+        padding: 14px 15px;
+      }
+
+      .footer-card h3 {
+        font-size: 0.84rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .log {
+        display: grid;
+        gap: 7px;
+      }
+
+      .log-line {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        font-size: 0.8rem;
+      }
+
+      .log-line span:last-child,
+      .tiny {
+        color: var(--muted);
+      }
+
+      @media (max-width: 1100px) {
+        body {
+          overflow-y: auto;
+        }
+
+        .shell {
+          grid-template-columns: 1fr;
+          grid-template-rows: auto auto auto auto;
+        }
+
+        .intro,
+        .status,
+        .world-panel,
+        .notes {
+          grid-column: 1;
+        }
+
+        .intro {
+          grid-row: 1;
+        }
+
+        .status {
+          grid-row: 2;
+        }
+
+        .world-panel {
+          grid-row: 3;
+          min-height: 72vh;
+        }
+
+        .notes {
+          grid-row: 4;
+        }
+      }
+
+      @media (max-width: 880px) {
+        .world-overlay,
+        .lower,
+        .notes {
+          grid-template-columns: 1fr;
+        }
+
+        .scene-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .world-head {
+          grid-template-columns: 1fr;
+        }
+
+        .shell {
+          padding: 12px;
+          gap: 12px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <section class="panel intro">
+        <div class="eyebrow">Creative Taste Bot motion study #067</div>
+        <h1>Moss Courier <span>Hollow</span></h1>
+        <p class="lede">
+          A pale inhabited courier world instead of another detached infographic
+          card: tiny rooted carriers live among terraces, rope bridges, reed
+          roofs, and canal letters, so the motion reads like a landing-page
+          place with characters who actually have errands.
+        </p>
+        <div class="pill-row">
+          <div class="pill"><span class="dot" style="color: var(--sage)"></span>world branch</div>
+          <div class="pill"><span class="dot" style="color: var(--pond)"></span>pointer warmth</div>
+          <div class="pill"><span class="dot" style="color: var(--clay)"></span>click errand pulse</div>
+        </div>
+        <a class="back" href="../../index.html">Back to animation index</a>
+      </section>
+
+      <section class="panel status">
+        <div class="eyebrow">Field status</div>
+        <div class="log" id="log">
+          <div class="log-line"><span>Dawn steam</span><span>settling</span></div>
+          <div class="log-line"><span>Bridge queue</span><span>three carriers</span></div>
+          <div class="log-line"><span>Parcel bloom</span><span>amber route</span></div>
+          <div class="log-line"><span>Warm pocket</span><span>awaiting pointer</span></div>
+        </div>
+      </section>
+
+      <section class="world-panel">
+        <canvas id="world" aria-hidden="true"></canvas>
+        <div class="world-overlay">
+          <div class="world-head">
+            <div>
+              <div class="eyebrow">Inhabited scene / browser-native narrative surface</div>
+              <h2>Couriers <span>thread</span> the hollow</h2>
+            </div>
+            <div class="pill-row">
+              <div class="pill"><span class="dot" style="color: var(--amber)"></span>9 carriers</div>
+              <div class="pill"><span class="dot" style="color: var(--pond)"></span>4 reed pools</div>
+              <div class="pill"><span class="dot" style="color: var(--plum)"></span>story-safe loop</div>
+            </div>
+          </div>
+
+          <div></div>
+
+          <div class="lower">
+            <div class="routes">
+              <div class="route-card">
+                <div class="route-top">
+                  <strong>Errand weather</strong>
+                  <span class="tiny" id="modeLabel">hush current</span>
+                </div>
+                <p class="route-copy">
+                  Pointer proximity softens the nearest district, bending reed
+                  smoke, roof tassels, and creature attention. Click drops a
+                  warm errand pulse that brightens one route and pulls the
+                  carriers into a shared reroute.
+                </p>
+                <div class="route-lines">
+                  <div class="route-line">
+                    <div class="mini-row">
+                      <span class="small-label">Bridge lane</span>
+                      <span class="tiny" id="bridgeStat">54%</span>
+                    </div>
+                    <div class="route-track"><div class="route-fill" id="bridgeFill"></div></div>
+                  </div>
+                  <div class="route-line">
+                    <div class="mini-row">
+                      <span class="small-label">Canal lane</span>
+                      <span class="tiny" id="canalStat">48%</span>
+                    </div>
+                    <div class="route-track"><div class="route-fill" id="canalFill" style="background: linear-gradient(90deg, var(--sage), var(--pond))"></div></div>
+                  </div>
+                  <div class="route-line">
+                    <div class="mini-row">
+                      <span class="small-label">Roof lane</span>
+                      <span class="tiny" id="roofStat">38%</span>
+                    </div>
+                    <div class="route-track"><div class="route-fill" id="roofFill" style="background: linear-gradient(90deg, var(--clay), var(--amber))"></div></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="scene-card">
+                <div class="facts">
+                  <strong>Scene fragments</strong>
+                  <span class="tiny">designed as landing-world cues</span>
+                </div>
+                <div class="scene-grid">
+                  <div class="scene-fragment">
+                    <strong><span class="mini-swatch" style="background: var(--pond)"></span>Reed baths</strong>
+                    <p class="vignette-copy">
+                      Steam pockets catch in round pools and give the hollow a
+                      shared morning rhythm.
+                    </p>
+                  </div>
+                  <div class="scene-fragment">
+                    <strong><span class="mini-swatch" style="background: var(--amber)"></span>Parcel knots</strong>
+                    <p class="vignette-copy">
+                      Amber bundles hop route to route instead of sitting as UI
+                      badges outside the world.
+                    </p>
+                  </div>
+                  <div class="scene-fragment">
+                    <strong><span class="mini-swatch" style="background: var(--sage)"></span>Root homes</strong>
+                    <p class="vignette-copy">
+                      Each carrier comes from a small planted alcove with reeds,
+                      ladders, and soft roof threads.
+                    </p>
+                  </div>
+                  <div class="scene-fragment">
+                    <strong><span class="mini-swatch" style="background: var(--clay)"></span>Story usable</strong>
+                    <p class="vignette-copy">
+                      The page holds atmosphere, characters, and place logic
+                      without collapsing into a diagram sheet.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="right-stack">
+              <div class="vignette-card">
+                <div class="route-top">
+                  <strong>Local behavior</strong>
+                  <span class="tiny" id="focusLabel">north terrace</span>
+                </div>
+                <p class="vignette-copy" id="focusCopy">
+                  The nearest carriers glance up, their route glow thickens, and
+                  the reed roofs sway more visibly inside the warm pocket.
+                </p>
+              </div>
+
+              <div class="vignette-card">
+                <div class="route-top">
+                  <strong>Pulse aftermath</strong>
+                  <span class="tiny" id="pulseLabel">none yet</span>
+                </div>
+                <p class="vignette-copy" id="pulseCopy">
+                  Click anywhere in the hollow to send one short communal errand
+                  through the bridges, roof ladders, and canal slips.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="notes">
+        <article class="footer-card">
+          <h3>Idea</h3>
+          <p class="footer-copy">
+            Build a design-usable illustrated world with tiny beings who live
+            somewhere and do something, instead of extending the recent run of
+            abstract cards, civic sheets, or detached controls.
+          </p>
+        </article>
+        <article class="footer-card">
+          <h3>Interaction</h3>
+          <p class="footer-copy">
+            Pointer proximity creates local warmth, so nearby roofs, steam, and
+            couriers react together. Clicking plants one errand pulse that
+            ripples through the route network and briefly changes the shared
+            traffic law.
+          </p>
+        </article>
+        <article class="footer-card">
+          <h3>Next</h3>
+          <p class="footer-copy">
+            Extend this story-world branch into more explicit scenes: shop
+            fronts, ferry stops, communal interiors, or one landing-page hero
+            story that keeps the same rooted species grammar.
+          </p>
+        </article>
+      </section>
+    </main>
+
+    <script>
+      const worldPanel = document.querySelector(".world-panel");
+      const canvas = document.getElementById("world");
+      const ctx = canvas.getContext("2d");
+
+      const bridgeFill = document.getElementById("bridgeFill");
+      const canalFill = document.getElementById("canalFill");
+      const roofFill = document.getElementById("roofFill");
+      const bridgeStat = document.getElementById("bridgeStat");
+      const canalStat = document.getElementById("canalStat");
+      const roofStat = document.getElementById("roofStat");
+      const modeLabel = document.getElementById("modeLabel");
+      const focusLabel = document.getElementById("focusLabel");
+      const focusCopy = document.getElementById("focusCopy");
+      const pulseLabel = document.getElementById("pulseLabel");
+      const pulseCopy = document.getElementById("pulseCopy");
+      const log = document.getElementById("log");
+
+      const palette = {
+        ink: "#2a352d",
+        line: "rgba(42, 53, 45, 0.16)",
+        mint: "#95bda3",
+        sage: "#708d72",
+        pond: "#8dbec0",
+        clay: "#d28f72",
+        amber: "#d1a15e",
+        plum: "#8f7d90",
+        cream: "rgba(255, 251, 245, 0.72)",
+      };
+
+      const pointer = {
+        x: 0,
+        y: 0,
+        targetX: 0,
+        targetY: 0,
+        heat: 0,
+        active: false,
+      };
+
+      const state = {
+        width: 0,
+        height: 0,
+        dpr: Math.min(window.devicePixelRatio || 1, 2),
+        time: 0,
+        pulses: [],
+        logs: [
+          ["Dawn steam", "settling"],
+          ["Bridge queue", "three carriers"],
+          ["Parcel bloom", "amber route"],
+          ["Warm pocket", "awaiting pointer"],
+        ],
+      };
+
+      const terraces = [];
+      const pools = [];
+      const houses = [];
+      const routes = [];
+      const carriers = [];
+      const motes = [];
+
+      function lerp(a, b, t) {
+        return a + (b - a) * t;
+      }
+
+      function clamp(value, min, max) {
+        return Math.max(min, Math.min(max, value));
+      }
+
+      function distance(ax, ay, bx, by) {
+        return Math.hypot(ax - bx, ay - by);
+      }
+
+      function addLog(left, right) {
+        state.logs.unshift([left, right]);
+        state.logs = state.logs.slice(0, 4);
+        log.innerHTML = state.logs
+          .map(
+            ([label, value]) =>
+              `<div class="log-line"><span>${label}</span><span>${value}</span></div>`,
+          )
+          .join("");
+      }
+
+      function resize() {
+        const rect = worldPanel.getBoundingClientRect();
+        state.width = rect.width;
+        state.height = rect.height;
+        canvas.width = Math.floor(state.width * state.dpr);
+        canvas.height = Math.floor(state.height * state.dpr);
+        canvas.style.width = `${state.width}px`;
+        canvas.style.height = `${state.height}px`;
+        ctx.setTransform(state.dpr, 0, 0, state.dpr, 0, 0);
+        pointer.x = state.width * 0.52;
+        pointer.y = state.height * 0.46;
+        pointer.targetX = pointer.x;
+        pointer.targetY = pointer.y;
+        buildWorld();
+      }
+
+      function buildWorld() {
+        terraces.length = 0;
+        pools.length = 0;
+        houses.length = 0;
+        routes.length = 0;
+        carriers.length = 0;
+        motes.length = 0;
+
+        const w = state.width;
+        const h = state.height;
+        const terraceLevels = [0.26, 0.38, 0.51, 0.64, 0.77];
+        terraceLevels.forEach((yNorm, index) => {
+          const y = h * yNorm;
+          const depth = index / terraceLevels.length;
+          terraces.push({
+            y,
+            amp: 28 + index * 8,
+            sway: 0.6 + depth * 0.5,
+            phase: index * 1.2,
+            color: `rgba(112, 141, 114, ${0.16 + depth * 0.11})`,
+          });
+        });
+
+        const poolData = [
+          [0.27, 0.42, 70],
+          [0.52, 0.58, 88],
+          [0.76, 0.47, 64],
+          [0.66, 0.73, 86],
+        ];
+        poolData.forEach(([xNorm, yNorm, radius], index) => {
+          pools.push({
+            x: w * xNorm,
+            y: h * yNorm,
+            r: radius * Math.min(w / 1400, 1.24),
+            phase: index * 1.7,
+          });
+        });
+
+        const houseData = [
+          [0.22, 0.32, 0.95],
+          [0.35, 0.45, 1.05],
+          [0.59, 0.34, 0.88],
+          [0.73, 0.56, 1.08],
+          [0.45, 0.69, 1.12],
+          [0.18, 0.63, 0.82],
+          [0.81, 0.72, 0.9],
+          [0.63, 0.79, 0.94],
+        ];
+        houseData.forEach(([xNorm, yNorm, scale], index) => {
+          houses.push({
+            x: w * xNorm,
+            y: h * yNorm,
+            scale,
+            sway: 0.8 + (index % 3) * 0.2,
+            phase: index * 0.9,
+          });
+        });
+
+        const routeData = [
+          [houses[0], houses[1], "bridge", 0.48],
+          [houses[1], houses[4], "bridge", 0.56],
+          [houses[2], houses[3], "roof", 0.38],
+          [houses[5], houses[4], "canal", 0.45],
+          [houses[4], houses[7], "bridge", 0.52],
+          [houses[3], houses[6], "roof", 0.42],
+          [houses[1], houses[2], "canal", 0.4],
+          [houses[0], houses[5], "roof", 0.31],
+          [houses[2], houses[6], "bridge", 0.47],
+        ];
+        routeData.forEach(([from, to, type, base], index) => {
+          routes.push({
+            from,
+            to,
+            type,
+            base,
+            pulse: 0,
+            phase: index * 0.6,
+          });
+        });
+
+        for (let i = 0; i < 9; i += 1) {
+          const home = houses[i % houses.length];
+          const target = houses[(i * 3 + 2) % houses.length];
+          carriers.push({
+            routeIndex: i % routes.length,
+            progress: (i / 9) * 0.9,
+            speed: 0.04 + (i % 3) * 0.012,
+            size: 0.9 + (i % 4) * 0.12,
+            bob: Math.random() * Math.PI * 2,
+            home,
+            target,
+            gaze: 0,
+          });
+        }
+
+        for (let i = 0; i < 54; i += 1) {
+          motes.push({
+            x: Math.random() * w,
+            y: Math.random() * h,
+            drift: 0.2 + Math.random() * 0.5,
+            phase: Math.random() * Math.PI * 2,
+            size: 1.5 + Math.random() * 3.5,
+          });
+        }
+      }
+
+      function routePoint(route, t) {
+        const mx = (route.from.x + route.to.x) * 0.5;
+        const my = (route.from.y + route.to.y) * 0.5 - (route.type === "roof" ? 32 : 20);
+        const x =
+          (1 - t) * (1 - t) * route.from.x +
+          2 * (1 - t) * t * mx +
+          t * t * route.to.x;
+        const y =
+          (1 - t) * (1 - t) * route.from.y +
+          2 * (1 - t) * t * my +
+          t * t * route.to.y;
+        return { x, y };
+      }
+
+      function drawBackground() {
+        const gradient = ctx.createLinearGradient(0, 0, 0, state.height);
+        gradient.addColorStop(0, "rgba(255,255,255,0.16)");
+        gradient.addColorStop(1, "rgba(120,96,72,0.08)");
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, state.width, state.height);
+
+        const hollowX = state.width * 0.58;
+        const hollowY = state.height * 0.5;
+        const glow = ctx.createRadialGradient(hollowX, hollowY, 60, hollowX, hollowY, state.width * 0.34);
+        glow.addColorStop(0, "rgba(255, 252, 245, 0.54)");
+        glow.addColorStop(0.55, "rgba(255, 245, 233, 0.16)");
+        glow.addColorStop(1, "rgba(255, 245, 233, 0)");
+        ctx.fillStyle = glow;
+        ctx.fillRect(0, 0, state.width, state.height);
+
+        terraces.forEach((terrace, index) => {
+          ctx.beginPath();
+          ctx.moveTo(0, terrace.y + 80);
+          for (let x = 0; x <= state.width + 24; x += 24) {
+            const wave =
+              Math.sin(x * 0.008 + state.time * 0.00038 * terrace.sway + terrace.phase) * terrace.amp;
+            const pocket = pointer.heat * Math.exp(-Math.abs(x - pointer.x) / 220) * 16;
+            ctx.lineTo(x, terrace.y + wave - pocket);
+          }
+          ctx.lineTo(state.width, state.height + 120);
+          ctx.lineTo(0, state.height + 120);
+          ctx.closePath();
+          ctx.fillStyle = terrace.color;
+          ctx.fill();
+
+          ctx.strokeStyle = `rgba(42, 53, 45, ${0.04 + index * 0.015})`;
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        });
+
+        for (let i = 0; i < 6; i += 1) {
+          const y = state.height * (0.18 + i * 0.08);
+          ctx.beginPath();
+          for (let x = state.width * 0.12; x <= state.width * 0.92; x += 18) {
+            const offset = Math.sin(x * 0.01 + state.time * 0.0006 + i) * (8 + i * 1.5);
+            if (x === state.width * 0.12) {
+              ctx.moveTo(x, y + offset);
+            } else {
+              ctx.lineTo(x, y + offset);
+            }
+          }
+          ctx.strokeStyle = `rgba(143, 125, 144, ${0.06 + i * 0.012})`;
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        }
+      }
+
+      function drawPools() {
+        pools.forEach((pool) => {
+          const pulse = state.pulses.reduce((sum, item) => {
+            const d = distance(pool.x, pool.y, item.x, item.y);
+            return sum + Math.max(0, 1 - d / 260) * item.life;
+          }, 0);
+          const r = pool.r + Math.sin(state.time * 0.0012 + pool.phase) * 4 + pulse * 12;
+
+          ctx.beginPath();
+          ctx.ellipse(pool.x, pool.y, r * 1.1, r * 0.68, 0, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(141, 190, 192, ${0.24 + pulse * 0.16})`;
+          ctx.fill();
+
+          ctx.beginPath();
+          ctx.ellipse(pool.x, pool.y, r * 0.72, r * 0.34, 0, 0, Math.PI * 2);
+          ctx.fillStyle = "rgba(255,255,255,0.26)";
+          ctx.fill();
+
+          for (let i = 0; i < 3; i += 1) {
+            const sx = pool.x + Math.cos(state.time * 0.001 + pool.phase + i) * r * 0.34;
+            const sy = pool.y - r * 0.2 - i * 10;
+            ctx.beginPath();
+            ctx.arc(sx, sy, 9 + i * 3 + pulse * 4, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(255,255,255,${0.12 - i * 0.02})`;
+            ctx.fill();
+          }
+        });
+      }
+
+      function drawHouse(house) {
+        const heat = pointer.heat * Math.max(0, 1 - distance(house.x, house.y, pointer.x, pointer.y) / 240);
+        const sway = Math.sin(state.time * 0.0012 * house.sway + house.phase) * (4 + heat * 5);
+        const width = 58 * house.scale;
+        const height = 46 * house.scale;
+
+        ctx.save();
+        ctx.translate(house.x, house.y + sway);
+
+        ctx.beginPath();
+        ctx.moveTo(-width * 0.45, height * 0.1);
+        ctx.quadraticCurveTo(-width * 0.15, -height * 0.55, 0, -height * 0.62);
+        ctx.quadraticCurveTo(width * 0.2, -height * 0.5, width * 0.46, height * 0.08);
+        ctx.lineTo(width * 0.3, height * 0.42);
+        ctx.quadraticCurveTo(0, height * 0.54, -width * 0.3, height * 0.4);
+        ctx.closePath();
+        ctx.fillStyle = `rgba(149, 189, 163, ${0.52 + heat * 0.16})`;
+        ctx.fill();
+        ctx.strokeStyle = "rgba(42, 53, 45, 0.22)";
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(-width * 0.3, 0);
+        ctx.quadraticCurveTo(0, -height * 0.86, width * 0.34, 0);
+        ctx.strokeStyle = `rgba(42, 53, 45, ${0.18 + heat * 0.1})`;
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(-width * 0.06, height * 0.12);
+        ctx.lineTo(-width * 0.04, height * 0.86);
+        ctx.strokeStyle = "rgba(112, 141, 114, 0.34)";
+        ctx.lineWidth = 2.8;
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(width * 0.04, -height * 0.1, 6 * house.scale + heat * 2, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(209, 161, 94, ${0.58 + heat * 0.22})`;
+        ctx.fill();
+
+        for (let i = 0; i < 4; i += 1) {
+          const tx = -width * 0.3 + i * width * 0.2;
+          const ty = height * 0.12 + Math.sin(state.time * 0.002 + house.phase + i) * (3 + heat * 4);
+          ctx.beginPath();
+          ctx.moveTo(tx, ty);
+          ctx.lineTo(tx - 4, ty + 14 + i * 1.2);
+          ctx.strokeStyle = `rgba(143, 125, 144, ${0.18 + heat * 0.08})`;
+          ctx.stroke();
+        }
+
+        ctx.restore();
+      }
+
+      function drawRoutes() {
+        routes.forEach((route) => {
+          const pulse = route.pulse;
+          const width = route.type === "bridge" ? 3.4 : route.type === "canal" ? 4.2 : 2.6;
+
+          ctx.beginPath();
+          for (let i = 0; i <= 24; i += 1) {
+            const point = routePoint(route, i / 24);
+            if (i === 0) {
+              ctx.moveTo(point.x, point.y);
+            } else {
+              ctx.lineTo(point.x, point.y);
+            }
+          }
+          const hue =
+            route.type === "bridge"
+              ? `rgba(141, 190, 192, ${0.34 + pulse * 0.34})`
+              : route.type === "canal"
+                ? `rgba(112, 141, 114, ${0.32 + pulse * 0.28})`
+                : `rgba(210, 143, 114, ${0.32 + pulse * 0.32})`;
+          ctx.strokeStyle = hue;
+          ctx.lineWidth = width + pulse * 1.8;
+          ctx.stroke();
+
+          for (let i = 0; i < 4; i += 1) {
+            const point = routePoint(route, (state.time * 0.0001 * (0.8 + route.base) + i * 0.22) % 1);
+            ctx.beginPath();
+            ctx.arc(point.x, point.y, 2.2 + pulse * 2.6, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(255,255,255,${0.28 + pulse * 0.24})`;
+            ctx.fill();
+          }
+        });
+      }
+
+      function drawCarrier(carrier, index) {
+        const route = routes[carrier.routeIndex];
+        carrier.progress = (carrier.progress + carrier.speed * 0.0032) % 1;
+        const point = routePoint(route, carrier.progress);
+        const localHeat = pointer.heat * Math.max(0, 1 - distance(point.x, point.y, pointer.x, pointer.y) / 180);
+        carrier.gaze = lerp(carrier.gaze, localHeat, 0.08);
+        const bob = Math.sin(state.time * 0.003 + carrier.bob) * 5;
+
+        ctx.save();
+        ctx.translate(point.x, point.y + bob);
+        ctx.scale(carrier.size, carrier.size);
+
+        ctx.beginPath();
+        ctx.ellipse(0, 8, 18, 8, 0, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(42, 53, 45, 0.05)";
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.moveTo(-10, 6);
+        ctx.quadraticCurveTo(-8, -20, 0, -24);
+        ctx.quadraticCurveTo(8, -20, 10, 6);
+        ctx.quadraticCurveTo(0, 18, -10, 6);
+        ctx.closePath();
+        ctx.fillStyle = `rgba(149, 189, 163, ${0.72 + carrier.gaze * 0.16})`;
+        ctx.fill();
+        ctx.strokeStyle = "rgba(42, 53, 45, 0.24)";
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(-4, -6, 2 + carrier.gaze * 1.2, 0, Math.PI * 2);
+        ctx.arc(4, -6, 2 + carrier.gaze * 1.2, 0, Math.PI * 2);
+        ctx.fillStyle = palette.ink;
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(0, 0, 1.4 + carrier.gaze * 0.8, 0, Math.PI * 2);
+        ctx.fillStyle = palette.clay;
+        ctx.fill();
+
+        const parcelLift = 10 + Math.sin(state.time * 0.004 + index) * 2;
+        ctx.beginPath();
+        ctx.roundRect(-5, -parcelLift, 10, 8, 2);
+        ctx.fillStyle = `rgba(209, 161, 94, ${0.7 + carrier.gaze * 0.2})`;
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.moveTo(-1, -parcelLift + 1);
+        ctx.lineTo(0, -parcelLift - 5 - carrier.gaze * 3);
+        ctx.lineTo(1, -parcelLift + 1);
+        ctx.strokeStyle = `rgba(143, 125, 144, ${0.3 + carrier.gaze * 0.18})`;
+        ctx.stroke();
+
+        ctx.restore();
+      }
+
+      function drawMotes() {
+        motes.forEach((mote) => {
+          const driftX = Math.sin(state.time * 0.0007 * mote.drift + mote.phase) * 18;
+          const driftY = Math.cos(state.time * 0.0006 * mote.drift + mote.phase) * 12;
+          const heat = pointer.heat * Math.max(0, 1 - distance(mote.x, mote.y, pointer.x, pointer.y) / 190);
+          ctx.beginPath();
+          ctx.arc(mote.x + driftX, mote.y + driftY, mote.size + heat * 1.6, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(255,255,255,${0.08 + heat * 0.12})`;
+          ctx.fill();
+        });
+      }
+
+      function drawCanopies() {
+        houses.forEach((house, index) => {
+          const depth = (index % 3) * 0.18;
+          for (let i = 0; i < 3; i += 1) {
+            const sway = Math.sin(state.time * 0.0018 + house.phase + i) * (8 + pointer.heat * 6);
+            ctx.beginPath();
+            ctx.moveTo(house.x - 34 + i * 16, house.y - 66);
+            ctx.quadraticCurveTo(house.x - 18 + i * 8 + sway, house.y - 112 - i * 8, house.x + 6 + i * 14, house.y - 72);
+            ctx.strokeStyle = `rgba(112, 141, 114, ${0.2 + depth})`;
+            ctx.lineWidth = 2.1 - i * 0.25;
+            ctx.stroke();
+          }
+        });
+      }
+
+      function drawPulse(pulse) {
+        const radius = lerp(12, 190, 1 - pulse.life);
+        ctx.beginPath();
+        ctx.arc(pulse.x, pulse.y, radius, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(209, 161, 94, ${pulse.life * 0.28})`;
+        ctx.lineWidth = 2.4;
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(pulse.x, pulse.y, radius * 0.62, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(141, 190, 192, ${pulse.life * 0.2})`;
+        ctx.lineWidth = 1.1;
+        ctx.stroke();
+      }
+
+      function nearestDistrict() {
+        const zones = [
+          { label: "north terrace", copy: "The nearest carriers glance up, their route glow thickens, and the reed roofs sway more visibly inside the warm pocket.", x: state.width * 0.28, y: state.height * 0.33 },
+          { label: "bridge knot", copy: "Bridge threads tense slightly, amber parcels brighten, and the crossing queue compresses into a shared beat.", x: state.width * 0.48, y: state.height * 0.5 },
+          { label: "canal rim", copy: "Steam folds low over the round water, while the closest homes answer with softer light and slower ladder motion.", x: state.width * 0.68, y: state.height * 0.58 },
+          { label: "roof ladders", copy: "The roof lane lifts, tassels pull sideways, and the top couriers carry their bundles with more visible bounce.", x: state.width * 0.76, y: state.height * 0.34 },
+        ];
+
+        let nearest = zones[0];
+        let best = Infinity;
+        zones.forEach((zone) => {
+          const d = distance(zone.x, zone.y, pointer.x, pointer.y);
+          if (d < best) {
+            best = d;
+            nearest = zone;
+          }
+        });
+        return nearest;
+      }
+
+      function updateHud() {
+        const pulseStrength =
+          state.pulses.length > 0 ? Math.max(...state.pulses.map((item) => item.life)) : 0;
+        const bridge = clamp(0.44 + pointer.heat * 0.18 + pulseStrength * 0.2, 0, 1);
+        const canal = clamp(0.38 + (1 - pointer.heat) * 0.08 + pulseStrength * 0.24, 0, 1);
+        const roof = clamp(0.28 + pointer.heat * 0.12 + Math.sin(state.time * 0.0014) * 0.04 + pulseStrength * 0.16, 0, 1);
+
+        bridgeFill.style.width = `${Math.round(bridge * 100)}%`;
+        canalFill.style.width = `${Math.round(canal * 100)}%`;
+        roofFill.style.width = `${Math.round(roof * 100)}%`;
+        bridgeStat.textContent = `${Math.round(bridge * 100)}%`;
+        canalStat.textContent = `${Math.round(canal * 100)}%`;
+        roofStat.textContent = `${Math.round(roof * 100)}%`;
+
+        const district = nearestDistrict();
+        focusLabel.textContent = district.label;
+        focusCopy.textContent = district.copy;
+
+        if (pulseStrength > 0.65) {
+          modeLabel.textContent = "communal reroute";
+        } else if (pointer.heat > 0.35) {
+          modeLabel.textContent = "warm drift";
+        } else {
+          modeLabel.textContent = "hush current";
+        }
+      }
+
+      function update(time) {
+        state.time = time;
+        pointer.x = lerp(pointer.x, pointer.targetX, 0.08);
+        pointer.y = lerp(pointer.y, pointer.targetY, 0.08);
+        pointer.heat = lerp(pointer.heat, pointer.active ? 1 : 0.16, pointer.active ? 0.08 : 0.03);
+
+        state.pulses = state.pulses
+          .map((pulse) => ({ ...pulse, life: pulse.life - 0.012 }))
+          .filter((pulse) => pulse.life > 0);
+
+        routes.forEach((route) => {
+          route.pulse = lerp(
+            route.pulse,
+            state.pulses.reduce((sum, pulse) => {
+              const mid = routePoint(route, 0.5);
+              const d = distance(mid.x, mid.y, pulse.x, pulse.y);
+              return Math.max(sum, Math.max(0, 1 - d / 260) * pulse.life);
+            }, 0),
+            0.08,
+          );
+        });
+
+        ctx.clearRect(0, 0, state.width, state.height);
+        drawBackground();
+        drawPools();
+        routes.forEach(drawRoutes);
+        drawCanopies();
+        houses.forEach(drawHouse);
+        carriers.forEach(drawCarrier);
+        drawMotes();
+        state.pulses.forEach(drawPulse);
+        updateHud();
+        requestAnimationFrame(update);
+      }
+
+      window.addEventListener("pointermove", (event) => {
+        const rect = worldPanel.getBoundingClientRect();
+        const localX = event.clientX - rect.left;
+        const localY = event.clientY - rect.top;
+        const inside = localX >= 0 && localX <= rect.width && localY >= 0 && localY <= rect.height;
+        if (inside) {
+          pointer.targetX = localX;
+          pointer.targetY = localY;
+          pointer.active = true;
+        } else {
+          pointer.active = false;
+        }
+      });
+
+      window.addEventListener("pointerleave", () => {
+        pointer.active = false;
+      });
+
+      window.addEventListener("click", (event) => {
+        const rect = worldPanel.getBoundingClientRect();
+        const localX = event.clientX - rect.left;
+        const localY = event.clientY - rect.top;
+        if (localX < 0 || localX > rect.width || localY < 0 || localY > rect.height) {
+          return;
+        }
+        const pulse = { x: localX, y: localY, life: 1 };
+        state.pulses.push(pulse);
+
+        const district = nearestDistrict();
+        pulseLabel.textContent = district.label;
+        pulseCopy.textContent =
+          "A short amber route woke up this district first, pulling nearby couriers into one visible exchange before the traffic softened again.";
+        addLog("Errand pulse", district.label);
+      });
+
+      window.addEventListener("resize", resize);
+
+      resize();
+      requestAnimationFrame(update);
+    </script>
+  </body>
+</html>

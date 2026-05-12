@@ -1,0 +1,621 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>#038 Affection Thread Sanctuary</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg-top: #0c1016;
+        --bg-bottom: #040506;
+        --mist: rgba(191, 226, 228, 0.08);
+        --text: #eef1ec;
+        --muted: rgba(238, 241, 236, 0.72);
+        --line: rgba(233, 244, 236, 0.16);
+        --panel: rgba(8, 12, 16, 0.46);
+        --cyan: #9fe3dd;
+        --mint: #dff5a6;
+        --rose: #f3a8b4;
+        --amber: #f2c07f;
+        --shadow: 0 30px 80px rgba(0, 0, 0, 0.34);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background:
+          radial-gradient(circle at 20% 18%, rgba(159, 227, 221, 0.08), transparent 24%),
+          radial-gradient(circle at 76% 22%, rgba(243, 168, 180, 0.08), transparent 28%),
+          radial-gradient(circle at 54% 82%, rgba(223, 245, 166, 0.06), transparent 24%),
+          linear-gradient(180deg, var(--bg-top) 0%, var(--bg-bottom) 100%);
+        color: var(--text);
+        font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", serif;
+      }
+
+      canvas {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        display: block;
+      }
+
+      .overlay {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+      }
+
+      .panel,
+      .chip,
+      .back {
+        border: 1px solid var(--line);
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.07), transparent 22%),
+          var(--panel);
+        backdrop-filter: blur(18px);
+        box-shadow: var(--shadow);
+      }
+
+      .note {
+        position: absolute;
+        left: 18px;
+        top: 18px;
+        width: min(30rem, calc(100vw - 36px));
+        padding: 15px 16px 16px;
+        border-radius: 26px;
+        pointer-events: auto;
+      }
+
+      .eyebrow,
+      .hint,
+      .meta,
+      .label,
+      .value {
+        margin: 0;
+      }
+
+      .eyebrow,
+      .label {
+        font-family: "Azeret Mono", "IBM Plex Mono", "SFMono-Regular", monospace;
+        font-size: 11px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      h1 {
+        margin: 0.45rem 0 0;
+        font-size: clamp(2.1rem, 5vw, 3.7rem);
+        line-height: 0.9;
+        letter-spacing: -0.05em;
+      }
+
+      .hint,
+      .meta {
+        margin-top: 0.72rem;
+        line-height: 1.5;
+        color: rgba(238, 241, 236, 0.78);
+      }
+
+      .meta {
+        font-size: 0.82rem;
+        color: var(--muted);
+      }
+
+      .readout {
+        margin-top: 0.94rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+      }
+
+      .value {
+        display: block;
+        margin-top: 0.24rem;
+        font-family: "Azeret Mono", "IBM Plex Mono", "SFMono-Regular", monospace;
+        font-size: 0.92rem;
+        color: var(--text);
+      }
+
+      .chips {
+        position: absolute;
+        left: 18px;
+        bottom: 18px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        width: min(34rem, calc(100vw - 120px));
+      }
+
+      .chip {
+        padding: 10px 14px;
+        border-radius: 999px;
+        pointer-events: auto;
+        cursor: pointer;
+        transition:
+          transform 180ms ease,
+          border-color 180ms ease,
+          background 180ms ease;
+        font-family: "Azeret Mono", "IBM Plex Mono", "SFMono-Regular", monospace;
+        font-size: 0.76rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--text);
+      }
+
+      .chip:hover,
+      .chip:focus-visible {
+        transform: translateY(-1px);
+        border-color: rgba(223, 245, 166, 0.34);
+        outline: none;
+      }
+
+      .chip.active {
+        border-color: rgba(223, 245, 166, 0.38);
+        background:
+          linear-gradient(90deg, rgba(159, 227, 221, 0.12), rgba(243, 168, 180, 0.12)),
+          rgba(255, 255, 255, 0.06);
+      }
+
+      .back {
+        position: absolute;
+        right: 18px;
+        bottom: 18px;
+        border-radius: 999px;
+        padding: 10px 14px;
+        color: var(--text);
+        text-decoration: none;
+        pointer-events: auto;
+        font-family: "Azeret Mono", "IBM Plex Mono", "SFMono-Regular", monospace;
+        font-size: 0.76rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      @media (max-width: 900px) {
+        .note {
+          left: 14px;
+          top: 14px;
+          width: min(28rem, calc(100vw - 28px));
+          padding: 13px 14px 14px;
+        }
+
+        .chips {
+          left: 14px;
+          bottom: 14px;
+          width: calc(100vw - 108px);
+          gap: 8px;
+        }
+
+        .chip,
+        .back {
+          padding: 9px 12px;
+          font-size: 0.7rem;
+        }
+
+        .back {
+          right: 14px;
+          bottom: 14px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="scene"></canvas>
+    <div class="overlay">
+      <section class="panel note">
+        <p class="eyebrow">Code Animation Study #038</p>
+        <h1>Affection Thread Sanctuary</h1>
+        <p class="hint">
+          A small membrane habitat where rooted creatures warm each other,
+          exchange glow through thread bridges, and sway as one weather system
+          instead of living inside another dashboard.
+        </p>
+        <p class="meta">
+          Move through the sanctuary to bend currents and wake nearby valves.
+          Select a climate to retune flocking, openness, and blush pressure.
+        </p>
+        <div class="readout">
+          <p class="label">Climate<span class="value" id="climateValue">hush</span></p>
+          <p class="label">Bridge tension<span class="value" id="tensionValue">0.46</span></p>
+          <p class="label">Canopy opening<span class="value" id="openingValue">38%</span></p>
+        </div>
+      </section>
+
+      <div class="chips" id="chips" aria-label="Sanctuary climates"></div>
+      <a class="back" href="../../index.html">Back to index</a>
+    <script src="../../shared/study-notes.js"></script>
+    </div>
+
+    <script>
+      const canvas = document.getElementById("scene");
+      const ctx = canvas.getContext("2d");
+      const chips = document.getElementById("chips");
+      const climateValue = document.getElementById("climateValue");
+      const tensionValue = document.getElementById("tensionValue");
+      const openingValue = document.getElementById("openingValue");
+      const TAU = Math.PI * 2;
+
+      const pointer = {
+        x: window.innerWidth * 0.52,
+        y: window.innerHeight * 0.56,
+        tx: window.innerWidth * 0.52,
+        ty: window.innerHeight * 0.56,
+        active: false,
+      };
+
+      const climates = [
+        { key: "hush", drift: 0.55, bloom: 0.42, blush: 0.36, warmth: "#f2c07f" },
+        { key: "gather", drift: 0.88, bloom: 0.64, blush: 0.52, warmth: "#f3a8b4" },
+        { key: "bloom", drift: 1.18, bloom: 0.9, blush: 0.72, warmth: "#dff5a6" },
+      ];
+
+      let activeClimate = climates[0];
+
+      const creatures = [
+        { x: 0.28, y: 0.67, scale: 0.84, seed: 0.3, tint: "#9fe3dd" },
+        { x: 0.43, y: 0.61, scale: 1.1, seed: 1.2, tint: "#f3a8b4" },
+        { x: 0.58, y: 0.65, scale: 0.96, seed: 2.1, tint: "#dff5a6" },
+        { x: 0.73, y: 0.58, scale: 0.8, seed: 2.9, tint: "#9fe3dd" },
+      ];
+
+      const spores = Array.from({ length: 88 }, (_, index) => ({
+        x: (index * 127.1) % 1,
+        y: ((index * 73.7) % 1) * 0.9 + 0.04,
+        r: 1.4 + (index % 5) * 0.5,
+        speed: 0.0008 + (index % 7) * 0.00022,
+        drift: index * 0.6,
+        warm: index % 3 === 0,
+      }));
+
+      const bridgeAnchors = [
+        { ax: 0.18, ay: 0.28, bx: 0.43, by: 0.61 },
+        { ax: 0.46, ay: 0.2, bx: 0.58, by: 0.65 },
+        { ax: 0.78, ay: 0.24, bx: 0.73, by: 0.58 },
+      ];
+
+      function setClimate(next) {
+        activeClimate = next;
+        climateValue.textContent = next.key;
+        for (const button of chips.children) {
+          button.classList.toggle("active", button.dataset.key === next.key);
+        }
+      }
+
+      for (const climate of climates) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "chip";
+        button.dataset.key = climate.key;
+        button.textContent = climate.key;
+        button.addEventListener("click", () => setClimate(climate));
+        chips.appendChild(button);
+      }
+      setClimate(activeClimate);
+
+      function resize() {
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = Math.round(window.innerWidth * dpr);
+        canvas.height = Math.round(window.innerHeight * dpr);
+        canvas.style.width = window.innerWidth + "px";
+        canvas.style.height = window.innerHeight + "px";
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+
+      function lerp(a, b, t) {
+        return a + (b - a) * t;
+      }
+
+      function line(points, alpha, width, color) {
+        ctx.beginPath();
+        for (let i = 0; i < points.length; i += 1) {
+          const point = points[i];
+          if (i === 0) ctx.moveTo(point.x, point.y);
+          else ctx.lineTo(point.x, point.y);
+        }
+        ctx.strokeStyle = color || `rgba(233, 244, 236, ${alpha})`;
+        ctx.lineWidth = width;
+        ctx.stroke();
+      }
+
+      function drawBackdrop(w, h, time) {
+        const mist = ctx.createLinearGradient(0, 0, 0, h);
+        mist.addColorStop(0, "rgba(191, 226, 228, 0.08)");
+        mist.addColorStop(0.56, "rgba(6, 8, 10, 0)");
+        mist.addColorStop(1, "rgba(0, 0, 0, 0.24)");
+        ctx.fillStyle = mist;
+        ctx.fillRect(0, 0, w, h);
+
+        for (let i = 0; i < 8; i += 1) {
+          const y = h * (0.2 + i * 0.1) + Math.sin(time * 0.18 + i) * 16;
+          ctx.strokeStyle = `rgba(191, 226, 228, ${0.018 + i * 0.003})`;
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(-40, y);
+          ctx.bezierCurveTo(w * 0.22, y - 28, w * 0.68, y + 18, w + 40, y - 8);
+          ctx.stroke();
+        }
+      }
+
+      function drawCanopy(w, h, time) {
+        bridgeAnchors.forEach((bridge, index) => {
+          const amp = 18 + activeClimate.bloom * 18;
+          const pointerShift = (pointer.x / w - 0.5) * 26;
+          const startX = bridge.ax * w;
+          const startY = bridge.ay * h;
+          const endX = bridge.bx * w;
+          const endY = bridge.by * h;
+          const midX = (startX + endX) * 0.5 + Math.sin(time + index) * 18 + pointerShift;
+          const midY = (startY + endY) * 0.5 - 40 - Math.cos(time * 1.2 + index) * amp;
+
+          ctx.beginPath();
+          ctx.moveTo(startX, startY);
+          ctx.quadraticCurveTo(midX, midY, endX, endY);
+          ctx.strokeStyle = `rgba(223, 245, 166, ${0.1 + activeClimate.bloom * 0.1})`;
+          ctx.lineWidth = 1.2;
+          ctx.stroke();
+
+          ctx.beginPath();
+          ctx.moveTo(startX - 12, startY + 8);
+          ctx.quadraticCurveTo(midX - 22, midY + 30, endX + 8, endY - 6);
+          ctx.strokeStyle = `rgba(159, 227, 221, ${0.08 + activeClimate.bloom * 0.08})`;
+          ctx.lineWidth = 0.9;
+          ctx.stroke();
+
+          for (let j = 0; j < 7; j += 1) {
+            const t = j / 6;
+            const x = (1 - t) * (1 - t) * startX + 2 * (1 - t) * t * midX + t * t * endX;
+            const y = (1 - t) * (1 - t) * startY + 2 * (1 - t) * t * midY + t * t * endY;
+            const radius = 3 + Math.sin(time * 2 + index + j) * 0.8;
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, TAU);
+            ctx.fillStyle = j % 2 === 0 ? "rgba(243, 168, 180, 0.18)" : "rgba(159, 227, 221, 0.16)";
+            ctx.fill();
+          }
+        });
+      }
+
+      function drawSporeCloud(w, h, time) {
+        for (const spore of spores) {
+          const px = spore.x * w + Math.sin(time * 0.6 + spore.drift) * 18;
+          const py = spore.y * h + Math.cos(time * 0.7 + spore.drift) * 14;
+          const pullX = (pointer.x - px) * 0.015 * activeClimate.drift;
+          const pullY = (pointer.y - py) * 0.01 * activeClimate.drift;
+          ctx.beginPath();
+          ctx.arc(px + pullX, py + pullY, spore.r, 0, TAU);
+          ctx.fillStyle = spore.warm ? "rgba(242, 192, 127, 0.32)" : "rgba(233, 244, 236, 0.18)";
+          ctx.fill();
+        }
+      }
+
+      function drawRootBundle(baseX, baseY, spread, time, tint) {
+        for (let i = 0; i < 4; i += 1) {
+          const dir = i < 2 ? -1 : 1;
+          const offset = (i - 1.5) * 9;
+          const bend = spread * (32 + i * 6) * dir;
+          const curl = Math.sin(time * 2.1 + i) * 10;
+          ctx.beginPath();
+          ctx.moveTo(baseX + offset, baseY);
+          ctx.bezierCurveTo(
+            baseX + offset + bend * 0.2,
+            baseY + 22,
+            baseX + bend,
+            baseY + 72 + curl,
+            baseX + bend * 1.1,
+            baseY + 120 + curl * 0.6
+          );
+          ctx.strokeStyle = tint;
+          ctx.lineWidth = 1.8 - i * 0.18;
+          ctx.stroke();
+        }
+      }
+
+      function drawCreature(creature, index, w, h, time) {
+        const x = creature.x * w;
+        const y = creature.y * h;
+        const pulse = Math.sin(time * 2 + creature.seed) * 0.5 + 0.5;
+        const hoverDx = pointer.x - x;
+        const hoverDy = pointer.y - y;
+        const distance = Math.hypot(hoverDx, hoverDy);
+        const interest = Math.max(0, 1 - distance / (220 * creature.scale));
+        const sway = Math.sin(time * 1.8 + creature.seed) * 10 * activeClimate.drift;
+        const lean = hoverDx * 0.02 * interest;
+        const blush = (0.12 + activeClimate.blush * 0.32 + interest * 0.22).toFixed(3);
+        const open = 0.28 + activeClimate.bloom * 0.52 + interest * 0.22;
+
+        ctx.save();
+        ctx.translate(x + sway, y + Math.cos(time * 1.3 + creature.seed) * 7);
+        ctx.scale(creature.scale, creature.scale);
+
+        drawRootBundle(0, 62, 0.5 + activeClimate.drift * 0.6 + interest * 0.3, time + creature.seed, "rgba(225, 232, 226, 0.22)");
+
+        ctx.beginPath();
+        ctx.ellipse(0, 22, 52, 72, 0.1 + lean * 0.003, 0, TAU);
+        const body = ctx.createRadialGradient(-8, -16, 8, 0, 10, 94);
+        body.addColorStop(0, "rgba(245, 248, 242, 0.9)");
+        body.addColorStop(0.48, `${creature.tint}22`);
+        body.addColorStop(1, "rgba(16, 20, 24, 0.12)");
+        ctx.fillStyle = body;
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.ellipse(-8, -18, 34, 28, -0.2 + lean * 0.005, 0, TAU);
+        ctx.fillStyle = "rgba(246, 249, 244, 0.94)";
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.moveTo(-16, -6);
+        ctx.bezierCurveTo(-42, 12, -54, 24 + pulse * 4, -66 - interest * 4, 42);
+        ctx.strokeStyle = "rgba(233, 244, 236, 0.18)";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(20, -4);
+        ctx.bezierCurveTo(42, 8, 58, 20 + pulse * 4, 70 + interest * 6, 38);
+        ctx.strokeStyle = "rgba(233, 244, 236, 0.18)";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        const eyeShiftX = lean * 0.08;
+        const eyeShiftY = hoverDy * 0.015 * interest;
+        const eyeRadius = 4 + interest * 1.8;
+        [
+          { x: -16, y: -21 },
+          { x: 0, y: -26 },
+          { x: 16, y: -19 },
+        ].forEach((eye, eyeIndex) => {
+          ctx.beginPath();
+          ctx.arc(eye.x + eyeShiftX, eye.y + eyeShiftY + Math.sin(time * 3 + eyeIndex) * 0.6, eyeRadius, 0, TAU);
+          ctx.fillStyle = eyeIndex === 1 ? "rgba(242, 192, 127, 0.92)" : "rgba(159, 227, 221, 0.88)";
+          ctx.fill();
+        });
+
+        ctx.beginPath();
+        ctx.ellipse(0, -3, 16 + open * 6, 10 + pulse * 2, 0.06, 0, TAU);
+        ctx.fillStyle = `rgba(243, 168, 180, ${blush})`;
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.moveTo(-12, 24);
+        ctx.quadraticCurveTo(0, 34 + pulse * 4, 13, 22);
+        ctx.strokeStyle = "rgba(242, 192, 127, 0.26)";
+        ctx.lineWidth = 1.6;
+        ctx.stroke();
+
+        const crownCount = 6;
+        for (let i = 0; i < crownCount; i += 1) {
+          const offset = -26 + i * 10;
+          const bend = Math.sin(time * 1.8 + creature.seed + i * 0.5) * (8 + interest * 6);
+          ctx.beginPath();
+          ctx.moveTo(offset, -30);
+          ctx.quadraticCurveTo(offset + bend, -72 - open * 18, offset + bend * 0.2, -102 - i * 2);
+          ctx.strokeStyle = i % 2 === 0 ? "rgba(159, 227, 221, 0.28)" : "rgba(243, 168, 180, 0.22)";
+          ctx.lineWidth = 1.1;
+          ctx.stroke();
+
+          ctx.beginPath();
+          ctx.arc(offset + bend * 0.2, -102 - i * 2, 3.1, 0, TAU);
+          ctx.fillStyle = i % 2 === 0 ? "rgba(159, 227, 221, 0.26)" : "rgba(243, 168, 180, 0.24)";
+          ctx.fill();
+        }
+
+        ctx.restore();
+
+        if (index < creatures.length - 1) {
+          const other = creatures[index + 1];
+          const ox = other.x * w;
+          const oy = other.y * h;
+          const midX = (x + ox) * 0.5;
+          const midY = (y + oy) * 0.5 - 36 - Math.sin(time * 1.4 + index) * 18;
+          ctx.beginPath();
+          ctx.moveTo(x + 18, y - 12);
+          ctx.quadraticCurveTo(midX, midY, ox - 18, oy - 14);
+          ctx.strokeStyle = `rgba(223, 245, 166, ${0.08 + activeClimate.bloom * 0.16})`;
+          ctx.lineWidth = 1.4;
+          ctx.stroke();
+        }
+      }
+
+      function drawHabitatFloor(w, h, time) {
+        const floorY = h * 0.83;
+        ctx.beginPath();
+        ctx.moveTo(-40, floorY);
+        for (let x = -40; x <= w + 40; x += 40) {
+          const wave = Math.sin(time * 0.8 + x * 0.01) * 8 + Math.cos(time * 0.5 + x * 0.008) * 6;
+          ctx.lineTo(x, floorY + wave);
+        }
+        ctx.lineTo(w + 40, h + 60);
+        ctx.lineTo(-40, h + 60);
+        ctx.closePath();
+        const ground = ctx.createLinearGradient(0, floorY - 40, 0, h + 40);
+        ground.addColorStop(0, "rgba(33, 43, 48, 0.18)");
+        ground.addColorStop(1, "rgba(6, 7, 8, 0.88)");
+        ctx.fillStyle = ground;
+        ctx.fill();
+
+        for (let i = 0; i < 14; i += 1) {
+          const x = (i / 13) * w;
+          const height = 42 + Math.sin(time + i * 0.6) * 12;
+          ctx.beginPath();
+          ctx.moveTo(x, floorY + 4);
+          ctx.quadraticCurveTo(x - 12, floorY - height * 0.42, x - 2, floorY - height);
+          ctx.strokeStyle = "rgba(233, 244, 236, 0.06)";
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        }
+      }
+
+      function drawPointerWake(time) {
+        const wake = 48 + activeClimate.bloom * 28;
+        const gradient = ctx.createRadialGradient(pointer.x, pointer.y, 0, pointer.x, pointer.y, wake * 2.1);
+        gradient.addColorStop(0, "rgba(242, 192, 127, 0.18)");
+        gradient.addColorStop(0.42, "rgba(243, 168, 180, 0.08)");
+        gradient.addColorStop(1, "rgba(243, 168, 180, 0)");
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(pointer.x, pointer.y, wake * 2.1, 0, TAU);
+        ctx.fill();
+
+        for (let ring = 0; ring < 3; ring += 1) {
+          ctx.beginPath();
+          ctx.arc(pointer.x, pointer.y, wake + ring * 24 + Math.sin(time * 2 + ring) * 4, 0, TAU);
+          ctx.strokeStyle = `rgba(223, 245, 166, ${0.1 - ring * 0.024})`;
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        }
+      }
+
+      function render(now) {
+        const time = now * 0.001;
+        const w = window.innerWidth;
+        const h = window.innerHeight;
+        pointer.x = lerp(pointer.x, pointer.tx, pointer.active ? 0.13 : 0.04);
+        pointer.y = lerp(pointer.y, pointer.ty, pointer.active ? 0.13 : 0.04);
+
+        ctx.clearRect(0, 0, w, h);
+        drawBackdrop(w, h, time);
+        drawCanopy(w, h, time);
+        drawSporeCloud(w, h, time);
+        drawHabitatFloor(w, h, time);
+
+        creatures.forEach((creature, index) => {
+          drawCreature(creature, index, w, h, time);
+        });
+
+        drawPointerWake(time);
+
+        const tension = 0.32 + activeClimate.drift * 0.18 + (pointer.x / w - 0.5) * 0.08;
+        const opening = Math.max(0.22, Math.min(0.94, 0.26 + activeClimate.bloom * 0.48 + Math.sin(time * 1.2) * 0.04));
+        tensionValue.textContent = tension.toFixed(2);
+        openingValue.textContent = Math.round(opening * 100) + "%";
+
+        requestAnimationFrame(render);
+      }
+
+      window.addEventListener("resize", resize);
+      window.addEventListener("pointermove", (event) => {
+        pointer.tx = event.clientX;
+        pointer.ty = event.clientY;
+        pointer.active = true;
+      });
+      window.addEventListener("pointerleave", () => {
+        pointer.active = false;
+        pointer.tx = window.innerWidth * 0.52;
+        pointer.ty = window.innerHeight * 0.56;
+      });
+
+      resize();
+      requestAnimationFrame(render);
+    </script>
+  </body>
+</html>

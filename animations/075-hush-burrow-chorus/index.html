@@ -1,0 +1,1141 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>#075 Hush Burrow Chorus</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #120f11;
+        --bg-deep: #090708;
+        --panel: rgba(28, 20, 21, 0.74);
+        --panel-soft: rgba(255, 245, 238, 0.08);
+        --line: rgba(252, 230, 214, 0.12);
+        --line-strong: rgba(252, 230, 214, 0.24);
+        --text: #f9efe7;
+        --muted: rgba(249, 239, 231, 0.7);
+        --amber: #f0b276;
+        --butter: #eadf8d;
+        --moss: #92ab7b;
+        --cyan: #78b4c3;
+        --rose: #d68f84;
+        --ink: #271c1d;
+        --shadow: 0 28px 90px rgba(0, 0, 0, 0.42);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        background:
+          radial-gradient(circle at 18% 18%, rgba(214, 143, 132, 0.12), transparent 24%),
+          radial-gradient(circle at 78% 16%, rgba(120, 180, 195, 0.1), transparent 22%),
+          radial-gradient(circle at 52% 82%, rgba(146, 171, 123, 0.1), transparent 28%),
+          linear-gradient(180deg, #171214 0%, var(--bg) 46%, var(--bg-deep) 100%);
+        color: var(--text);
+        font-family: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+      }
+
+      body {
+        overflow: hidden;
+      }
+
+      body::before,
+      body::after {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+      }
+
+      body::before {
+        opacity: 0.08;
+        background-image:
+          linear-gradient(rgba(255, 246, 239, 0.42) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 246, 239, 0.42) 1px, transparent 1px);
+        background-size: 96px 96px;
+        mask-image: radial-gradient(circle at 50% 46%, black 32%, transparent 86%);
+      }
+
+      body::after {
+        opacity: 0.12;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.06), transparent 26%),
+          repeating-linear-gradient(
+            180deg,
+            rgba(255, 255, 255, 0.018) 0,
+            rgba(255, 255, 255, 0.018) 1px,
+            transparent 1px,
+            transparent 4px
+          );
+        mix-blend-mode: screen;
+      }
+
+      canvas {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        display: block;
+      }
+
+      a {
+        color: inherit;
+      }
+
+      .shell {
+        position: fixed;
+        inset: 16px;
+        display: grid;
+        grid-template-columns: minmax(280px, 336px) minmax(0, 1fr);
+        grid-template-rows: auto 1fr auto;
+        gap: 14px;
+        pointer-events: none;
+      }
+
+      .panel,
+      .scene-card,
+      .notes,
+      .back {
+        pointer-events: auto;
+        border: 1px solid var(--line);
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.02)),
+          var(--panel);
+        backdrop-filter: blur(18px);
+        box-shadow: var(--shadow);
+      }
+
+      .panel,
+      .scene-card,
+      .notes {
+        position: relative;
+        overflow: hidden;
+        border-radius: 28px;
+      }
+
+      .panel::after,
+      .scene-card::after,
+      .notes::after {
+        content: "";
+        position: absolute;
+        inset: 1px;
+        border-radius: inherit;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        pointer-events: none;
+      }
+
+      .panel {
+        grid-column: 1;
+        grid-row: 1 / span 2;
+        display: grid;
+        align-content: start;
+        gap: 12px;
+        padding: 16px;
+      }
+
+      .scene-card {
+        grid-column: 2;
+        grid-row: 1 / span 2;
+        min-height: min(79vh, 920px);
+        padding: 18px;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(220px, 268px);
+        grid-template-rows: auto 1fr auto;
+        gap: 12px;
+      }
+
+      .notes {
+        grid-column: 1 / -1;
+        grid-row: 3;
+        padding: 14px;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .scene-head,
+      .ledger,
+      .prompt-card,
+      .timeline,
+      .note-card,
+      .chip,
+      .meter {
+        border: 1px solid rgba(252, 230, 214, 0.12);
+        border-radius: 24px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.02)),
+          rgba(255, 255, 255, 0.02);
+      }
+
+      .scene-head,
+      .ledger,
+      .prompt-card,
+      .timeline,
+      .note-card {
+        backdrop-filter: blur(10px);
+      }
+
+      .scene-head {
+        grid-column: 1 / -1;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: end;
+        gap: 12px;
+        padding: 14px 15px;
+      }
+
+      .ledger,
+      .prompt-card {
+        display: grid;
+        gap: 10px;
+        padding: 13px 14px 14px;
+      }
+
+      .timeline {
+        grid-column: 1 / -1;
+        display: grid;
+        gap: 10px;
+        padding: 12px 14px 14px;
+      }
+
+      .note-card {
+        padding: 12px 13px;
+      }
+
+      .chip-row,
+      .meter-stack,
+      .legend-list,
+      .beat-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .chip {
+        padding: 8px 10px;
+      }
+
+      .eyebrow,
+      .small,
+      .chip,
+      .beat,
+      .back,
+      .tag,
+      .stat-label {
+        font-family: "Azeret Mono", "IBM Plex Mono", monospace;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+      }
+
+      .eyebrow,
+      .small,
+      .tag,
+      .stat-label {
+        font-size: 11px;
+        color: var(--muted);
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+
+      h1 {
+        font-size: clamp(2.6rem, 4vw, 4.8rem);
+        line-height: 0.92;
+        letter-spacing: -0.05em;
+      }
+
+      h2 {
+        font-size: 1rem;
+        letter-spacing: -0.02em;
+      }
+
+      .lede,
+      .note-copy,
+      .legend-copy,
+      .stat-value,
+      .prompt-card p,
+      .timeline p {
+        font-size: 14px;
+        line-height: 1.52;
+      }
+
+      .lede,
+      .legend-copy,
+      .prompt-card p,
+      .timeline p {
+        color: rgba(249, 239, 231, 0.82);
+      }
+
+      .legend {
+        display: grid;
+        gap: 8px;
+      }
+
+      .legend-row {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+      }
+
+      .legend-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+        flex: 0 0 auto;
+      }
+
+      .legend-dot.amber {
+        background: var(--amber);
+      }
+
+      .legend-dot.cyan {
+        background: var(--cyan);
+      }
+
+      .legend-dot.moss {
+        background: var(--moss);
+      }
+
+      .legend-dot.rose {
+        background: var(--rose);
+      }
+
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .meter {
+        padding: 11px 12px;
+      }
+
+      .stat-label {
+        display: block;
+        margin-bottom: 0.35rem;
+      }
+
+      .stat-value {
+        font-size: 0.98rem;
+      }
+
+      .scene-wrap {
+        position: relative;
+        border-radius: 26px;
+        overflow: hidden;
+        border: 1px solid rgba(252, 230, 214, 0.1);
+        min-height: 0;
+        background:
+          radial-gradient(circle at 20% 22%, rgba(214, 143, 132, 0.12), transparent 18%),
+          radial-gradient(circle at 80% 18%, rgba(120, 180, 195, 0.1), transparent 18%),
+          linear-gradient(180deg, rgba(255, 255, 255, 0.05), transparent 24%),
+          rgba(0, 0, 0, 0.14);
+      }
+
+      .scene-overlay {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+      }
+
+      .scan {
+        position: absolute;
+        inset: 0;
+        background:
+          linear-gradient(180deg, transparent 0%, rgba(255, 255, 255, 0.08) 48%, transparent 100%);
+        opacity: 0;
+        mix-blend-mode: screen;
+      }
+
+      .whisper {
+        position: absolute;
+        min-width: 84px;
+        padding: 7px 12px 8px;
+        border-radius: 999px;
+        border: 1px solid rgba(252, 230, 214, 0.16);
+        background: rgba(35, 24, 25, 0.74);
+        box-shadow: 0 18px 40px rgba(0, 0, 0, 0.22);
+        font-size: 12px;
+        color: var(--text);
+        text-align: center;
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.92);
+      }
+
+      .whisper.visible {
+        opacity: 1;
+      }
+
+      .timeline {
+        position: relative;
+      }
+
+      .beat-row {
+        align-items: center;
+      }
+
+      .beat {
+        font-size: 10px;
+        color: rgba(249, 239, 231, 0.62);
+      }
+
+      .bar {
+        position: relative;
+        height: 12px;
+        border-radius: 999px;
+        overflow: hidden;
+        background: rgba(255, 255, 255, 0.06);
+      }
+
+      .bar-fill {
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: 28%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, var(--amber), var(--rose), var(--cyan));
+        box-shadow: 0 0 20px rgba(240, 178, 118, 0.28);
+      }
+
+      .back {
+        width: fit-content;
+        padding: 10px 14px;
+        border-radius: 999px;
+        text-decoration: none;
+        font-size: 11px;
+      }
+
+      .note-copy {
+        color: rgba(249, 239, 231, 0.82);
+      }
+
+      @media (max-width: 1120px) {
+        body {
+          overflow: auto;
+        }
+
+        .shell {
+          position: relative;
+          inset: auto;
+          min-height: 100vh;
+          padding: 16px;
+          grid-template-columns: 1fr;
+          grid-template-rows: auto auto auto;
+        }
+
+        .panel,
+        .scene-card,
+        .notes {
+          grid-column: auto;
+          grid-row: auto;
+        }
+
+        .scene-card {
+          min-height: auto;
+          grid-template-columns: 1fr;
+          grid-template-rows: auto minmax(480px, 62vh) auto auto;
+        }
+
+        .notes {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 760px) {
+        .shell {
+          padding: 12px;
+          gap: 12px;
+        }
+
+        .panel,
+        .scene-card,
+        .notes {
+          border-radius: 22px;
+        }
+
+        .panel,
+        .scene-card,
+        .notes {
+          padding: 13px;
+        }
+
+        .scene-card {
+          gap: 10px;
+          grid-template-rows: auto minmax(360px, 56vh) auto auto;
+        }
+
+        .scene-head,
+        .ledger,
+        .prompt-card,
+        .timeline,
+        .note-card {
+          border-radius: 18px;
+        }
+
+        .scene-head {
+          grid-template-columns: 1fr;
+          align-items: start;
+        }
+
+        .stats-grid {
+          grid-template-columns: 1fr;
+        }
+
+        h1 {
+          font-size: clamp(2.2rem, 12vw, 3.6rem);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="scene"></canvas>
+
+    <main class="shell">
+      <section class="panel">
+        <a class="back" href="../../index.html">Back to index</a>
+        <div>
+          <p class="eyebrow">Code Animation Study #075</p>
+          <h1>Hush Burrow Chorus</h1>
+        </div>
+        <p class="lede">
+          A warm tactile creature habitat built to reopen the browser-native
+          petting branch without falling back into a single mascot, a care
+          poster, or another detached console. Several shy beings share one
+          terraced burrow and answer touch socially.
+        </p>
+        <div class="legend">
+          <div class="legend-row">
+            <span class="legend-dot amber"></span>
+            <p class="legend-copy">
+              Palm-sized burrow creatures carry the main motion through breath,
+              blink timing, cheek warmth, and body squash.
+            </p>
+          </div>
+          <div class="legend-row">
+            <span class="legend-dot cyan"></span>
+            <p class="legend-copy">
+              Cooling vents and thread-lines keep the scene procedural instead
+              of turning it into a static illustration.
+            </p>
+          </div>
+          <div class="legend-row">
+            <span class="legend-dot moss"></span>
+            <p class="legend-copy">
+              The habitat itself reacts: bedding compresses, lantern moss
+              brightens, and nearby sleepers roll toward the touched nest.
+            </p>
+          </div>
+        </div>
+        <div class="stats-grid">
+          <div class="meter">
+            <span class="stat-label">Active nest</span>
+            <div class="stat-value" id="activeNest">center shelf</div>
+          </div>
+          <div class="meter">
+            <span class="stat-label">Comfort drift</span>
+            <div class="stat-value" id="comfortValue">0.42</div>
+          </div>
+          <div class="meter">
+            <span class="stat-label">Choir tone</span>
+            <div class="stat-value" id="toneValue">humming</div>
+          </div>
+          <div class="meter">
+            <span class="stat-label">Touch law</span>
+            <div class="stat-value" id="touchLaw">scratch to gather</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="scene-card">
+        <div class="scene-head">
+          <div>
+            <p class="eyebrow">Habitat behavior</p>
+            <h2>Pet one body and the whole burrow listens.</h2>
+          </div>
+          <div class="chip-row" aria-label="Live habitat tags">
+            <span class="chip">direct touch</span>
+            <span class="chip">colony response</span>
+            <span class="chip">soft idle loop</span>
+          </div>
+        </div>
+
+        <div class="scene-wrap">
+          <div class="scene-overlay" aria-hidden="true">
+            <div class="scan" id="scan"></div>
+            <div class="whisper" id="whisper">hm</div>
+          </div>
+        </div>
+
+        <div class="ledger">
+          <p class="small">Interaction</p>
+          <p>
+            Move across the burrow to shift attention, then press or drag over a
+            creature to pet it. Slow touch makes the nearest body squash open,
+            blush, and sing softly while neighbors lean closer and trade warmth.
+            Quick pokes still work, but they make the local nest tense first.
+          </p>
+        </div>
+
+        <div class="prompt-card">
+          <p class="small">Branch role</p>
+          <p>
+            This deliberately rotates away from the latest editorial-glass and
+            pale-infrastructure pages and returns to the durable cute-creature
+            lane, but as a shared world with embedded touch logic rather than a
+            lone face or a fake UI rail.
+          </p>
+        </div>
+
+        <div class="timeline" aria-label="Colony timeline">
+          <div class="beat-row">
+            <span class="beat">doze</span>
+            <span class="beat">notice</span>
+            <span class="beat">gather</span>
+            <span class="beat">settle</span>
+          </div>
+          <div class="bar">
+            <div class="bar-fill" id="barFill"></div>
+          </div>
+          <p id="timelineCopy">
+            The burrow is in a quiet doze cycle right now. Touch one nest to
+            pull the whole room into a closer shared hum.
+          </p>
+        </div>
+      </section>
+
+      <section class="notes" aria-label="Review notes">
+        <article class="note-card">
+          <p class="small">Idea</p>
+          <p class="note-copy">
+            A browser-native tactile habitat where several awkward soft
+            creatures live together inside one warm burrow, keeping the cute
+            branch social and atmospheric instead of mascot-like.
+          </p>
+        </article>
+        <article class="note-card">
+          <p class="small">Interaction</p>
+          <p class="note-copy">
+            Pointer movement shifts nearby gaze and breath. Pressing or dragging
+            directly over a body creates literal petting: squash, blush, eye
+            changes, bedding compression, and neighbor response all happen in
+            the same scene.
+          </p>
+        </article>
+        <article class="note-card">
+          <p class="small">Next</p>
+          <p class="note-copy">
+            Grow this into a fuller social world: clearer individual
+            personalities, sleep schedules, nest tools, and small rituals so
+            the burrow can feed future landing-page or illustration storytelling
+            instead of remaining one isolated study.
+          </p>
+        </article>
+      </section>
+    </main>
+
+    <script>
+      const canvas = document.getElementById("scene");
+      const ctx = canvas.getContext("2d");
+
+      const activeNest = document.getElementById("activeNest");
+      const comfortValue = document.getElementById("comfortValue");
+      const toneValue = document.getElementById("toneValue");
+      const touchLaw = document.getElementById("touchLaw");
+      const timelineCopy = document.getElementById("timelineCopy");
+      const barFill = document.getElementById("barFill");
+      const whisper = document.getElementById("whisper");
+      const scan = document.getElementById("scan");
+
+      let width = 0;
+      let height = 0;
+      let dpr = Math.min(window.devicePixelRatio || 1, 2);
+      let lastTime = 0;
+
+      const pointer = {
+        x: 0.5,
+        y: 0.58,
+        px: 0.5,
+        py: 0.58,
+        down: false,
+        velocity: 0,
+        entered: false,
+      };
+
+      const whispers = ["hm", "mm", "oh", "eep", "huh", "o~", "..."];
+      const tones = ["humming", "gathering", "nest-soft", "drowsy flare"];
+      const laws = ["scratch to gather", "slow pet to soothe", "pokes make hush", "drag warms bedding"];
+      const stageNames = ["lower hollow", "center shelf", "moss ledge", "rear nook"];
+
+      const dust = Array.from({ length: 72 }, (_, index) => ({
+        x: Math.random(),
+        y: Math.random(),
+        r: 1 + Math.random() * 2.6,
+        speed: 0.08 + Math.random() * 0.18,
+        phase: Math.random() * Math.PI * 2,
+        drift: (Math.random() - 0.5) * 0.12,
+        tint: index % 3,
+      }));
+
+      const creatures = [
+        { name: "lower hollow", x: 0.18, y: 0.72, scale: 0.92, hue: 0.05, seed: 1.2 },
+        { name: "center shelf", x: 0.38, y: 0.62, scale: 1.08, hue: 0.12, seed: 2.8 },
+        { name: "moss ledge", x: 0.62, y: 0.56, scale: 0.98, hue: -0.05, seed: 4.1 },
+        { name: "rear nook", x: 0.78, y: 0.72, scale: 0.84, hue: 0.08, seed: 5.7 },
+        { name: "upper curl", x: 0.54, y: 0.38, scale: 0.72, hue: -0.12, seed: 7.6 },
+      ].map((creature) => ({
+        ...creature,
+        blink: Math.random() * Math.PI * 2,
+        comfort: 0.26 + Math.random() * 0.16,
+        pet: 0,
+        blush: 0,
+        sing: 0,
+        recoil: 0,
+        lookX: 0,
+        lookY: 0,
+      }));
+
+      function resize() {
+        dpr = Math.min(window.devicePixelRatio || 1, 2);
+        width = window.innerWidth;
+        height = window.innerHeight;
+        canvas.width = width * dpr;
+        canvas.height = height * dpr;
+        canvas.style.width = `${width}px`;
+        canvas.style.height = `${height}px`;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+
+      function clamp(value, min, max) {
+        return Math.min(max, Math.max(min, value));
+      }
+
+      function lerp(a, b, t) {
+        return a + (b - a) * t;
+      }
+
+      function smoothstep(edge0, edge1, value) {
+        const t = clamp((value - edge0) / (edge1 - edge0), 0, 1);
+        return t * t * (3 - 2 * t);
+      }
+
+      function pointerMove(clientX, clientY) {
+        const nx = clientX / width;
+        const ny = clientY / height;
+        pointer.velocity = Math.hypot(nx - pointer.px, ny - pointer.py) * 22;
+        pointer.px = pointer.x;
+        pointer.py = pointer.y;
+        pointer.x = nx;
+        pointer.y = ny;
+        pointer.entered = true;
+      }
+
+      window.addEventListener("resize", resize);
+
+      window.addEventListener("pointermove", (event) => {
+        pointerMove(event.clientX, event.clientY);
+      });
+
+      window.addEventListener("pointerdown", (event) => {
+        pointer.down = true;
+        pointerMove(event.clientX, event.clientY);
+        scan.animate(
+          [
+            { opacity: 0, transform: "translateY(-18%)" },
+            { opacity: 0.68, transform: "translateY(0%)" },
+            { opacity: 0, transform: "translateY(18%)" },
+          ],
+          { duration: 680, easing: "ease-out" }
+        );
+      });
+
+      window.addEventListener("pointerup", () => {
+        pointer.down = false;
+      });
+
+      window.addEventListener("pointerleave", () => {
+        pointer.down = false;
+      });
+
+      function showWhisper(x, y, text) {
+        whisper.textContent = text;
+        whisper.style.left = `${x * 100}%`;
+        whisper.style.top = `${y * 100}%`;
+        whisper.classList.remove("visible");
+        void whisper.offsetWidth;
+        whisper.classList.add("visible");
+      }
+
+      whisper.addEventListener("animationend", () => {
+        whisper.classList.remove("visible");
+      });
+
+      function drawBackground(time) {
+        const gradient = ctx.createLinearGradient(0, 0, 0, height);
+        gradient.addColorStop(0, "#24191b");
+        gradient.addColorStop(0.42, "#171215");
+        gradient.addColorStop(1, "#090708");
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, width, height);
+
+        const glowA = ctx.createRadialGradient(width * 0.26, height * 0.18, 0, width * 0.26, height * 0.18, width * 0.32);
+        glowA.addColorStop(0, "rgba(214, 143, 132, 0.16)");
+        glowA.addColorStop(1, "rgba(214, 143, 132, 0)");
+        ctx.fillStyle = glowA;
+        ctx.fillRect(0, 0, width, height);
+
+        const glowB = ctx.createRadialGradient(width * 0.76, height * 0.2, 0, width * 0.76, height * 0.2, width * 0.28);
+        glowB.addColorStop(0, "rgba(120, 180, 195, 0.14)");
+        glowB.addColorStop(1, "rgba(120, 180, 195, 0)");
+        ctx.fillStyle = glowB;
+        ctx.fillRect(0, 0, width, height);
+
+        const burrow = ctx.createLinearGradient(0, height * 0.45, 0, height);
+        burrow.addColorStop(0, "rgba(58, 38, 34, 0)");
+        burrow.addColorStop(0.35, "rgba(66, 42, 36, 0.42)");
+        burrow.addColorStop(1, "rgba(13, 9, 10, 0.94)");
+        ctx.fillStyle = burrow;
+        ctx.beginPath();
+        ctx.moveTo(0, height * 0.58);
+        ctx.bezierCurveTo(width * 0.18, height * 0.48, width * 0.34, height * 0.66, width * 0.52, height * 0.54);
+        ctx.bezierCurveTo(width * 0.71, height * 0.42, width * 0.83, height * 0.72, width, height * 0.57);
+        ctx.lineTo(width, height);
+        ctx.lineTo(0, height);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.save();
+        ctx.strokeStyle = "rgba(242, 210, 190, 0.1)";
+        ctx.lineWidth = 1;
+        for (let i = 0; i < 6; i += 1) {
+          const y = height * (0.32 + i * 0.1);
+          ctx.beginPath();
+          ctx.moveTo(0, y + Math.sin(time * 0.3 + i) * 10);
+          ctx.bezierCurveTo(
+            width * 0.24,
+            y - 14 + Math.cos(time * 0.25 + i) * 8,
+            width * 0.7,
+            y + 18 + Math.sin(time * 0.21 + i * 2) * 10,
+            width,
+            y - 4
+          );
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      function drawDust(time) {
+        dust.forEach((particle) => {
+          const x = (particle.x + Math.sin(time * particle.speed + particle.phase) * particle.drift + 1) % 1;
+          const y = (particle.y + Math.cos(time * (particle.speed * 0.76) + particle.phase) * 0.02 + 1) % 1;
+          const px = x * width;
+          const py = y * height;
+          const alpha = 0.08 + 0.08 * Math.sin(time * particle.speed * 2 + particle.phase);
+          const color =
+            particle.tint === 0
+              ? `rgba(240,178,118,${alpha})`
+              : particle.tint === 1
+                ? `rgba(120,180,195,${alpha * 0.9})`
+                : `rgba(234,223,141,${alpha * 0.8})`;
+          ctx.fillStyle = color;
+          ctx.beginPath();
+          ctx.arc(px, py, particle.r, 0, Math.PI * 2);
+          ctx.fill();
+        });
+      }
+
+      function drawThread(a, b, widthScale, alpha) {
+        ctx.save();
+        ctx.strokeStyle = `rgba(240, 217, 193, ${alpha})`;
+        ctx.lineWidth = widthScale;
+        ctx.beginPath();
+        ctx.moveTo(a.x * width, a.y * height);
+        ctx.bezierCurveTo(
+          lerp(a.x, b.x, 0.28) * width,
+          (a.y - 0.06) * height,
+          lerp(a.x, b.x, 0.72) * width,
+          (b.y - 0.05) * height,
+          b.x * width,
+          b.y * height
+        );
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      function drawNest(x, y, scale, warmth, compression) {
+        const px = x * width;
+        const py = y * height;
+        const rx = 84 * scale * (1 + warmth * 0.06);
+        const ry = 26 * scale * (1 - compression * 0.18);
+
+        ctx.save();
+        ctx.translate(px, py + 50 * scale);
+        ctx.scale(1, 1 - compression * 0.05);
+
+        ctx.fillStyle = `rgba(28, 19, 18, ${0.52 + warmth * 0.18})`;
+        ctx.beginPath();
+        ctx.ellipse(0, 18, rx * 1.08, ry * 1.28, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        const nestGradient = ctx.createLinearGradient(0, -ry, 0, ry * 1.6);
+        nestGradient.addColorStop(0, `rgba(108, 78, 60, ${0.84 + warmth * 0.08})`);
+        nestGradient.addColorStop(1, `rgba(41, 28, 26, ${0.94})`);
+        ctx.fillStyle = nestGradient;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = `rgba(244, 210, 186, ${0.12 + warmth * 0.08})`;
+        ctx.lineWidth = 1.2;
+        for (let i = -2; i <= 2; i += 1) {
+          ctx.beginPath();
+          ctx.moveTo(-rx * 0.82, i * 5);
+          ctx.quadraticCurveTo(0, i * 8 + Math.sin(i + warmth * 3) * 6, rx * 0.82, i * 4);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      function drawCreature(creature, time) {
+        const px = creature.x * width;
+        const py = creature.y * height;
+        const hoverDx = pointer.x - creature.x;
+        const hoverDy = pointer.y - creature.y;
+        const distance = Math.hypot(hoverDx, hoverDy);
+        const closeness = 1 - clamp(distance / 0.24, 0, 1);
+        const petInfluence = pointer.down ? 1 - clamp(distance / 0.16, 0, 1) : 0;
+        const agitation = clamp(pointer.velocity * 0.65, 0, 1) * petInfluence;
+        const soothing = petInfluence * (1 - clamp(pointer.velocity * 2.6, 0, 0.88));
+
+        creature.pet = lerp(creature.pet, soothing, 0.08);
+        creature.recoil = lerp(creature.recoil, agitation, 0.12);
+        creature.blush = lerp(creature.blush, creature.pet * 0.85 + closeness * 0.16, 0.08);
+        creature.sing = lerp(creature.sing, creature.pet * 0.9 + closeness * 0.3, 0.07);
+        creature.comfort = clamp(lerp(creature.comfort, 0.24 + creature.pet * 0.48 + closeness * 0.12, 0.05), 0.18, 1);
+        creature.lookX = lerp(creature.lookX, hoverDx * 0.34, 0.09);
+        creature.lookY = lerp(creature.lookY, hoverDy * 0.28, 0.09);
+
+        const bob = Math.sin(time * 1.4 + creature.seed) * 10 * creature.scale;
+        const breath = Math.sin(time * 2 + creature.seed * 1.6) * 0.06;
+        const squash = creature.pet * 0.18 - creature.recoil * 0.12;
+        const bodyScaleX = 1 + squash;
+        const bodyScaleY = 1 - squash * 0.72 + breath;
+        const bodyW = 74 * creature.scale;
+        const bodyH = 88 * creature.scale;
+        const nestCompression = clamp(creature.pet * 0.8 + creature.recoil * 0.35, 0, 1);
+        const bodyY = py + bob - creature.recoil * 18 * creature.scale;
+
+        drawNest(creature.x, creature.y, creature.scale, creature.pet + closeness * 0.2, nestCompression);
+
+        ctx.save();
+        ctx.translate(px, bodyY);
+
+        const lanternGlow = ctx.createRadialGradient(0, 10, 8, 0, 10, 112 * creature.scale);
+        lanternGlow.addColorStop(0, `rgba(240, 178, 118, ${0.28 + creature.pet * 0.16})`);
+        lanternGlow.addColorStop(1, "rgba(240, 178, 118, 0)");
+        ctx.fillStyle = lanternGlow;
+        ctx.beginPath();
+        ctx.arc(0, 22, 110 * creature.scale, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.scale(bodyScaleX, bodyScaleY);
+
+        const bodyGradient = ctx.createLinearGradient(0, -bodyH * 0.72, 0, bodyH * 0.96);
+        bodyGradient.addColorStop(0, `rgba(247, 220, 188, ${0.96})`);
+        bodyGradient.addColorStop(0.55, `rgba(${creature.hue > 0 ? "231, 178, 141" : "224, 198, 170"}, 0.95)`);
+        bodyGradient.addColorStop(1, `rgba(130, 92, 74, 0.98)`);
+        ctx.fillStyle = bodyGradient;
+        ctx.beginPath();
+        ctx.moveTo(-bodyW * 0.72, 4);
+        ctx.bezierCurveTo(-bodyW * 0.82, -bodyH * 0.42, -bodyW * 0.46, -bodyH * 0.9, 0, -bodyH);
+        ctx.bezierCurveTo(bodyW * 0.42, -bodyH * 0.88, bodyW * 0.84, -bodyH * 0.46, bodyW * 0.76, 2);
+        ctx.bezierCurveTo(bodyW * 0.62, bodyH * 0.84, bodyW * 0.22, bodyH, 0, bodyH * 0.92);
+        ctx.bezierCurveTo(-bodyW * 0.28, bodyH, -bodyW * 0.62, bodyH * 0.78, -bodyW * 0.72, 4);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.fillStyle = `rgba(255, 244, 236, ${0.18 + creature.pet * 0.12})`;
+        ctx.beginPath();
+        ctx.ellipse(0, -bodyH * 0.52, bodyW * 0.44, bodyH * 0.26, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = `rgba(104, 64, 55, ${0.34 + creature.pet * 0.12})`;
+        ctx.lineWidth = 1.2;
+        for (let i = -1; i <= 1; i += 1) {
+          ctx.beginPath();
+          ctx.moveTo(-bodyW * 0.32, -bodyH * 0.14 + i * 16);
+          ctx.quadraticCurveTo(0, -bodyH * 0.08 + i * 12 + Math.sin(time * 1.5 + creature.seed + i) * 6, bodyW * 0.32, -bodyH * 0.14 + i * 16);
+          ctx.stroke();
+        }
+
+        const blushAlpha = 0.08 + creature.blush * 0.34;
+        ctx.fillStyle = `rgba(214, 143, 132, ${blushAlpha})`;
+        ctx.beginPath();
+        ctx.ellipse(-bodyW * 0.24, -bodyH * 0.08, bodyW * 0.16, bodyH * 0.1, -0.22, 0, Math.PI * 2);
+        ctx.ellipse(bodyW * 0.24, -bodyH * 0.08, bodyW * 0.16, bodyH * 0.1, 0.22, 0, Math.PI * 2);
+        ctx.fill();
+
+        const eyeSpread = bodyW * 0.24;
+        const eyeY = -bodyH * 0.24 + creature.lookY * 14;
+        const eyeBlink = smoothstep(0.68, 1, Math.sin(time * 1.5 + creature.seed * 2.4 + creature.blink));
+        const eyeOpen = clamp(1 - eyeBlink * 0.96 - creature.pet * 0.12, 0.08, 1);
+        const pupilX = creature.lookX * 18;
+        const pupilY = creature.lookY * 12;
+
+        [[-eyeSpread, -1], [eyeSpread, 1]].forEach(([eyeX, side]) => {
+          ctx.save();
+          ctx.translate(eyeX, eyeY);
+          ctx.rotate(side * 0.08 + creature.lookX * 0.12);
+          ctx.fillStyle = "#23181a";
+          ctx.beginPath();
+          ctx.ellipse(0, 0, bodyW * 0.14, bodyH * 0.13 * eyeOpen, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = "rgba(234, 223, 141, 0.92)";
+          ctx.beginPath();
+          ctx.arc(pupilX * 0.2, pupilY * 0.16, bodyW * 0.028, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        });
+
+        const mouthLift = creature.pet * 8 - creature.recoil * 6;
+        ctx.strokeStyle = "rgba(74, 46, 44, 0.8)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(-bodyW * 0.12, bodyH * 0.05);
+        ctx.quadraticCurveTo(0, bodyH * 0.12 + mouthLift, bodyW * 0.12, bodyH * 0.05);
+        ctx.stroke();
+
+        ctx.strokeStyle = `rgba(120, 180, 195, ${0.14 + creature.sing * 0.24})`;
+        ctx.lineWidth = 1.2;
+        for (let i = 0; i < 3; i += 1) {
+          ctx.beginPath();
+          ctx.ellipse(
+            0,
+            -bodyH * 0.16 - i * 12,
+            bodyW * (0.38 + i * 0.12 + creature.sing * 0.14),
+            bodyH * (0.14 + i * 0.04),
+            0,
+            Math.PI * 1.04,
+            Math.PI * 1.96
+          );
+          ctx.stroke();
+        }
+
+        ctx.strokeStyle = `rgba(70, 50, 46, ${0.48})`;
+        ctx.lineWidth = 3.5 * creature.scale;
+        [
+          [-bodyW * 0.36, bodyH * 0.44, -bodyW * 0.48, bodyH * 0.92],
+          [bodyW * 0.36, bodyH * 0.42, bodyW * 0.5, bodyH * 0.92],
+          [-bodyW * 0.16, bodyH * 0.52, -bodyW * 0.08, bodyH * 0.92],
+          [bodyW * 0.16, bodyH * 0.52, bodyW * 0.1, bodyH * 0.92],
+        ].forEach(([sx, sy, ex, ey]) => {
+          ctx.beginPath();
+          ctx.moveTo(sx, sy);
+          ctx.quadraticCurveTo(
+            lerp(sx, ex, 0.5) + creature.lookX * 14,
+            lerp(sy, ey, 0.5) + creature.pet * 10,
+            ex,
+            ey
+          );
+          ctx.stroke();
+        });
+
+        ctx.restore();
+
+        return {
+          closeness,
+          petInfluence,
+          soothing,
+          agitation,
+          pointX: px,
+          pointY: bodyY,
+          scale: creature.scale,
+        };
+      }
+
+      function updateReadout(time, bestIndex, overallComfort, overallTone, touchEnergy) {
+        activeNest.textContent = stageNames[bestIndex] || "center shelf";
+        comfortValue.textContent = overallComfort.toFixed(2);
+        toneValue.textContent = tones[Math.floor(clamp(overallTone * tones.length, 0, tones.length - 1))];
+        touchLaw.textContent = laws[Math.floor(clamp(touchEnergy * laws.length, 0, laws.length - 1))];
+
+        const phase = (time * 0.09 + overallTone * 3) % 1;
+        barFill.style.width = `${28 + phase * 52}%`;
+
+        if (touchEnergy > 0.46) {
+          timelineCopy.textContent =
+            "The burrow is in a gathering phase. Nearby creatures lean into the touched nest and answer with a warmer shared hum.";
+        } else if (overallTone > 0.48) {
+          timelineCopy.textContent =
+            "The creatures have noticed the pointer and are holding a soft listening posture while the shelf lights stay warm.";
+        } else {
+          timelineCopy.textContent =
+            "The burrow is in a quiet doze cycle right now. Touch one nest to pull the whole room into a closer shared hum.";
+        }
+      }
+
+      function animate(timeMs) {
+        const time = timeMs * 0.001;
+        const delta = Math.min(0.04, time - lastTime || 0.016);
+        lastTime = time;
+        pointer.velocity = lerp(pointer.velocity, 0, 0.08 + delta * 3);
+
+        drawBackground(time);
+        drawDust(time);
+
+        creatures.forEach((creature, index) => {
+          if (index < creatures.length - 1) {
+            drawThread(creature, creatures[index + 1], 1.1 + creature.pet * 1.3, 0.12 + creature.pet * 0.12);
+          }
+        });
+
+        let bestScore = -1;
+        let bestIndex = 1;
+        let overallComfort = 0;
+        let overallTone = 0;
+        let touchEnergy = 0;
+        let whisperTarget = null;
+
+        creatures.forEach((creature, index) => {
+          const result = drawCreature(creature, time);
+          const score = result.closeness + result.soothing * 0.8;
+          if (score > bestScore) {
+            bestScore = score;
+            bestIndex = index;
+            whisperTarget = result;
+          }
+          overallComfort += creature.comfort;
+          overallTone += creature.sing;
+          touchEnergy += result.petInfluence;
+        });
+
+        overallComfort /= creatures.length;
+        overallTone /= creatures.length;
+        touchEnergy /= creatures.length;
+
+        if (pointer.down && whisperTarget && whisperTarget.petInfluence > 0.5 && Math.random() < 0.03) {
+          showWhisper(
+            whisperTarget.pointX / width + (Math.random() - 0.5) * 0.06,
+            whisperTarget.pointY / height - 0.08,
+            whispers[Math.floor(Math.random() * whispers.length)]
+          );
+        }
+
+        updateReadout(time, bestIndex, overallComfort, overallTone, touchEnergy);
+
+        requestAnimationFrame(animate);
+      }
+
+      resize();
+      requestAnimationFrame(animate);
+    </script>
+  </body>
+</html>

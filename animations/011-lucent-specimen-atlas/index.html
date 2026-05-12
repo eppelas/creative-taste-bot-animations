@@ -1,0 +1,703 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>#011 Lucent Specimen Atlas</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #050506;
+        --panel: rgba(12, 10, 14, 0.72);
+        --line: rgba(243, 231, 217, 0.16);
+        --text: #f3e7d9;
+        --muted: rgba(243, 231, 217, 0.68);
+        --gold: #e2aa64;
+        --rose: #f06ba4;
+        --violet: #a175ff;
+        --cyan: #78d8d8;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        background:
+          radial-gradient(circle at 50% 14%, rgba(184, 120, 255, 0.1), transparent 28%),
+          radial-gradient(circle at 50% 48%, rgba(255, 103, 162, 0.08), transparent 34%),
+          radial-gradient(circle at 78% 64%, rgba(111, 223, 219, 0.05), transparent 24%),
+          var(--bg);
+        color: var(--text);
+        font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+      }
+
+      canvas {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        display: block;
+      }
+
+      .hud {
+        position: fixed;
+        inset: 18px 18px auto 18px;
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+        gap: 18px;
+        pointer-events: none;
+      }
+
+      .panel,
+      .chip {
+        border: 1px solid var(--line);
+        background: var(--panel);
+        backdrop-filter: blur(18px);
+        box-shadow: 0 24px 80px rgba(0, 0, 0, 0.3);
+      }
+
+      .panel {
+        width: min(390px, calc(100vw - 36px));
+        display: grid;
+        gap: 10px;
+        padding: 15px 16px 14px;
+        border-radius: 20px;
+        pointer-events: auto;
+      }
+
+      .chip {
+        display: grid;
+        gap: 8px;
+        min-width: 180px;
+        padding: 12px 14px;
+        border-radius: 18px;
+        pointer-events: auto;
+      }
+
+      .eyebrow,
+      .hint,
+      .meta,
+      .label,
+      .value {
+        margin: 0;
+      }
+
+      .eyebrow {
+        font-size: 11px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: rgba(243, 231, 217, 0.52);
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 17px;
+        font-weight: 580;
+      }
+
+      .hint,
+      .meta,
+      .label {
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.45;
+      }
+
+      .readout {
+        display: grid;
+        gap: 10px;
+      }
+
+      .row {
+        display: grid;
+        gap: 4px;
+      }
+
+      .value {
+        font-size: 14px;
+        font-weight: 560;
+        letter-spacing: 0.04em;
+      }
+
+      .back {
+        width: fit-content;
+        color: var(--text);
+        text-decoration: none;
+        border: 1px solid rgba(243, 231, 217, 0.14);
+        border-radius: 999px;
+        padding: 8px 11px;
+        font-size: 12px;
+      }
+
+      @media (max-width: 820px) {
+        .hud {
+          flex-direction: column;
+        }
+
+        .chip {
+          min-width: 0;
+          width: min(240px, calc(100vw - 36px));
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="scene"></canvas>
+    <div class="hud">
+      <div class="panel">
+        <p class="eyebrow">Code Animation Study #011</p>
+        <h1>Lucent Specimen Atlas</h1>
+        <p class="hint">
+          A browser-native answer to the translucent botanical plate request:
+          layered membranes breathe around a central specimen while the pointer
+          acts like a soft inspection beam.
+        </p>
+        <p class="meta">
+          Move through the plate to bend local tissue, brighten veins, and
+          disturb the surrounding calibration arcs without turning the piece
+          into a literal interface.
+        </p>
+        <a class="back" href="../../index.html">Index</a>
+      </div>
+      <div class="chip">
+        <div class="readout">
+          <div class="row">
+            <p class="label">Inspection field</p>
+            <p class="value" id="probeValue">stable</p>
+          </div>
+          <div class="row">
+            <p class="label">Membrane drift</p>
+            <p class="value" id="driftValue">0.00</p>
+          </div>
+          <div class="row">
+            <p class="label">Core lumens</p>
+            <p class="value" id="coreValue">nominal</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script src="../../shared/study-notes.js"></script>
+
+    <script>
+      const canvas = document.getElementById("scene");
+      const ctx = canvas.getContext("2d");
+      const probeValue = document.getElementById("probeValue");
+      const driftValue = document.getElementById("driftValue");
+      const coreValue = document.getElementById("coreValue");
+
+      const TAU = Math.PI * 2;
+      const petals = [];
+      const veins = [];
+      const pods = [];
+      const rings = [];
+      const motes = [];
+      const sideMarks = [];
+
+      let width = 0;
+      let height = 0;
+      let dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+
+      const pointer = {
+        x: 0.5,
+        y: 0.42,
+        tx: 0.5,
+        ty: 0.42,
+        active: false,
+        energy: 0,
+      };
+
+      function rand(min, max) {
+        return min + Math.random() * (max - min);
+      }
+
+      function ease(a, b, t) {
+        return a + (b - a) * t;
+      }
+
+      function resize() {
+        dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+        width = window.innerWidth;
+        height = window.innerHeight;
+        canvas.width = Math.round(width * dpr);
+        canvas.height = Math.round(height * dpr);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        buildScene();
+      }
+
+      function buildScene() {
+        petals.length = 0;
+        veins.length = 0;
+        pods.length = 0;
+        rings.length = 0;
+        motes.length = 0;
+        sideMarks.length = 0;
+
+        const specHeight = height * 0.78;
+        const stemTop = height * 0.14;
+        const stemBottom = stemTop + specHeight;
+
+        const petalSeeds = [
+          { y: 0.18, width: 0.32, length: 0.16, lift: -0.14, hue: 0.08 },
+          { y: 0.28, width: 0.2, length: 0.18, lift: -0.08, hue: 0.18 },
+          { y: 0.4, width: 0.28, length: 0.22, lift: 0.04, hue: 0.62 },
+          { y: 0.52, width: 0.18, length: 0.15, lift: 0.06, hue: 0.88 },
+          { y: 0.74, width: 0.12, length: 0.12, lift: 0.12, hue: 0.42 },
+        ];
+
+        petalSeeds.forEach((seed, index) => {
+          [-1, 1].forEach((side) => {
+            petals.push({
+              side,
+              anchor: stemTop + specHeight * seed.y,
+              width: width * seed.width,
+              length: height * seed.length,
+              lift: height * seed.lift,
+              phase: rand(0, TAU),
+              wobble: rand(0.4, 1.2),
+              skew: rand(-0.28, 0.28),
+              hue: seed.hue,
+              alpha: 0.12 + index * 0.02,
+            });
+          });
+        });
+
+        for (let i = 0; i < 22; i += 1) {
+          veins.push({
+            y: stemTop + (specHeight * i) / 21,
+            span: rand(width * 0.02, width * 0.09),
+            phase: rand(0, TAU),
+            alpha: rand(0.2, 0.55),
+          });
+        }
+
+        for (let i = 0; i < 6; i += 1) {
+          pods.push({
+            side: i < 4 ? 1 : -1,
+            y: stemTop + specHeight * rand(0.42, 0.82),
+            orbit: width * rand(0.18, 0.31),
+            radius: rand(10, 34),
+            phase: rand(0, TAU),
+            speed: rand(0.16, 0.42),
+          });
+        }
+
+        for (let i = 0; i < 9; i += 1) {
+          rings.push({
+            y: stemTop + specHeight * rand(0.02, 0.98),
+            radius: width * rand(0.12, 0.42),
+            alpha: rand(0.08, 0.22),
+            sweep: rand(0.16, 0.44),
+          });
+        }
+
+        for (let i = 0; i < 180; i += 1) {
+          motes.push({
+            x: rand(width * 0.18, width * 0.82),
+            y: rand(height * 0.08, height * 0.94),
+            r: rand(0.6, 1.8),
+            phase: rand(0, TAU),
+            speed: rand(0.2, 0.9),
+            tint: Math.random(),
+          });
+        }
+
+        for (let i = 0; i < 34; i += 1) {
+          const side = i % 2 === 0 ? 1 : -1;
+          sideMarks.push({
+            side,
+            x: width * 0.5 + side * width * rand(0.29, 0.46),
+            y: height * rand(0.04, 0.96),
+            len: rand(10, 32),
+            alpha: rand(0.14, 0.34),
+            color: ["#f06ba4", "#78d8d8", "#e2aa64"][i % 3],
+          });
+        }
+
+        pointer.x = 0.5;
+        pointer.y = 0.42;
+        pointer.tx = 0.5;
+        pointer.ty = 0.42;
+      }
+
+      function drawGrid() {
+        ctx.save();
+        ctx.strokeStyle = "rgba(144, 180, 210, 0.08)";
+        ctx.lineWidth = 1;
+        for (let x = width * 0.08; x <= width * 0.92; x += width * 0.09) {
+          ctx.beginPath();
+          ctx.moveTo(x, height * 0.05);
+          ctx.lineTo(x, height * 0.95);
+          ctx.stroke();
+        }
+        for (let y = height * 0.08; y <= height * 0.92; y += height * 0.11) {
+          ctx.beginPath();
+          ctx.moveTo(width * 0.1, y);
+          ctx.lineTo(width * 0.9, y);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      function drawSideMarks(time) {
+        ctx.save();
+        ctx.lineWidth = 1;
+        sideMarks.forEach((mark, index) => {
+          const drift = Math.sin(time * 0.0007 + index * 0.8) * 8;
+          ctx.strokeStyle = mark.color.replace(")", "");
+          ctx.globalAlpha = mark.alpha;
+          ctx.beginPath();
+          ctx.moveTo(mark.x, mark.y - mark.len * 0.5 + drift);
+          ctx.lineTo(mark.x, mark.y + mark.len * 0.5 + drift);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(mark.x - 4, mark.y + drift);
+          ctx.lineTo(mark.x + 4, mark.y + drift);
+          ctx.stroke();
+        });
+        ctx.restore();
+      }
+
+      function drawRings(time, probe) {
+        ctx.save();
+        ctx.translate(width * 0.5, height * 0.5);
+        ctx.lineWidth = 1;
+        rings.forEach((ring, index) => {
+          const y = ring.y - height * 0.5;
+          const pulse = Math.sin(time * 0.0005 + index * 0.6) * 0.08;
+          const local = 1 + probe * 0.4;
+          ctx.strokeStyle = index % 2 === 0 ? "rgba(226, 170, 100, 0.2)" : "rgba(120, 216, 216, 0.14)";
+          ctx.globalAlpha = ring.alpha + pulse;
+          ctx.beginPath();
+          ctx.arc(0, y, ring.radius * local, Math.PI * (0.1 + ring.sweep), Math.PI * (0.9 - ring.sweep));
+          ctx.stroke();
+        });
+        ctx.restore();
+      }
+
+      function specimenMetrics(time) {
+        const cx = width * 0.5;
+        const px = pointer.x * width;
+        const py = pointer.y * height;
+        const dx = px - cx;
+        const dy = py - height * 0.46;
+        const dist = Math.hypot(dx * 0.85, dy);
+        const probe = Math.max(0, 1 - dist / (Math.min(width, height) * 0.32));
+        const drift = Math.sin(time * 0.00065) * 0.4 + probe * 1.4;
+        return { cx, px, py, dx, dy, dist, probe, drift };
+      }
+
+      function drawStem(time, metrics) {
+        const stemTop = height * 0.12;
+        const stemBottom = height * 0.9;
+        const cx = metrics.cx;
+
+        const grad = ctx.createLinearGradient(cx, stemTop, cx, stemBottom);
+        grad.addColorStop(0, "rgba(122, 216, 215, 0.12)");
+        grad.addColorStop(0.25, "rgba(241, 120, 171, 0.24)");
+        grad.addColorStop(0.55, "rgba(255, 221, 184, 0.18)");
+        grad.addColorStop(1, "rgba(84, 132, 210, 0.12)");
+
+        ctx.save();
+        ctx.lineCap = "round";
+        ctx.lineWidth = width * 0.028;
+        ctx.strokeStyle = grad;
+        ctx.globalAlpha = 0.75;
+        ctx.beginPath();
+        for (let i = 0; i <= 160; i += 1) {
+          const t = i / 160;
+          const y = ease(stemTop, stemBottom, t);
+          const offset =
+            Math.sin(t * 7.2 + time * 0.0008) * width * 0.01 +
+            Math.sin(t * 17 + time * 0.0011) * width * 0.003 +
+            metrics.dx * 0.03 * Math.sin(t * Math.PI);
+          const x = cx + offset;
+          if (i === 0) {
+            ctx.moveTo(x, y);
+          } else {
+            ctx.lineTo(x, y);
+          }
+        }
+        ctx.stroke();
+
+        ctx.lineWidth = width * 0.008;
+        ctx.strokeStyle = "rgba(255, 246, 238, 0.48)";
+        ctx.globalAlpha = 0.52 + metrics.probe * 0.18;
+        ctx.stroke();
+
+        veins.forEach((vein, index) => {
+          const amp = width * 0.015 + metrics.probe * width * 0.02;
+          const wave = Math.sin(time * 0.0012 + index * 0.45);
+          const span = vein.span * (1 + metrics.probe * 0.6);
+          const y = vein.y;
+          ctx.globalAlpha = vein.alpha;
+          ctx.strokeStyle = index % 3 === 0 ? "rgba(226, 170, 100, 0.38)" : "rgba(120, 216, 216, 0.2)";
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(cx - span, y);
+          ctx.quadraticCurveTo(cx + wave * amp, y + wave * 8, cx + span, y);
+          ctx.stroke();
+        });
+
+        ctx.restore();
+      }
+
+      function drawPetal(petal, time, metrics) {
+        const baseX = metrics.cx;
+        const baseY = petal.anchor;
+        const field = Math.exp(-Math.abs(baseY - metrics.py) / (height * 0.18));
+        const influence = metrics.probe * field;
+        const sway =
+          Math.sin(time * 0.0009 * petal.wobble + petal.phase) * width * 0.018 +
+          metrics.dx * 0.16 * influence * petal.side;
+        const rise =
+          Math.cos(time * 0.0011 + petal.phase * 0.7) * height * 0.008 -
+          metrics.dy * 0.03 * influence;
+
+        const tipX = baseX + petal.side * (petal.width + sway);
+        const tipY = baseY + petal.lift + rise;
+        const shoulderX = baseX + petal.side * petal.width * 0.34;
+        const shoulderY = baseY - petal.length * 0.18;
+        const bellyX = baseX + petal.side * petal.width * 0.74;
+        const bellyY = baseY + petal.length * 0.24;
+        const returnX = baseX + petal.side * petal.width * 0.18;
+        const returnY = baseY + petal.length * 0.2;
+
+        const grad = ctx.createLinearGradient(baseX, baseY, tipX, tipY);
+        grad.addColorStop(0, `rgba(255, 208, 184, ${0.08 + influence * 0.08})`);
+        grad.addColorStop(0.45, `rgba(244, 116, 173, ${0.09 + petal.alpha + influence * 0.06})`);
+        grad.addColorStop(0.75, `rgba(123, 216, 214, ${0.08 + influence * 0.05})`);
+        grad.addColorStop(1, `rgba(255, 245, 238, ${0.16 + influence * 0.1})`);
+
+        ctx.save();
+        ctx.globalCompositeOperation = "screen";
+        ctx.fillStyle = grad;
+        ctx.strokeStyle = "rgba(255, 241, 229, 0.36)";
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(baseX, baseY);
+        ctx.bezierCurveTo(
+          shoulderX,
+          shoulderY,
+          bellyX,
+          baseY - petal.length * 0.6,
+          tipX,
+          tipY
+        );
+        ctx.bezierCurveTo(
+          tipX - petal.side * petal.width * 0.14,
+          tipY + petal.length * 0.28,
+          returnX,
+          returnY,
+          baseX,
+          baseY
+        );
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.globalAlpha = 0.34 + influence * 0.3;
+        ctx.strokeStyle = petal.hue > 0.5 ? "rgba(120, 216, 216, 0.34)" : "rgba(226, 170, 100, 0.34)";
+        for (let i = 1; i <= 5; i += 1) {
+          const t = i / 6;
+          const ix = ease(baseX, tipX, t);
+          const iy = ease(baseY, tipY, t) + Math.sin(time * 0.001 + i + petal.phase) * 3;
+          ctx.beginPath();
+          ctx.moveTo(baseX + petal.side * petal.width * 0.04, baseY);
+          ctx.quadraticCurveTo(
+            ease(shoulderX, bellyX, t) + petal.side * width * 0.03,
+            ease(shoulderY, bellyY, t) + i * 2,
+            ix,
+            iy
+          );
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      function drawCrown(time, metrics) {
+        const cx = metrics.cx;
+        const top = height * 0.1;
+
+        ctx.save();
+        ctx.globalCompositeOperation = "lighter";
+        for (let i = 0; i < 11; i += 1) {
+          const spread = (i - 5) * width * 0.01;
+          const sway = Math.sin(time * 0.0012 + i * 0.5) * width * 0.004;
+          ctx.strokeStyle = i % 2 === 0 ? "rgba(240, 107, 164, 0.4)" : "rgba(161, 117, 255, 0.36)";
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(cx + spread * 0.3, top + height * 0.1);
+          ctx.quadraticCurveTo(
+            cx + spread + sway + metrics.dx * 0.02,
+            top + height * 0.03 + i * 2,
+            cx + spread * 0.7,
+            top
+          );
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      function drawPods(time, metrics) {
+        ctx.save();
+        pods.forEach((pod, index) => {
+          const x =
+            metrics.cx +
+            pod.side * pod.orbit +
+            Math.sin(time * 0.0008 * pod.speed + pod.phase) * 18 +
+            metrics.dx * 0.04;
+          const y = pod.y + Math.cos(time * 0.0011 * pod.speed + pod.phase) * 12;
+
+          ctx.strokeStyle = "rgba(255, 223, 180, 0.28)";
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(metrics.cx + pod.side * width * 0.04, pod.y + 10);
+          ctx.quadraticCurveTo(
+            metrics.cx + pod.side * width * 0.18,
+            pod.y - 30,
+            x,
+            y
+          );
+          ctx.stroke();
+
+          const orb = ctx.createRadialGradient(x - 4, y - 5, 0, x, y, pod.radius);
+          orb.addColorStop(0, "rgba(255, 242, 232, 0.44)");
+          orb.addColorStop(0.28, "rgba(238, 109, 170, 0.18)");
+          orb.addColorStop(0.64, "rgba(113, 214, 214, 0.1)");
+          orb.addColorStop(1, "rgba(255, 205, 156, 0.02)");
+          ctx.fillStyle = orb;
+          ctx.beginPath();
+          ctx.arc(x, y, pod.radius, 0, TAU);
+          ctx.fill();
+
+          ctx.strokeStyle = index % 2 === 0 ? "rgba(120, 216, 216, 0.32)" : "rgba(226, 170, 100, 0.3)";
+          ctx.stroke();
+        });
+        ctx.restore();
+      }
+
+      function drawRoot(time, metrics) {
+        const rootY = height * 0.9;
+        ctx.save();
+        ctx.lineWidth = 1;
+        for (let i = 0; i < 28; i += 1) {
+          const side = i % 2 === 0 ? -1 : 1;
+          const len = width * rand(0.12, 0.24);
+          const bend = Math.sin(time * 0.0009 + i * 0.6) * 18 + metrics.dx * 0.05;
+          ctx.strokeStyle = i % 3 === 0 ? "rgba(120, 216, 216, 0.18)" : "rgba(240, 107, 164, 0.16)";
+          ctx.beginPath();
+          ctx.moveTo(metrics.cx, rootY);
+          ctx.bezierCurveTo(
+            metrics.cx + side * len * 0.15,
+            rootY + 10,
+            metrics.cx + side * len * 0.7 + bend,
+            rootY + 26 + i * 1.5,
+            metrics.cx + side * len,
+            rootY + 40 + i * 2
+          );
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      function drawMotes(time, metrics) {
+        ctx.save();
+        motes.forEach((mote, index) => {
+          const pulse = 0.5 + 0.5 * Math.sin(time * 0.001 * mote.speed + mote.phase);
+          const dx = metrics.px - mote.x;
+          const dy = metrics.py - mote.y;
+          const focus = Math.max(0, 1 - Math.hypot(dx, dy) / (Math.min(width, height) * 0.2));
+          ctx.globalAlpha = 0.16 + pulse * 0.22 + focus * 0.24;
+          ctx.fillStyle =
+            mote.tint < 0.33
+              ? "#f6d4aa"
+              : mote.tint < 0.66
+                ? "#ef69ab"
+                : "#7ad6d7";
+          ctx.beginPath();
+          ctx.arc(mote.x, mote.y, mote.r + focus * 1.6, 0, TAU);
+          ctx.fill();
+        });
+        ctx.restore();
+      }
+
+      function drawProbe(metrics) {
+        const radius = Math.min(width, height) * 0.12;
+        const grad = ctx.createRadialGradient(metrics.px, metrics.py, 0, metrics.px, metrics.py, radius);
+        grad.addColorStop(0, "rgba(255, 245, 236, 0.08)");
+        grad.addColorStop(0.34, "rgba(241, 120, 171, 0.06)");
+        grad.addColorStop(0.72, "rgba(120, 216, 216, 0.02)");
+        grad.addColorStop(1, "rgba(120, 216, 216, 0)");
+        ctx.save();
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(metrics.px, metrics.py, radius, 0, TAU);
+        ctx.fill();
+
+        ctx.strokeStyle = "rgba(255, 240, 228, 0.18)";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(metrics.px, metrics.py, radius * 0.42, 0, TAU);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      function render(time) {
+        pointer.x = ease(pointer.x, pointer.tx, 0.08);
+        pointer.y = ease(pointer.y, pointer.ty, 0.08);
+        pointer.energy = ease(pointer.energy, pointer.active ? 1 : 0.2, 0.05);
+
+        const metrics = specimenMetrics(time);
+
+        ctx.clearRect(0, 0, width, height);
+        ctx.fillStyle = "#050506";
+        ctx.fillRect(0, 0, width, height);
+
+        drawGrid();
+        drawRings(time, metrics.probe);
+        drawSideMarks(time);
+        drawRoot(time, metrics);
+        drawStem(time, metrics);
+        petals.forEach((petal) => drawPetal(petal, time, metrics));
+        drawPods(time, metrics);
+        drawCrown(time, metrics);
+        drawMotes(time, metrics);
+        drawProbe(metrics);
+
+        probeValue.textContent = metrics.probe > 0.55 ? "engaged" : metrics.probe > 0.24 ? "nearby" : "stable";
+        driftValue.textContent = metrics.drift.toFixed(2);
+        coreValue.textContent = metrics.probe > 0.46 ? "brightening" : "nominal";
+
+        requestAnimationFrame(render);
+      }
+
+      window.addEventListener("pointermove", (event) => {
+        pointer.tx = event.clientX / width;
+        pointer.ty = event.clientY / height;
+        pointer.active = true;
+      });
+
+      window.addEventListener("pointerleave", () => {
+        pointer.tx = 0.5;
+        pointer.ty = 0.42;
+        pointer.active = false;
+      });
+
+      window.addEventListener("touchstart", () => {
+        pointer.active = true;
+      }, { passive: true });
+
+      window.addEventListener("resize", resize);
+
+      resize();
+      requestAnimationFrame(render);
+    </script>
+  </body>
+</html>

@@ -1,0 +1,755 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>#033 Utterance Fault Weather</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #05070a;
+        --ink: #efe7da;
+        --muted: rgba(239, 231, 218, 0.68);
+        --line: rgba(255, 226, 204, 0.12);
+        --panel: rgba(8, 10, 14, 0.72);
+        --crimson: #ff445f;
+        --ember: #ff8f61;
+        --cyan: #85daf1;
+        --acid: #dfff62;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background:
+          radial-gradient(circle at 18% 18%, rgba(255, 68, 95, 0.12), transparent 24%),
+          radial-gradient(circle at 78% 16%, rgba(133, 218, 241, 0.08), transparent 26%),
+          radial-gradient(circle at 50% 84%, rgba(223, 255, 98, 0.07), transparent 24%),
+          linear-gradient(180deg, #090b10 0%, #05070a 100%);
+        color: var(--ink);
+        font-family: "Azeret Mono", "IBM Plex Mono", "SFMono-Regular", monospace;
+      }
+
+      canvas {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        display: block;
+      }
+
+      .hud {
+        position: fixed;
+        inset: 16px;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 16px;
+        pointer-events: none;
+      }
+
+      .panel,
+      .back {
+        border: 1px solid var(--line);
+        background: var(--panel);
+        backdrop-filter: blur(18px);
+        box-shadow: 0 28px 80px rgba(0, 0, 0, 0.35);
+        pointer-events: auto;
+      }
+
+      .panel {
+        width: min(36rem, calc(100vw - 32px));
+        border-radius: 24px;
+        padding: 16px 16px 18px;
+        display: grid;
+        gap: 10px;
+      }
+
+      .eyebrow,
+      .hint,
+      .meta,
+      .label,
+      .value {
+        margin: 0;
+      }
+
+      .eyebrow,
+      .label {
+        font-size: 11px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: rgba(239, 231, 218, 0.52);
+      }
+
+      h1 {
+        margin: 0;
+        font-size: clamp(1.9rem, 4.1vw, 3.3rem);
+        line-height: 0.93;
+      }
+
+      .hint,
+      .meta {
+        color: var(--muted);
+        line-height: 1.45;
+      }
+
+      .hint {
+        font-size: 0.94rem;
+      }
+
+      .meta {
+        font-size: 0.8rem;
+      }
+
+      .readout {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+      }
+
+      .value {
+        display: block;
+        margin-top: 0.18rem;
+        color: var(--ink);
+        font-size: 0.96rem;
+      }
+
+      .control-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto auto;
+        gap: 10px;
+      }
+
+      .phrase-input,
+      .button {
+        border: 1px solid rgba(255, 226, 204, 0.15);
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.03);
+        color: var(--ink);
+        font: inherit;
+      }
+
+      .phrase-input {
+        min-width: 0;
+        padding: 12px 14px;
+      }
+
+      .phrase-input::placeholder {
+        color: rgba(239, 231, 218, 0.44);
+      }
+
+      .button {
+        padding: 12px 14px;
+        cursor: pointer;
+        transition:
+          border-color 180ms ease,
+          transform 180ms ease,
+          background 180ms ease;
+      }
+
+      .button:hover,
+      .button:focus-visible {
+        border-color: rgba(255, 226, 204, 0.32);
+        background: rgba(255, 255, 255, 0.06);
+        transform: translateY(-1px);
+        outline: none;
+      }
+
+      .button.active {
+        border-color: rgba(223, 255, 98, 0.44);
+        box-shadow: inset 0 0 0 1px rgba(223, 255, 98, 0.14);
+      }
+
+      .back {
+        position: fixed;
+        right: 16px;
+        bottom: 16px;
+        border-radius: 999px;
+        padding: 10px 14px;
+        color: var(--ink);
+        text-decoration: none;
+      }
+
+      @media (max-width: 840px) {
+        .hud {
+          inset: 14px;
+        }
+
+        .panel {
+          width: min(100%, 34rem);
+        }
+
+        .control-row {
+          grid-template-columns: 1fr;
+        }
+
+        .back {
+          right: 14px;
+          bottom: 14px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="scene"></canvas>
+    <div class="hud">
+      <section class="panel">
+        <p class="eyebrow">Code Animation Study #033</p>
+        <h1>Utterance Fault Weather</h1>
+        <p class="hint">
+          A dark relay-weather plate where short phrases become pressure glyphs
+          inside a segmented fault seam, so the field behaves like a designed
+          system under stress instead of another specimen board.
+        </p>
+        <p class="meta">
+          Move across the terrain to shear local currents. Type a fragment and
+          inject it into the seam, or use the mic if the browser supports
+          speech recognition.
+        </p>
+        <div class="readout">
+          <p class="label">Active phrase<span class="value" id="phraseValue">signal field</span></p>
+          <p class="label">Pressure<span class="value" id="pressureValue">0.34</span></p>
+          <p class="label">Flux count<span class="value" id="fluxValue">4</span></p>
+        </div>
+        <div class="control-row">
+          <input
+            id="phraseInput"
+            class="phrase-input"
+            type="text"
+            maxlength="52"
+            placeholder="type a phrase and press Enter"
+            value="signal field"
+            aria-label="Inject phrase into the weather seam"
+          />
+          <button id="injectButton" class="button" type="button">Inject phrase</button>
+          <button id="micButton" class="button" type="button">Mic pulse</button>
+        </div>
+      </section>
+    </div>
+    <a class="back" href="../../index.html">Back to index</a>
+    <script src="../../shared/study-notes.js"></script>
+
+    <script>
+      const canvas = document.getElementById("scene");
+      const ctx = canvas.getContext("2d");
+      const phraseInput = document.getElementById("phraseInput");
+      const injectButton = document.getElementById("injectButton");
+      const micButton = document.getElementById("micButton");
+      const phraseValue = document.getElementById("phraseValue");
+      const pressureValue = document.getElementById("pressureValue");
+      const fluxValue = document.getElementById("fluxValue");
+
+      const TAU = Math.PI * 2;
+      const pointer = {
+        x: window.innerWidth * 0.55,
+        y: window.innerHeight * 0.52,
+        tx: window.innerWidth * 0.55,
+        ty: window.innerHeight * 0.52,
+        pressure: 0.34,
+      };
+
+      let width = 0;
+      let height = 0;
+      let dpr = Math.min(window.devicePixelRatio || 1, 2);
+      let time = 0;
+
+      const particles = [];
+      const seamNodes = [];
+      const markers = [];
+      const phrases = [];
+      let recognition = null;
+      let micActive = false;
+
+      function resize() {
+        width = window.innerWidth;
+        height = window.innerHeight;
+        dpr = Math.min(window.devicePixelRatio || 1, 2);
+        canvas.width = Math.round(width * dpr);
+        canvas.height = Math.round(height * dpr);
+        canvas.style.width = `${width}px`;
+        canvas.style.height = `${height}px`;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+        buildSeam();
+        buildMarkers();
+        buildParticles();
+      }
+
+      function buildSeam() {
+        seamNodes.length = 0;
+        const count = 18;
+        for (let i = 0; i < count; i += 1) {
+          const t = i / (count - 1);
+          seamNodes.push({
+            t,
+            x: width * (0.08 + t * 0.84),
+            y:
+              height * 0.58 +
+              Math.sin(t * 7.2) * height * 0.09 +
+              Math.sin(t * 18.4) * height * 0.018,
+          });
+        }
+      }
+
+      function buildMarkers() {
+        markers.length = 0;
+        for (let i = 0; i < 38; i += 1) {
+          const lane = i % 3;
+          const x = width * (0.1 + ((i * 0.14) % 0.8));
+          const y =
+            height * (0.16 + lane * 0.22) +
+            Math.sin(i * 1.7) * height * 0.04 +
+            (lane === 2 ? height * 0.18 : 0);
+          markers.push({
+            x,
+            y,
+            w: 12 + (i % 4) * 6,
+            h: i % 5 === 0 ? 2 : 6,
+            tilt: ((i % 6) - 2.5) * 0.07,
+            color:
+              i % 9 === 0
+                ? "acid"
+                : i % 4 === 0
+                  ? "cyan"
+                  : i % 3 === 0
+                    ? "ember"
+                    : "line",
+          });
+        }
+      }
+
+      function buildParticles() {
+        particles.length = 0;
+        const count = Math.round(Math.max(120, width * 0.11));
+        for (let i = 0; i < count; i += 1) {
+          particles.push(spawnParticle(i / count));
+        }
+      }
+
+      function spawnParticle(seed) {
+        return {
+          x: Math.random() * width,
+          y: Math.random() * height,
+          speed: 0.2 + Math.random() * 0.9,
+          size: 0.8 + Math.random() * 2.4,
+          phase: Math.random() * TAU,
+          lane: seed,
+        };
+      }
+
+      function injectPhrase(rawText) {
+        const text = rawText.trim().replace(/\s+/g, " ").slice(0, 52);
+        if (!text) {
+          return;
+        }
+
+        const seed = phrases.length * 0.27 + text.length * 0.11;
+        phrases.unshift({
+          text,
+          age: 0,
+          ttl: 12 + Math.min(8, text.length * 0.12),
+          travel: 0,
+          lane: (Math.sin(seed * 2.1) * 0.5 + 0.5) * 0.72 + 0.14,
+          burst: 0.6 + Math.min(0.8, text.length / 42),
+          wobble: Math.random() * TAU,
+        });
+        if (phrases.length > 7) {
+          phrases.pop();
+        }
+
+        phraseInput.value = text;
+        phraseValue.textContent = text;
+      }
+
+      function setupRecognition() {
+        const SpeechRecognition =
+          window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+          micButton.disabled = true;
+          micButton.textContent = "Mic unavailable";
+          return;
+        }
+
+        recognition = new SpeechRecognition();
+        recognition.lang = "en-US";
+        recognition.continuous = false;
+        recognition.interimResults = false;
+
+        recognition.addEventListener("start", () => {
+          micActive = true;
+          micButton.classList.add("active");
+          micButton.textContent = "Listening...";
+        });
+
+        recognition.addEventListener("end", () => {
+          micActive = false;
+          micButton.classList.remove("active");
+          micButton.textContent = "Mic pulse";
+        });
+
+        recognition.addEventListener("result", (event) => {
+          const transcript = Array.from(event.results)
+            .map((result) => result[0]?.transcript || "")
+            .join(" ");
+          injectPhrase(transcript || phraseInput.value);
+        });
+
+        recognition.addEventListener("error", () => {
+          micActive = false;
+          micButton.classList.remove("active");
+          micButton.textContent = "Mic pulse";
+        });
+      }
+
+      function getSeamPoint(t) {
+        const clamped = Math.max(0, Math.min(0.999, t));
+        const scaled = clamped * (seamNodes.length - 1);
+        const index = Math.floor(scaled);
+        const blend = scaled - index;
+        const a = seamNodes[index];
+        const b = seamNodes[Math.min(index + 1, seamNodes.length - 1)];
+        return {
+          x: a.x + (b.x - a.x) * blend,
+          y: a.y + (b.y - a.y) * blend,
+        };
+      }
+
+      function flowField(x, y, bias = 0) {
+        const nx = x / width;
+        const ny = y / height;
+        const swirl =
+          Math.sin(nx * 7.4 + time * 0.65 + bias) * 0.7 +
+          Math.cos(ny * 8.1 - time * 0.5 - bias * 0.6) * 0.45;
+        const pointerDx = x - pointer.x;
+        const pointerDy = y - pointer.y;
+        const dist = Math.hypot(pointerDx, pointerDy) + 1;
+        const influence = Math.max(0, 1 - dist / Math.min(width, height) * 1.1);
+        const angle = swirl + influence * pointer.pressure * 2.4;
+        return {
+          vx: Math.cos(angle) * (0.65 + influence * 1.2),
+          vy: Math.sin(angle * 1.12) * (0.42 + influence * 0.75),
+          influence,
+        };
+      }
+
+      function update(dt) {
+        time += dt;
+        pointer.x += (pointer.tx - pointer.x) * 0.11;
+        pointer.y += (pointer.ty - pointer.y) * 0.11;
+        pointer.pressure +=
+          ((0.18 +
+            Math.max(0, 1 - Math.hypot(pointer.tx - pointer.x, pointer.ty - pointer.y) / 180) *
+              0.62) -
+            pointer.pressure) *
+          0.04;
+
+        for (const particle of particles) {
+          const field = flowField(particle.x, particle.y, particle.phase);
+          particle.x += field.vx * particle.speed;
+          particle.y += field.vy * particle.speed;
+          particle.phase += 0.012 + field.influence * 0.018;
+
+          if (particle.x < -10) particle.x = width + 10;
+          if (particle.x > width + 10) particle.x = -10;
+          if (particle.y < -10) particle.y = height + 10;
+          if (particle.y > height + 10) particle.y = -10;
+        }
+
+        for (const phrase of phrases) {
+          phrase.age += dt;
+          phrase.travel = Math.min(1, phrase.age / Math.max(2.5, phrase.ttl * 0.44));
+          phrase.wobble += dt * 0.7;
+        }
+
+        while (phrases.length && phrases[phrases.length - 1].age > phrases[phrases.length - 1].ttl) {
+          phrases.pop();
+        }
+
+        pressureValue.textContent = pointer.pressure.toFixed(2);
+        fluxValue.textContent = String(phrases.length);
+      }
+
+      function drawBackground() {
+        ctx.fillStyle = "#05070a";
+        ctx.fillRect(0, 0, width, height);
+
+        const bg = ctx.createLinearGradient(0, 0, 0, height);
+        bg.addColorStop(0, "rgba(14, 18, 24, 0.74)");
+        bg.addColorStop(1, "rgba(5, 7, 10, 0.96)");
+        ctx.fillStyle = bg;
+        ctx.fillRect(0, 0, width, height);
+      }
+
+      function drawTerrainContours() {
+        for (let lane = 0; lane < 9; lane += 1) {
+          const yBase = height * (0.18 + lane * 0.08);
+          ctx.beginPath();
+          for (let x = -20; x <= width + 20; x += 12) {
+            const field = flowField(x, yBase, lane * 0.6);
+            const y =
+              yBase +
+              Math.sin(x * 0.011 + lane * 0.9 + time * 0.42) * (8 + lane * 1.5) +
+              field.influence * 26 * Math.sin(time * 2 + lane);
+            if (x === -20) {
+              ctx.moveTo(x, y);
+            } else {
+              ctx.lineTo(x, y);
+            }
+          }
+          ctx.strokeStyle =
+            lane % 3 === 0
+              ? "rgba(255, 68, 95, 0.12)"
+              : lane % 2 === 0
+                ? "rgba(133, 218, 241, 0.08)"
+                : "rgba(255, 226, 204, 0.06)";
+          ctx.lineWidth = lane % 2 === 0 ? 1.3 : 0.8;
+          ctx.stroke();
+        }
+      }
+
+      function drawFaultSeam() {
+        ctx.save();
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+
+        ctx.beginPath();
+        seamNodes.forEach((node, index) => {
+          const pull =
+            Math.max(0, 1 - Math.hypot(node.x - pointer.x, node.y - pointer.y) / 240) *
+            pointer.pressure *
+            34;
+          const y = node.y - pull;
+          if (index === 0) {
+            ctx.moveTo(node.x, y);
+          } else {
+            ctx.lineTo(node.x, y);
+          }
+        });
+        const seamGradient = ctx.createLinearGradient(width * 0.18, 0, width * 0.82, 0);
+        seamGradient.addColorStop(0, "rgba(255, 68, 95, 0.15)");
+        seamGradient.addColorStop(0.45, "rgba(255, 150, 110, 0.72)");
+        seamGradient.addColorStop(0.7, "rgba(133, 218, 241, 0.34)");
+        seamGradient.addColorStop(1, "rgba(255, 68, 95, 0.08)");
+        ctx.strokeStyle = seamGradient;
+        ctx.lineWidth = 26;
+        ctx.stroke();
+
+        ctx.beginPath();
+        seamNodes.forEach((node, index) => {
+          const pull =
+            Math.max(0, 1 - Math.hypot(node.x - pointer.x, node.y - pointer.y) / 260) *
+            pointer.pressure *
+            28;
+          const y = node.y - pull;
+          if (index === 0) {
+            ctx.moveTo(node.x, y);
+          } else {
+            ctx.lineTo(node.x, y);
+          }
+        });
+        ctx.strokeStyle = "rgba(255, 236, 214, 0.82)";
+        ctx.lineWidth = 1.4;
+        ctx.stroke();
+
+        for (let i = 0; i < seamNodes.length - 1; i += 1) {
+          const a = seamNodes[i];
+          const b = seamNodes[i + 1];
+          const mx = (a.x + b.x) * 0.5;
+          const my = (a.y + b.y) * 0.5;
+          const dx = b.x - a.x;
+          const dy = b.y - a.y;
+          const len = Math.hypot(dx, dy) || 1;
+          const nx = -dy / len;
+          const ny = dx / len;
+          const open =
+            8 +
+            Math.sin(time * 1.8 + i * 0.7) * 5 +
+            Math.max(0, 1 - Math.hypot(mx - pointer.x, my - pointer.y) / 220) *
+              pointer.pressure *
+              24;
+
+          ctx.beginPath();
+          ctx.moveTo(mx - nx * open, my - ny * open);
+          ctx.lineTo(mx + nx * open, my + ny * open);
+          ctx.strokeStyle =
+            i % 3 === 0 ? "rgba(223, 255, 98, 0.22)" : "rgba(255, 68, 95, 0.18)";
+          ctx.lineWidth = i % 2 === 0 ? 1.3 : 0.9;
+          ctx.stroke();
+        }
+
+        ctx.restore();
+      }
+
+      function drawMarkers() {
+        ctx.save();
+        for (const marker of markers) {
+          const field = flowField(marker.x, marker.y, marker.tilt);
+          const ox = field.vx * 10 + field.influence * 26;
+          const oy = field.vy * 8 - field.influence * 16;
+          ctx.save();
+          ctx.translate(marker.x + ox, marker.y + oy);
+          ctx.rotate(marker.tilt + field.influence * 0.18);
+          ctx.fillStyle =
+            marker.color === "acid"
+              ? "rgba(223, 255, 98, 0.78)"
+              : marker.color === "cyan"
+                ? "rgba(133, 218, 241, 0.78)"
+                : marker.color === "ember"
+                  ? "rgba(255, 143, 97, 0.76)"
+                  : "rgba(255, 226, 204, 0.14)";
+          ctx.fillRect(-marker.w * 0.5, -marker.h * 0.5, marker.w, marker.h);
+          if (marker.h <= 2.5) {
+            ctx.strokeStyle = "rgba(255, 226, 204, 0.18)";
+            ctx.lineWidth = 1;
+            ctx.strokeRect(-marker.w * 0.5, -marker.h * 0.5, marker.w, marker.h);
+          }
+          ctx.restore();
+        }
+        ctx.restore();
+      }
+
+      function drawParticles() {
+        ctx.save();
+        for (const particle of particles) {
+          const field = flowField(particle.x, particle.y, particle.phase);
+          ctx.beginPath();
+          ctx.arc(
+            particle.x,
+            particle.y,
+            particle.size + field.influence * 1.2,
+            0,
+            TAU,
+          );
+          ctx.fillStyle =
+            field.influence > 0.38
+              ? "rgba(255, 143, 97, 0.38)"
+              : particle.size > 2
+                ? "rgba(255, 68, 95, 0.28)"
+                : "rgba(255, 226, 204, 0.18)";
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+
+      function drawPhrases() {
+        ctx.save();
+        ctx.textBaseline = "middle";
+        ctx.font = '12px "Azeret Mono", "IBM Plex Mono", monospace';
+
+        for (const phrase of phrases) {
+          const point = getSeamPoint(phrase.lane + phrase.travel * 0.22);
+          const field = flowField(point.x, point.y, phrase.wobble);
+          const x = point.x + field.vx * 42 + Math.sin(phrase.wobble) * 14;
+          const y = point.y - 42 + field.vy * 16 + Math.cos(phrase.wobble * 0.9) * 10;
+          const alpha = Math.max(0, 1 - phrase.age / phrase.ttl);
+          const glow = 14 + phrase.burst * 22;
+
+          ctx.fillStyle = `rgba(255, 68, 95, ${0.12 * alpha})`;
+          ctx.beginPath();
+          ctx.ellipse(x, y, glow * 1.9, glow, 0, 0, TAU);
+          ctx.fill();
+
+          ctx.strokeStyle = `rgba(255, 226, 204, ${0.44 * alpha})`;
+          ctx.lineWidth = 1;
+          ctx.strokeRect(x - 10, y - 10, 20, 20);
+
+          ctx.fillStyle = `rgba(239, 231, 218, ${0.88 * alpha})`;
+          ctx.fillText(phrase.text.toUpperCase(), x + 18, y + 1);
+
+          ctx.strokeStyle = `rgba(133, 218, 241, ${0.34 * alpha})`;
+          ctx.beginPath();
+          ctx.moveTo(x - 12, y);
+          ctx.lineTo(point.x, point.y);
+          ctx.stroke();
+        }
+
+        ctx.restore();
+      }
+
+      function drawPointerCalibration() {
+        ctx.save();
+        ctx.translate(pointer.x, pointer.y);
+        ctx.strokeStyle = "rgba(255, 226, 204, 0.22)";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(-18, 0);
+        ctx.lineTo(18, 0);
+        ctx.moveTo(0, -18);
+        ctx.lineTo(0, 18);
+        ctx.stroke();
+        ctx.strokeStyle = "rgba(255, 68, 95, 0.38)";
+        ctx.beginPath();
+        ctx.arc(0, 0, 24 + pointer.pressure * 18, 0, TAU);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      function draw() {
+        drawBackground();
+        drawTerrainContours();
+        drawMarkers();
+        drawFaultSeam();
+        drawParticles();
+        drawPhrases();
+        drawPointerCalibration();
+      }
+
+      let lastFrame = performance.now();
+      function frame(now) {
+        const dt = Math.min(0.033, (now - lastFrame) / 1000);
+        lastFrame = now;
+        update(dt);
+        draw();
+        requestAnimationFrame(frame);
+      }
+
+      window.addEventListener("pointermove", (event) => {
+        pointer.tx = event.clientX;
+        pointer.ty = event.clientY;
+      });
+
+      window.addEventListener("pointerdown", (event) => {
+        pointer.tx = event.clientX;
+        pointer.ty = event.clientY;
+        pointer.pressure = 0.72;
+        injectPhrase(phraseInput.value || "fault pulse");
+      });
+
+      window.addEventListener("resize", resize);
+
+      injectButton.addEventListener("click", () => {
+        injectPhrase(phraseInput.value);
+      });
+
+      phraseInput.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+          injectPhrase(phraseInput.value);
+        }
+      });
+
+      micButton.addEventListener("click", () => {
+        if (!recognition) {
+          injectPhrase(phraseInput.value);
+          return;
+        }
+        if (micActive) {
+          recognition.stop();
+          return;
+        }
+        recognition.start();
+      });
+
+      resize();
+      setupRecognition();
+      injectPhrase("signal field");
+      requestAnimationFrame(frame);
+    </script>
+  </body>
+</html>

@@ -1,0 +1,1057 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>#053 Pressure Garden Console</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #06070a;
+        --bg-soft: #0d1117;
+        --panel: rgba(10, 14, 18, 0.86);
+        --panel-strong: rgba(14, 18, 24, 0.96);
+        --line: rgba(140, 185, 200, 0.18);
+        --line-strong: rgba(140, 185, 200, 0.4);
+        --text: #dde3e8;
+        --muted: rgba(221, 227, 232, 0.58);
+        --white-dot: #ebe7e2;
+        --cyan: #79cae2;
+        --crimson: #b62c48;
+        --rose: #f08b8c;
+        --amber: #d5b36d;
+        --glass: rgba(255, 255, 255, 0.055);
+        --shadow: 0 28px 80px rgba(0, 0, 0, 0.44);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        background:
+          radial-gradient(circle at 18% 20%, rgba(121, 202, 226, 0.12), transparent 22%),
+          radial-gradient(circle at 82% 78%, rgba(182, 44, 72, 0.13), transparent 24%),
+          radial-gradient(circle at 55% 45%, rgba(255, 255, 255, 0.04), transparent 26%),
+          linear-gradient(180deg, #0d1218 0%, #07090d 40%, #030406 100%);
+        color: var(--text);
+        font-family: "Avenir Next Condensed", "Trebuchet MS", "Arial Narrow", sans-serif;
+      }
+
+      body {
+        overflow-x: hidden;
+      }
+
+      body::before,
+      body::after {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+      }
+
+      body::before {
+        opacity: 0.12;
+        background-image:
+          linear-gradient(rgba(130, 171, 186, 0.12) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(130, 171, 186, 0.12) 1px, transparent 1px);
+        background-size: min(4.5vw, 42px) min(4.5vw, 42px);
+        mask-image: radial-gradient(circle at 52% 48%, black 30%, transparent 88%);
+      }
+
+      body::after {
+        opacity: 0.045;
+        background-image:
+          linear-gradient(rgba(255, 255, 255, 0.82) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.82) 1px, transparent 1px);
+        background-size: 3px 3px;
+        mix-blend-mode: screen;
+      }
+
+      a {
+        color: inherit;
+      }
+
+      .shell {
+        position: relative;
+        z-index: 1;
+        width: min(1320px, calc(100% - 24px));
+        margin: 0 auto;
+        padding: 18px 0 28px;
+      }
+
+      .topline,
+      .meta,
+      .tag,
+      .tuner-label,
+      .meter-label,
+      .note-label,
+      .back {
+        font-family: "Azeret Mono", "IBM Plex Mono", "SFMono-Regular", monospace;
+      }
+
+      .topline {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 0 6px 14px;
+        color: var(--muted);
+        font-size: 0.76rem;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+      }
+
+      .board {
+        display: grid;
+        grid-template-columns: minmax(0, 1.35fr) minmax(310px, 0.65fr);
+        gap: 16px;
+        min-height: 78vh;
+      }
+
+      .panel,
+      .stack,
+      .footer-card,
+      .back {
+        border: 1px solid var(--line);
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 22%),
+          linear-gradient(180deg, rgba(8, 11, 16, 0.86), rgba(7, 9, 13, 0.96));
+        box-shadow: var(--shadow);
+      }
+
+      .panel,
+      .stack,
+      .footer-card {
+        position: relative;
+        overflow: hidden;
+        border-radius: 30px;
+      }
+
+      .panel::before,
+      .stack::before,
+      .footer-card::before {
+        content: "";
+        position: absolute;
+        inset: 12px;
+        border: 1px solid rgba(128, 173, 188, 0.1);
+        border-radius: 22px;
+        pointer-events: none;
+      }
+
+      .viewer {
+        position: relative;
+        min-height: 78vh;
+      }
+
+      #field {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        display: block;
+      }
+
+      .hero-copy {
+        position: absolute;
+        inset: 20px 20px auto 20px;
+        z-index: 2;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 16px;
+        pointer-events: none;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+
+      .hero-title {
+        max-width: 10ch;
+      }
+
+      .hero-title h1 {
+        font-size: clamp(1.8rem, 2.8vw, 3rem);
+        line-height: 0.92;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .hero-title p {
+        margin-top: 12px;
+        max-width: 27rem;
+        color: rgba(221, 227, 232, 0.76);
+        line-height: 1.48;
+        font-size: 0.94rem;
+      }
+
+      .hero-side {
+        align-self: start;
+        text-align: right;
+        max-width: 18rem;
+        color: rgba(221, 227, 232, 0.66);
+        font-size: 0.8rem;
+        line-height: 1.46;
+      }
+
+      .meta {
+        margin-top: 14px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.8rem;
+        font-size: 0.7rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      .tag {
+        position: absolute;
+        left: 22px;
+        bottom: 20px;
+        z-index: 2;
+        display: inline-flex;
+        gap: 10px;
+        align-items: center;
+        padding: 10px 14px;
+        border: 1px solid rgba(126, 173, 190, 0.18);
+        border-radius: 999px;
+        background: rgba(8, 12, 17, 0.58);
+        backdrop-filter: blur(14px);
+        font-size: 0.69rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: rgba(221, 227, 232, 0.74);
+      }
+
+      .tag::before {
+        content: "";
+        width: 9px;
+        height: 9px;
+        border-radius: 999px;
+        background: radial-gradient(circle, var(--rose) 0%, var(--crimson) 70%, transparent 74%);
+        box-shadow: 0 0 18px rgba(240, 139, 140, 0.65);
+      }
+
+      .stack {
+        display: grid;
+        align-content: start;
+        gap: 14px;
+        padding: 16px;
+      }
+
+      .card {
+        position: relative;
+        z-index: 1;
+        border: 1px solid rgba(126, 173, 190, 0.14);
+        border-radius: 24px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 24%),
+          rgba(9, 13, 18, 0.82);
+        padding: 16px;
+        backdrop-filter: blur(12px);
+      }
+
+      .stack h2,
+      .stack h3 {
+        font-size: 0.8rem;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+      }
+
+      .stack p {
+        margin-top: 10px;
+        color: rgba(221, 227, 232, 0.74);
+        line-height: 1.5;
+        font-size: 0.94rem;
+      }
+
+      .tuner-list {
+        display: grid;
+        gap: 12px;
+      }
+
+      .tuner {
+        width: 100%;
+        appearance: none;
+        border: 1px solid rgba(126, 173, 190, 0.16);
+        border-radius: 20px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 24%),
+          rgba(11, 15, 21, 0.9);
+        color: var(--text);
+        text-align: left;
+        padding: 14px;
+        cursor: pointer;
+        transition:
+          border-color 180ms ease,
+          transform 180ms ease,
+          background 180ms ease;
+      }
+
+      .tuner:hover,
+      .tuner:focus-visible {
+        outline: none;
+        border-color: rgba(126, 173, 190, 0.36);
+        transform: translateY(-1px);
+      }
+
+      .tuner.active {
+        border-color: rgba(182, 44, 72, 0.34);
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.05), transparent 24%),
+          linear-gradient(180deg, rgba(78, 16, 31, 0.18), rgba(11, 15, 21, 0.96));
+      }
+
+      .tuner-head,
+      .meter-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+
+      .tuner-label,
+      .meter-label,
+      .note-label {
+        font-size: 0.66rem;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      .tuner-value {
+        font-size: 0.74rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: rgba(235, 231, 226, 0.9);
+      }
+
+      .mini {
+        position: relative;
+        height: 66px;
+        margin-top: 12px;
+        border: 1px solid rgba(126, 173, 190, 0.1);
+        border-radius: 16px;
+        overflow: hidden;
+        background:
+          radial-gradient(circle at 20% 30%, rgba(121, 202, 226, 0.08), transparent 20%),
+          linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.01));
+      }
+
+      .mini::before,
+      .mini::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+      }
+
+      .mini::before {
+        opacity: 0.45;
+        background-image:
+          linear-gradient(rgba(135, 171, 186, 0.1) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(135, 171, 186, 0.1) 1px, transparent 1px);
+        background-size: 22px 22px;
+      }
+
+      .mini::after {
+        background:
+          radial-gradient(circle at calc(var(--bias, 0.35) * 100%) 42%, rgba(235, 231, 226, 0.84) 0 2px, transparent 3px),
+          radial-gradient(circle at calc((var(--bias, 0.35) * 100%) + 18%) 58%, color-mix(in srgb, var(--crimson) calc(var(--heat, 0.2) * 100%), var(--white-dot)) 0 2px, transparent 3px),
+          radial-gradient(circle at calc((var(--bias, 0.35) * 100%) + 40%) 36%, color-mix(in srgb, var(--crimson) calc(var(--heat, 0.2) * 100%), var(--cyan)) 0 2px, transparent 3px);
+        animation: drift 3.8s ease-in-out infinite alternate;
+      }
+
+      .mini-curve {
+        position: absolute;
+        inset: 10px 8px;
+        overflow: visible;
+      }
+
+      .mini-curve path {
+        fill: none;
+        stroke: rgba(121, 202, 226, 0.68);
+        stroke-width: 1.3;
+      }
+
+      .mini-density {
+        position: absolute;
+        inset: 0;
+        opacity: 0.9;
+        background-image: radial-gradient(circle, rgba(235, 231, 226, 0.7) 0 1px, transparent 1.2px);
+        background-size: calc(24px - var(--density, 0.5) * 10px) calc(22px - var(--density, 0.5) * 8px);
+        background-position: 12px 12px;
+        mask-image: linear-gradient(180deg, transparent, black 20%, black 80%, transparent);
+      }
+
+      .meter-list {
+        display: grid;
+        gap: 10px;
+        margin-top: 12px;
+      }
+
+      .meter-track {
+        position: relative;
+        flex: 1;
+        height: 8px;
+        border-radius: 999px;
+        overflow: hidden;
+        background: rgba(255, 255, 255, 0.06);
+      }
+
+      .meter-fill {
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: calc(var(--fill, 0.5) * 100%);
+        border-radius: inherit;
+        background: linear-gradient(90deg, var(--cyan), var(--rose), var(--amber));
+      }
+
+      .swatch-row {
+        margin-top: 12px;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .swatch {
+        height: 52px;
+        border: 1px solid rgba(126, 173, 190, 0.12);
+        border-radius: 16px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 28%),
+          var(--glass);
+      }
+
+      .swatch.s1 {
+        background:
+          radial-gradient(circle at 22% 50%, rgba(235, 231, 226, 0.88) 0 2px, transparent 3px),
+          radial-gradient(circle at 52% 50%, rgba(235, 231, 226, 0.65) 0 2px, transparent 3px),
+          radial-gradient(circle at 78% 50%, rgba(182, 44, 72, 0.84) 0 2px, transparent 3px),
+          linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 28%),
+          rgba(255, 255, 255, 0.04);
+      }
+
+      .swatch.s2 {
+        background:
+          radial-gradient(circle at 30% 55%, rgba(121, 202, 226, 0.7) 0 12%, transparent 13%),
+          radial-gradient(circle at 70% 40%, rgba(240, 139, 140, 0.58) 0 16%, transparent 17%),
+          linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 28%),
+          rgba(255, 255, 255, 0.04);
+      }
+
+      .swatch.s3 {
+        background:
+          linear-gradient(135deg, rgba(235, 231, 226, 0.18) 0 15%, transparent 15% 30%, rgba(121, 202, 226, 0.18) 30% 45%, transparent 45% 60%, rgba(182, 44, 72, 0.18) 60% 75%, transparent 75%),
+          linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 28%),
+          rgba(255, 255, 255, 0.04);
+      }
+
+      .notes {
+        margin-top: 16px;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 16px;
+      }
+
+      .footer-card {
+        padding: 16px;
+      }
+
+      .footer-card p {
+        margin-top: 10px;
+        color: rgba(221, 227, 232, 0.74);
+        line-height: 1.52;
+        font-size: 0.95rem;
+      }
+
+      .back {
+        position: fixed;
+        right: 16px;
+        bottom: 16px;
+        z-index: 5;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 11px 14px;
+        border-radius: 999px;
+        text-decoration: none;
+        font-size: 0.72rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: rgba(221, 227, 232, 0.78);
+      }
+
+      .back::before {
+        content: "";
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        background: rgba(121, 202, 226, 0.9);
+        box-shadow: 0 0 18px rgba(121, 202, 226, 0.5);
+      }
+
+      @keyframes drift {
+        from {
+          transform: translateX(-5px);
+        }
+
+        to {
+          transform: translateX(5px);
+        }
+      }
+
+      @media (max-width: 1080px) {
+        .board {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .viewer {
+          min-height: 62vh;
+        }
+
+        .hero-copy {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .hero-side {
+          text-align: left;
+        }
+      }
+
+      @media (max-width: 760px) {
+        .shell {
+          width: min(100%, calc(100% - 16px));
+          padding-top: 12px;
+        }
+
+        .panel,
+        .stack,
+        .footer-card {
+          border-radius: 24px;
+        }
+
+        .panel::before,
+        .stack::before,
+        .footer-card::before {
+          inset: 10px;
+          border-radius: 18px;
+        }
+
+        .viewer {
+          min-height: 54vh;
+        }
+
+        .notes {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .hero-copy {
+          inset: 16px 16px auto 16px;
+        }
+
+        .tag {
+          left: 16px;
+          bottom: 16px;
+        }
+
+        .back {
+          right: 12px;
+          bottom: 12px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <div class="topline">
+        <span>Code Animation Study #053</span>
+        <span>Pointer shear + click tuning</span>
+      </div>
+
+      <section class="board">
+        <section class="panel viewer">
+          <canvas id="field"></canvas>
+
+          <div class="hero-copy">
+            <div class="hero-title">
+              <h1>Pressure Garden Console</h1>
+              <p>
+                A browser-native control surface built around the recent request
+                for a real HTML-like interface image: the right-hand tuner rail
+                visibly retunes the main field instead of acting like fake UI,
+                moving the page away from another dossier, atlas, or mascot.
+              </p>
+              <div class="meta">
+                <span>Design-usable interface lane</span>
+                <span>Procedural signal field</span>
+                <span>Static self-contained page</span>
+              </div>
+            </div>
+            <p class="hero-side">
+              Move through the field to shear nearby threads. Click a tuner on
+              the right to change the exact law of the page: dot polarity, wave
+              curvature, or membrane density.
+            </p>
+          </div>
+
+          <div class="tag">Live parameter echo: white dots, red pressure, rounded lanes</div>
+        </section>
+
+        <aside class="stack">
+          <section class="card">
+            <h2>Tuner Rail</h2>
+            <p>
+              Each module changes one visible property in the main field. The
+              rail is part of the composition, not a decorative afterthought.
+            </p>
+
+            <div class="tuner-list">
+              <button class="tuner active" data-key="polarity" type="button">
+                <div class="tuner-head">
+                  <span class="tuner-label">Particle Polarity</span>
+                  <span class="tuner-value" data-value>White to red</span>
+                </div>
+                <div class="mini" data-mini="polarity" style="--heat: 0.74; --bias: 0.24;">
+                  <svg class="mini-curve" viewBox="0 0 100 50" preserveAspectRatio="none" aria-hidden="true">
+                    <path d="M0,34 C20,28 28,12 50,18 C72,24 78,40 100,28"></path>
+                  </svg>
+                </div>
+              </button>
+
+              <button class="tuner" data-key="curvature" type="button">
+                <div class="tuner-head">
+                  <span class="tuner-label">Wave Curvature</span>
+                  <span class="tuner-value" data-value>Rounded braid</span>
+                </div>
+                <div class="mini" data-mini="curvature" style="--heat: 0.3; --bias: 0.38;">
+                  <svg class="mini-curve" viewBox="0 0 100 50" preserveAspectRatio="none" aria-hidden="true">
+                    <path d="M0,30 C12,30 22,30 34,24 C46,18 56,18 66,24 C76,30 86,34 100,20"></path>
+                  </svg>
+                </div>
+              </button>
+
+              <button class="tuner" data-key="density" type="button">
+                <div class="tuner-head">
+                  <span class="tuner-label">Membrane Density</span>
+                  <span class="tuner-value" data-value>Rooted middle</span>
+                </div>
+                <div class="mini" data-mini="density" style="--heat: 0.48; --bias: 0.32;">
+                  <div class="mini-density" style="--density: 0.58;"></div>
+                  <svg class="mini-curve" viewBox="0 0 100 50" preserveAspectRatio="none" aria-hidden="true">
+                    <path d="M0,40 C18,34 28,16 44,18 C60,20 72,44 100,24"></path>
+                  </svg>
+                </div>
+              </button>
+            </div>
+          </section>
+
+          <section class="card">
+            <h3>Live Meters</h3>
+            <div class="meter-list">
+              <div class="meter-row">
+                <span class="meter-label">Polarity</span>
+                <div class="meter-track"><div class="meter-fill" id="meter-polarity"></div></div>
+              </div>
+              <div class="meter-row">
+                <span class="meter-label">Curvature</span>
+                <div class="meter-track"><div class="meter-fill" id="meter-curvature"></div></div>
+              </div>
+              <div class="meter-row">
+                <span class="meter-label">Density</span>
+                <div class="meter-track"><div class="meter-fill" id="meter-density"></div></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="card">
+            <h3>Legend Fragments</h3>
+            <p>
+              The page keeps one strong interface image while staying procedural:
+              dotted cells, membrane lanes, and pressure blooms all share the
+              same motion law.
+            </p>
+            <div class="swatch-row" aria-hidden="true">
+              <div class="swatch s1"></div>
+              <div class="swatch s2"></div>
+              <div class="swatch s3"></div>
+            </div>
+          </section>
+        </aside>
+      </section>
+
+      <section class="notes">
+        <article class="footer-card">
+          <p class="note-label">Idea</p>
+          <p>
+            Build the specific HTML branch the feedback pointed toward: a page
+            where controls on the right visibly affect the central system,
+            instead of another atmospheric field with arbitrary chrome.
+          </p>
+        </article>
+        <article class="footer-card">
+          <p class="note-label">Interaction</p>
+          <p>
+            Pointer movement shears nearby signal threads; clicking one tuner
+            retargets the whole field with a different law for color pressure,
+            curve roundness, or membrane crowding.
+          </p>
+        </article>
+        <article class="footer-card">
+          <p class="note-label">Next</p>
+          <p>
+            A stronger follow-up could let multiple right-side modules combine
+            at once or expose a more creature-like or botanical body inside the
+            same operable console.
+          </p>
+        </article>
+      </section>
+    </main>
+
+    <a class="back" href="../../index.html">Back to index</a>
+
+    <script>
+      const canvas = document.getElementById("field");
+      const ctx = canvas.getContext("2d");
+      const tuners = [...document.querySelectorAll(".tuner")];
+      const meterEls = {
+        polarity: document.getElementById("meter-polarity"),
+        curvature: document.getElementById("meter-curvature"),
+        density: document.getElementById("meter-density"),
+      };
+      const pointer = { x: 0.52, y: 0.48, active: false, pulse: 0, shear: 0 };
+      const settings = {
+        polarity: 0.74,
+        curvature: 0.64,
+        density: 0.58,
+      };
+      const targets = { ...settings };
+      const particles = [];
+      const lanes = [];
+
+      const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+
+      const mix = (a, b, t) => a + (b - a) * t;
+
+      const mixColor = (from, to, t) => {
+        const a = from.match(/\w\w/g).map((hex) => parseInt(hex, 16));
+        const b = to.match(/\w\w/g).map((hex) => parseInt(hex, 16));
+        const color = a.map((part, index) => Math.round(mix(part, b[index], t)));
+        return `rgb(${color[0]} ${color[1]} ${color[2]})`;
+      };
+
+      function buildField() {
+        particles.length = 0;
+        lanes.length = 0;
+
+        const cols = 16;
+        const rows = 11;
+
+        for (let row = 0; row < rows; row += 1) {
+          for (let col = 0; col < cols; col += 1) {
+            const nx = 0.1 + (col / (cols - 1)) * 0.8;
+            const ny = 0.16 + (row / (rows - 1)) * 0.68;
+            particles.push({
+              ax: nx,
+              ay: ny,
+              phase: Math.random() * Math.PI * 2,
+              sway: 0.6 + Math.random() * 1.2,
+              size: 0.9 + Math.random() * 1.8,
+            });
+          }
+        }
+
+        for (let i = 0; i < 7; i += 1) {
+          lanes.push({
+            y: 0.16 + i * 0.1,
+            phase: Math.random() * Math.PI * 2,
+            drift: 0.6 + Math.random() * 0.6,
+          });
+        }
+      }
+
+      function resize() {
+        const dpr = window.devicePixelRatio || 1;
+        const rect = canvas.getBoundingClientRect();
+        canvas.width = Math.round(rect.width * dpr);
+        canvas.height = Math.round(rect.height * dpr);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+
+      function updateMeters() {
+        Object.entries(settings).forEach(([key, value]) => {
+          meterEls[key].style.setProperty("--fill", value.toFixed(3));
+        });
+      }
+
+      function retarget(key) {
+        if (key === "polarity") {
+          targets.polarity = targets.polarity > 0.55 ? 0.16 : 0.82;
+        } else if (key === "curvature") {
+          targets.curvature = targets.curvature > 0.55 ? 0.24 : 0.82;
+        } else if (key === "density") {
+          targets.density = targets.density > 0.55 ? 0.28 : 0.78;
+        }
+
+        pointer.pulse = 1;
+        tuners.forEach((tuner) => tuner.classList.toggle("active", tuner.dataset.key === key));
+      }
+
+      function renderTunerLabels() {
+        tuners.forEach((tuner) => {
+          const label = tuner.querySelector("[data-value]");
+          const mini = tuner.querySelector("[data-mini]");
+          const key = tuner.dataset.key;
+          const value = settings[key];
+
+          if (key === "polarity") {
+            label.textContent = value > 0.55 ? "White to red" : "Pale signal";
+            mini.style.setProperty("--heat", value.toFixed(3));
+            mini.style.setProperty("--bias", (0.18 + value * 0.42).toFixed(3));
+          } else if (key === "curvature") {
+            label.textContent = value > 0.55 ? "Rounded braid" : "Tighter seams";
+            mini.style.setProperty("--heat", (0.18 + value * 0.35).toFixed(3));
+            mini.style.setProperty("--bias", (0.28 + value * 0.2).toFixed(3));
+            const path = tuner.querySelector("path");
+            path.setAttribute(
+              "d",
+              value > 0.55
+                ? "M0,30 C12,30 22,30 34,24 C46,18 56,18 66,24 C76,30 86,34 100,20"
+                : "M0,30 C18,30 24,28 36,28 C48,28 60,24 72,24 C84,24 90,20 100,20"
+            );
+          } else if (key === "density") {
+            label.textContent = value > 0.55 ? "Rooted middle" : "Open membrane";
+            mini.style.setProperty("--heat", (0.22 + value * 0.35).toFixed(3));
+            mini.style.setProperty("--bias", (0.22 + value * 0.18).toFixed(3));
+            const density = tuner.querySelector(".mini-density");
+            density.style.setProperty("--density", value.toFixed(3));
+          }
+        });
+      }
+
+      function drawBackground(width, height, time) {
+        const grad = ctx.createRadialGradient(width * 0.45, height * 0.42, 0, width * 0.45, height * 0.42, width * 0.7);
+        grad.addColorStop(0, "rgba(23, 31, 38, 0.88)");
+        grad.addColorStop(0.62, "rgba(8, 12, 17, 0.92)");
+        grad.addColorStop(1, "rgba(5, 7, 10, 0.98)");
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, width, height);
+
+        ctx.save();
+        ctx.strokeStyle = "rgba(128, 170, 186, 0.055)";
+        ctx.lineWidth = 1;
+        const grid = Math.max(28, Math.min(42, width / 18));
+        for (let x = grid * 0.5; x < width; x += grid) {
+          ctx.beginPath();
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, height);
+          ctx.stroke();
+        }
+        for (let y = grid * 0.5; y < height; y += grid) {
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(width, y);
+          ctx.stroke();
+        }
+        ctx.restore();
+
+        ctx.save();
+        ctx.globalAlpha = 0.12;
+        for (let i = 0; i < 3; i += 1) {
+          const x = width * (0.22 + i * 0.26);
+          const y = height * (0.2 + Math.sin(time * 0.25 + i) * 0.05);
+          const bloom = ctx.createRadialGradient(x, y, 0, x, y, width * 0.14);
+          bloom.addColorStop(0, i === 1 ? "rgba(182, 44, 72, 0.4)" : "rgba(121, 202, 226, 0.3)");
+          bloom.addColorStop(1, "rgba(0, 0, 0, 0)");
+          ctx.fillStyle = bloom;
+          ctx.beginPath();
+          ctx.arc(x, y, width * 0.14, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+
+      function drawLanes(width, height, time) {
+        ctx.save();
+        lanes.forEach((lane, index) => {
+          const curve = settings.curvature;
+          const amp = mix(6, 38, curve);
+          const y = lane.y * height;
+          const pathShift = Math.sin(time * lane.drift + lane.phase) * amp;
+
+          ctx.beginPath();
+          ctx.moveTo(width * 0.08, y);
+          for (let step = 1; step <= 6; step += 1) {
+            const px = width * (0.08 + step * 0.14);
+            const bend = Math.sin(time * 0.6 + lane.phase + step * 0.9) * amp;
+            const pointerDist = Math.abs(pointer.y * height - y) / height;
+            const pointerShift = pointer.active ? (0.11 - pointerDist) * pointer.shear * 90 : 0;
+            ctx.quadraticCurveTo(px - width * 0.07, y + bend + pathShift + pointerShift, px, y + bend * 0.55);
+          }
+
+          ctx.lineWidth = index % 3 === 0 ? 2.1 : 1.2;
+          ctx.strokeStyle =
+            index % 3 === 0
+              ? `rgba(121, 202, 226, ${0.22 + curve * 0.16})`
+              : `rgba(232, 229, 224, ${0.08 + curve * 0.09})`;
+          ctx.stroke();
+        });
+        ctx.restore();
+      }
+
+      function drawParticles(width, height, time) {
+        const polarity = settings.polarity;
+        const density = settings.density;
+        const particleColor = mixColor("ebe7e2", "b62c48", polarity);
+
+        particles.forEach((particle) => {
+          const px = particle.ax * width;
+          const py = particle.ay * height;
+          const dx = pointer.x * width - px;
+          const dy = pointer.y * height - py;
+          const distance = Math.hypot(dx, dy);
+          const influence = pointer.active ? Math.max(0, 1 - distance / 180) : 0;
+          const bend = Math.sin(time * particle.sway + particle.phase) * mix(2, 12, settings.curvature);
+          const sway = Math.cos(time * 0.55 + particle.phase * 1.7) * mix(4, 18, density);
+          const x = px + sway - dx * influence * 0.1;
+          const y = py + bend - dy * influence * 0.16;
+          const radius = particle.size + density * 1.35 + influence * 1.4 + pointer.pulse * 1.1;
+
+          ctx.beginPath();
+          ctx.fillStyle = particleColor;
+          ctx.globalAlpha = 0.2 + polarity * 0.24 + influence * 0.24;
+          ctx.arc(x, y, radius, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.beginPath();
+          ctx.fillStyle = polarity > 0.55 ? "rgba(240, 139, 140, 0.9)" : "rgba(235, 231, 226, 0.88)";
+          ctx.globalAlpha = 0.5 + influence * 0.2;
+          ctx.arc(x, y, radius * 0.38, 0, Math.PI * 2);
+          ctx.fill();
+        });
+
+        ctx.globalAlpha = 1;
+      }
+
+      function drawMembranes(width, height, time) {
+        const density = settings.density;
+        const curve = settings.curvature;
+        const membranes = 4 + Math.round(density * 3);
+
+        ctx.save();
+        for (let i = 0; i < membranes; i += 1) {
+          const left = width * (0.14 + i * 0.08);
+          const top = height * (0.2 + i * 0.08);
+          const membraneWidth = width * mix(0.18, 0.3, density);
+          const membraneHeight = height * mix(0.1, 0.16, density);
+          const wobble = Math.sin(time * 0.42 + i * 0.9) * mix(10, 34, curve);
+
+          ctx.beginPath();
+          ctx.moveTo(left, top);
+          ctx.bezierCurveTo(
+            left + membraneWidth * 0.24,
+            top - wobble,
+            left + membraneWidth * 0.74,
+            top + membraneHeight + wobble,
+            left + membraneWidth,
+            top + membraneHeight * 0.56
+          );
+          ctx.bezierCurveTo(
+            left + membraneWidth * 0.78,
+            top + membraneHeight + wobble,
+            left + membraneWidth * 0.2,
+            top + membraneHeight,
+            left,
+            top
+          );
+          const fill = ctx.createLinearGradient(left, top, left + membraneWidth, top + membraneHeight);
+          fill.addColorStop(0, `rgba(121, 202, 226, ${0.05 + density * 0.08})`);
+          fill.addColorStop(0.55, `rgba(235, 231, 226, ${0.04 + density * 0.06})`);
+          fill.addColorStop(1, `rgba(182, 44, 72, ${0.06 + settings.polarity * 0.08})`);
+          ctx.fillStyle = fill;
+          ctx.strokeStyle = `rgba(140, 185, 200, ${0.12 + density * 0.18})`;
+          ctx.lineWidth = 1.2;
+          ctx.fill();
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      function drawPulse(width, height) {
+        if (pointer.pulse <= 0.001) {
+          return;
+        }
+
+        ctx.save();
+        ctx.strokeStyle = `rgba(240, 139, 140, ${pointer.pulse * 0.24})`;
+        ctx.lineWidth = 1.2 + pointer.pulse * 3;
+        ctx.beginPath();
+        ctx.arc(pointer.x * width, pointer.y * height, 12 + (1 - pointer.pulse) * 220, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      function frame(now) {
+        const rect = canvas.getBoundingClientRect();
+        const width = rect.width;
+        const height = rect.height;
+        const time = now * 0.001;
+
+        Object.keys(settings).forEach((key) => {
+          settings[key] = mix(settings[key], targets[key], 0.08);
+        });
+
+        pointer.pulse *= 0.96;
+        pointer.shear = mix(pointer.shear, pointer.active ? 1 : 0, 0.05);
+
+        drawBackground(width, height, time);
+        drawLanes(width, height, time);
+        drawMembranes(width, height, time);
+        drawParticles(width, height, time);
+        drawPulse(width, height);
+        updateMeters();
+        renderTunerLabels();
+
+        requestAnimationFrame(frame);
+      }
+
+      tuners.forEach((tuner) => {
+        tuner.addEventListener("click", () => {
+          retarget(tuner.dataset.key);
+        });
+      });
+
+      window.addEventListener("pointermove", (event) => {
+        const rect = canvas.getBoundingClientRect();
+        pointer.x = clamp((event.clientX - rect.left) / rect.width, 0, 1);
+        pointer.y = clamp((event.clientY - rect.top) / rect.height, 0, 1);
+        pointer.active = true;
+      });
+
+      window.addEventListener("pointerleave", () => {
+        pointer.active = false;
+      });
+
+      window.addEventListener("click", (event) => {
+        const rect = canvas.getBoundingClientRect();
+        pointer.x = clamp((event.clientX - rect.left) / rect.width, 0, 1);
+        pointer.y = clamp((event.clientY - rect.top) / rect.height, 0, 1);
+        pointer.pulse = 1;
+      });
+
+      window.addEventListener("resize", resize);
+
+      buildField();
+      resize();
+      updateMeters();
+      renderTunerLabels();
+      requestAnimationFrame(frame);
+    </script>
+  </body>
+</html>

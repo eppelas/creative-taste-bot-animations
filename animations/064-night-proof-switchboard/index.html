@@ -1,0 +1,865 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>#064 Night Proof Switchboard</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #05070b;
+        --bg2: #0c1016;
+        --panel: rgba(11, 16, 24, 0.76);
+        --panel-soft: rgba(17, 24, 33, 0.54);
+        --line: rgba(170, 206, 222, 0.16);
+        --line-strong: rgba(170, 206, 222, 0.34);
+        --text: #ebedf1;
+        --muted: rgba(235, 237, 241, 0.68);
+        --cyan: #8ad2ef;
+        --ice: #d1edf6;
+        --salmon: #ff9c8e;
+        --amber: #f5c173;
+        --crimson: #ff5576;
+        --shadow: 0 24px 90px rgba(0, 0, 0, 0.38);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        overflow: hidden;
+        background:
+          radial-gradient(circle at 18% 18%, rgba(138, 210, 239, 0.1), transparent 20%),
+          radial-gradient(circle at 76% 14%, rgba(255, 156, 142, 0.12), transparent 20%),
+          radial-gradient(circle at 50% 90%, rgba(245, 193, 115, 0.08), transparent 26%),
+          linear-gradient(180deg, #0a0d13 0%, var(--bg) 52%, #040507 100%);
+        color: var(--text);
+        font-family: "Azeret Mono", "IBM Plex Mono", "SFMono-Regular", monospace;
+      }
+
+      body::before,
+      body::after {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+      }
+
+      body::before {
+        opacity: 0.16;
+        background-image:
+          linear-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.07) 1px, transparent 1px);
+        background-size: 84px 84px;
+        mask-image: radial-gradient(circle at 50% 46%, black 38%, transparent 85%);
+      }
+
+      body::after {
+        opacity: 0.12;
+        mix-blend-mode: screen;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 22%, transparent 78%, rgba(255, 255, 255, 0.04)),
+          repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0 2px, transparent 2px 6px);
+      }
+
+      canvas {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        display: block;
+      }
+
+      a {
+        color: inherit;
+      }
+
+      .hud {
+        position: fixed;
+        inset: 16px;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
+        grid-template-rows: auto 1fr;
+        gap: 14px;
+        pointer-events: none;
+      }
+
+      .panel,
+      .meter,
+      .notes,
+      .back,
+      .toggle {
+        border: 1px solid var(--line);
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 24%),
+          linear-gradient(180deg, rgba(8, 12, 17, 0.92), rgba(10, 15, 22, 0.68));
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(16px);
+      }
+
+      .panel,
+      .meter,
+      .notes {
+        border-radius: 26px;
+        overflow: hidden;
+      }
+
+      .panel::after,
+      .meter::after,
+      .notes::after {
+        content: "";
+        position: absolute;
+        inset: 1px;
+        border-radius: inherit;
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        pointer-events: none;
+      }
+
+      .panel,
+      .meter,
+      .notes {
+        position: relative;
+        pointer-events: auto;
+      }
+
+      .panel {
+        grid-column: 1;
+        align-self: start;
+        max-width: 860px;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(220px, 0.7fr);
+        gap: 18px;
+        padding: 18px 20px 18px;
+      }
+
+      .title-block {
+        display: grid;
+        gap: 10px;
+      }
+
+      h1,
+      h2,
+      p {
+        margin: 0;
+      }
+
+      h1 {
+        font-size: clamp(2.6rem, 5.8vw, 5.6rem);
+        line-height: 0.88;
+        letter-spacing: -0.04em;
+        text-transform: uppercase;
+      }
+
+      h1 span {
+        color: var(--salmon);
+      }
+
+      .meta {
+        color: var(--muted);
+        font-size: 0.78rem;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+      }
+
+      .lede,
+      .legend-copy,
+      .note-copy {
+        color: var(--muted);
+        line-height: 1.5;
+      }
+
+      .lede {
+        max-width: 820px;
+        font-size: 0.98rem;
+      }
+
+      .chip-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .toggle,
+      .back {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        border-radius: 999px;
+        padding: 9px 13px;
+        font-size: 0.7rem;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        text-decoration: none;
+      }
+
+      .toggle {
+        pointer-events: auto;
+        cursor: pointer;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(15, 21, 31, 0.86)),
+          rgba(15, 22, 31, 0.8);
+        color: var(--text);
+      }
+
+      .toggle[data-active="true"] {
+        border-color: rgba(245, 193, 115, 0.38);
+        box-shadow:
+          inset 0 0 0 1px rgba(245, 193, 115, 0.2),
+          0 0 0 1px rgba(245, 193, 115, 0.08);
+      }
+
+      .toggle-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+        background: currentColor;
+        opacity: 0.9;
+      }
+
+      .control-stack {
+        display: grid;
+        gap: 10px;
+        align-content: start;
+      }
+
+      .readout {
+        display: grid;
+        gap: 4px;
+      }
+
+      .readout strong {
+        font-size: 0.94rem;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+      }
+
+      .meter {
+        grid-column: 2;
+        grid-row: 1 / span 2;
+        align-self: start;
+        justify-self: end;
+        width: min(100%, 300px);
+        padding: 16px;
+        display: grid;
+        gap: 14px;
+      }
+
+      .meter-header {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .meter-header h2 {
+        font-size: 1rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      .meter-row {
+        display: grid;
+        gap: 7px;
+      }
+
+      .meter-row label {
+        color: var(--muted);
+        font-size: 0.72rem;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+      }
+
+      input[type="range"] {
+        width: 100%;
+        accent-color: var(--amber);
+      }
+
+      .scale {
+        display: flex;
+        justify-content: space-between;
+        color: rgba(235, 237, 241, 0.42);
+        font-size: 0.63rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .notes {
+        grid-column: 1;
+        grid-row: 2;
+        align-self: end;
+        max-width: 620px;
+        padding: 14px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.05), transparent 26%),
+          linear-gradient(180deg, rgba(8, 12, 17, 0.72), rgba(10, 15, 22, 0.44));
+      }
+
+      .note-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .note-card {
+        border-radius: 18px;
+        border: 1px solid rgba(255, 255, 255, 0.07);
+        padding: 13px 14px;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(10, 15, 21, 0.46));
+      }
+
+      .note-card h2 {
+        margin-bottom: 8px;
+        font-size: 0.8rem;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+      }
+
+      .note-copy {
+        font-size: 0.9rem;
+      }
+
+      .back {
+        position: fixed;
+        left: 16px;
+        bottom: 16px;
+        pointer-events: auto;
+      }
+
+      @media (max-width: 980px) {
+        body {
+          overflow: auto;
+        }
+
+        .hud {
+          position: relative;
+          inset: auto;
+          min-height: 100vh;
+          padding: 14px;
+          grid-template-columns: 1fr;
+          grid-template-rows: auto auto auto;
+        }
+
+        .panel {
+          grid-template-columns: 1fr;
+          max-width: none;
+        }
+
+        .meter {
+          grid-column: 1;
+          grid-row: auto;
+          justify-self: stretch;
+          align-self: start;
+          width: 100%;
+        }
+
+        .notes {
+          max-width: none;
+        }
+
+        .note-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="stage" aria-hidden="true"></canvas>
+
+    <main class="hud">
+      <section class="panel">
+        <div class="title-block">
+          <p class="meta">#064 generated animation / night editorial switchsheet</p>
+          <h1>Night Proof <span>Switchboard</span></h1>
+          <p class="lede">
+            A browser-native editorial/control-surface page built from the May 11 correction:
+            no new mascot, no plain portrait, no detached chrome. The moving glass, proof slips,
+            focus drag, and shutter weather all stay inside one nocturnal copyshop surface.
+          </p>
+          <div class="chip-row">
+            <button class="toggle" data-mode="proof" data-active="true" type="button">
+              <span class="toggle-dot" style="color: var(--cyan)"></span>
+              Proof bias
+            </button>
+            <button class="toggle" data-mode="flood" type="button">
+              <span class="toggle-dot" style="color: var(--salmon)"></span>
+              Street flood
+            </button>
+            <button class="toggle" data-mode="drift" type="button">
+              <span class="toggle-dot" style="color: var(--amber)"></span>
+              Afterimage drift
+            </button>
+          </div>
+        </div>
+
+        <div class="control-stack">
+          <div class="readout">
+            <p class="meta">Interaction</p>
+            <strong>Pointer steers local focus and wet-glass shear.</strong>
+            <p class="lede">
+              Click plants a short exposure flare. The three sliders tune the same image field
+              instead of switching to a separate dashboard.
+            </p>
+          </div>
+          <div class="chip-row">
+            <span class="toggle" style="pointer-events: none">
+              <span class="toggle-dot" style="color: var(--ice)"></span>
+              rack focus
+            </span>
+            <span class="toggle" style="pointer-events: none">
+              <span class="toggle-dot" style="color: var(--crimson)"></span>
+              wet reflections
+            </span>
+            <span class="toggle" style="pointer-events: none">
+              <span class="toggle-dot" style="color: var(--amber)"></span>
+              shutter streak
+            </span>
+          </div>
+        </div>
+      </section>
+
+      <aside class="meter">
+        <div class="meter-header">
+          <h2>Exposure Rail</h2>
+          <p class="meta" id="modeLabel">proof</p>
+        </div>
+
+        <div class="meter-row">
+          <label for="focusRange">Focus spread</label>
+          <input id="focusRange" type="range" min="0" max="100" value="56" />
+          <div class="scale"><span>tight</span><span>open</span></div>
+        </div>
+
+        <div class="meter-row">
+          <label for="glowRange">Glass glow</label>
+          <input id="glowRange" type="range" min="0" max="100" value="48" />
+          <div class="scale"><span>dry</span><span>humid</span></div>
+        </div>
+
+        <div class="meter-row">
+          <label for="trailRange">Trail drag</label>
+          <input id="trailRange" type="range" min="0" max="100" value="42" />
+          <div class="scale"><span>clean</span><span>smeared</span></div>
+        </div>
+      </aside>
+
+      <section class="notes">
+        <div class="note-grid">
+          <article class="note-card">
+            <h2>Idea</h2>
+            <p class="note-copy">
+              Keep the May 11 human/editorial correction in motion form: one believable public-task
+              scene broken into reflected proof fragments instead of another mascot, habitat sheet, or plain portrait.
+            </p>
+          </article>
+          <article class="note-card">
+            <h2>Interaction</h2>
+            <p class="note-copy">
+              Hover behaves like a moving focus pull across acetate and rain. Click drops a local flash mark,
+              so the image gets edited from inside its own surface instead of via detached toggles alone.
+            </p>
+          </article>
+          <article class="note-card">
+            <h2>Next</h2>
+            <p class="note-copy">
+              A stronger sequel could let live typed copy become the active proof strip, or widen the page
+              into multiple reflected kiosks that share one exposure weather system.
+            </p>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <a class="back" href="../../index.html">Back to index</a>
+
+    <script>
+      const canvas = document.getElementById("stage");
+      const ctx = canvas.getContext("2d");
+
+      const focusRange = document.getElementById("focusRange");
+      const glowRange = document.getElementById("glowRange");
+      const trailRange = document.getElementById("trailRange");
+      const modeLabel = document.getElementById("modeLabel");
+      const toggles = [...document.querySelectorAll(".toggle[data-mode]")];
+
+      const pointer = { x: 0.5, y: 0.5, tx: 0.5, ty: 0.5, active: false };
+      const flareBursts = [];
+      const state = {
+        mode: "proof",
+        focus: 0.56,
+        glow: 0.48,
+        trail: 0.42,
+        time: 0,
+      };
+
+      const slips = [];
+      const streaks = [];
+      const windows = [];
+      const orbitDots = [];
+
+      function resize() {
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        canvas.width = Math.floor(window.innerWidth * dpr);
+        canvas.height = Math.floor(window.innerHeight * dpr);
+        canvas.style.width = `${window.innerWidth}px`;
+        canvas.style.height = `${window.innerHeight}px`;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        buildScene();
+      }
+
+      function buildScene() {
+        slips.length = 0;
+        streaks.length = 0;
+        windows.length = 0;
+        orbitDots.length = 0;
+
+        const { innerWidth: w, innerHeight: h } = window;
+        for (let i = 0; i < 13; i += 1) {
+          const width = w * (0.12 + Math.random() * 0.22);
+          const height = h * (0.05 + Math.random() * 0.09);
+          slips.push({
+            x: w * (0.08 + Math.random() * 0.72),
+            y: h * (0.16 + Math.random() * 0.62),
+            w: width,
+            h: height,
+            angle: -0.24 + Math.random() * 0.48,
+            speed: 0.2 + Math.random() * 0.8,
+            phase: Math.random() * Math.PI * 2,
+            tint: i % 3 === 0 ? "cyan" : i % 3 === 1 ? "salmon" : "amber",
+          });
+        }
+
+        for (let i = 0; i < 22; i += 1) {
+          streaks.push({
+            x: Math.random() * w,
+            y: Math.random() * h,
+            len: h * (0.12 + Math.random() * 0.44),
+            width: 1 + Math.random() * 3.5,
+            sway: 0.4 + Math.random() * 1.4,
+            speed: 0.2 + Math.random() * 0.5,
+          });
+        }
+
+        for (let i = 0; i < 4; i += 1) {
+          windows.push({
+            x: w * (0.08 + i * 0.2),
+            y: h * (0.2 + (i % 2) * 0.06),
+            w: w * 0.2,
+            h: h * 0.36,
+            phase: Math.random() * Math.PI * 2,
+          });
+        }
+
+        for (let i = 0; i < 90; i += 1) {
+          orbitDots.push({
+            baseX: Math.random(),
+            baseY: Math.random(),
+            radius: 1 + Math.random() * 2.4,
+            drift: 0.003 + Math.random() * 0.009,
+            speed: 0.2 + Math.random() * 0.9,
+            tint: i % 4,
+          });
+        }
+      }
+
+      function setMode(mode) {
+        state.mode = mode;
+        modeLabel.textContent = mode;
+        toggles.forEach((button) => {
+          button.dataset.active = String(button.dataset.mode === mode);
+        });
+      }
+
+      toggles.forEach((button) => {
+        button.addEventListener("click", () => setMode(button.dataset.mode));
+      });
+
+      focusRange.addEventListener("input", () => {
+        state.focus = Number(focusRange.value) / 100;
+      });
+      glowRange.addEventListener("input", () => {
+        state.glow = Number(glowRange.value) / 100;
+      });
+      trailRange.addEventListener("input", () => {
+        state.trail = Number(trailRange.value) / 100;
+      });
+
+      function injectFlare(x, y) {
+        flareBursts.push({
+          x,
+          y,
+          life: 1,
+          radius: 10,
+        });
+      }
+
+      window.addEventListener("pointermove", (event) => {
+        pointer.tx = event.clientX / window.innerWidth;
+        pointer.ty = event.clientY / window.innerHeight;
+        pointer.active = true;
+      });
+
+      window.addEventListener("pointerleave", () => {
+        pointer.active = false;
+        pointer.tx = 0.5;
+        pointer.ty = 0.5;
+      });
+
+      window.addEventListener("pointerdown", (event) => {
+        injectFlare(event.clientX, event.clientY);
+      });
+
+      window.addEventListener("keydown", (event) => {
+        if (event.key === "1") setMode("proof");
+        if (event.key === "2") setMode("flood");
+        if (event.key === "3") setMode("drift");
+        if (event.key.toLowerCase() === "f") {
+          injectFlare(window.innerWidth * 0.5, window.innerHeight * 0.52);
+        }
+      });
+
+      function color(name, alpha) {
+        if (name === "cyan") return `rgba(138, 210, 239, ${alpha})`;
+        if (name === "salmon") return `rgba(255, 156, 142, ${alpha})`;
+        return `rgba(245, 193, 115, ${alpha})`;
+      }
+
+      function drawBackground(w, h) {
+        const wash = ctx.createLinearGradient(0, 0, 0, h);
+        wash.addColorStop(0, "#090d14");
+        wash.addColorStop(0.48, "#04070b");
+        wash.addColorStop(1, "#020305");
+        ctx.fillStyle = wash;
+        ctx.fillRect(0, 0, w, h);
+
+        const glareX = w * (0.24 + pointer.x * 0.24);
+        const glare = ctx.createRadialGradient(glareX, h * 0.26, 0, glareX, h * 0.26, w * 0.42);
+        glare.addColorStop(0, `rgba(138, 210, 239, ${0.14 + state.glow * 0.14})`);
+        glare.addColorStop(0.55, "rgba(138, 210, 239, 0.03)");
+        glare.addColorStop(1, "rgba(138, 210, 239, 0)");
+        ctx.fillStyle = glare;
+        ctx.fillRect(0, 0, w, h);
+
+        const tail = ctx.createRadialGradient(w * 0.72, h * 0.78, 0, w * 0.72, h * 0.78, w * 0.34);
+        tail.addColorStop(0, `rgba(255, 156, 142, ${0.11 + state.trail * 0.12})`);
+        tail.addColorStop(1, "rgba(255, 156, 142, 0)");
+        ctx.fillStyle = tail;
+        ctx.fillRect(0, 0, w, h);
+      }
+
+      function drawWindows(w, h, time) {
+        windows.forEach((win, index) => {
+          const pulse = Math.sin(time * 0.0007 + win.phase) * 0.5 + 0.5;
+          const shiftX = (pointer.x - 0.5) * 26 * (index % 2 === 0 ? 1 : -1);
+          const shiftY = (pointer.y - 0.5) * 18;
+          const x = win.x + shiftX;
+          const y = win.y + shiftY;
+
+          ctx.save();
+          ctx.translate(x, y);
+          ctx.rotate(-0.06 + index * 0.03);
+          ctx.fillStyle = `rgba(18, 26, 38, ${0.3 + pulse * 0.08})`;
+          ctx.strokeStyle = "rgba(209, 237, 246, 0.15)";
+          ctx.lineWidth = 1.1;
+          ctx.beginPath();
+          ctx.roundRect(0, 0, win.w, win.h, 16);
+          ctx.fill();
+          ctx.stroke();
+
+          for (let row = 0; row < 9; row += 1) {
+            const yy = 18 + row * ((win.h - 38) / 8);
+            ctx.strokeStyle = `rgba(209, 237, 246, ${0.04 + pulse * 0.05})`;
+            ctx.beginPath();
+            ctx.moveTo(16, yy);
+            ctx.lineTo(win.w - 16, yy);
+            ctx.stroke();
+          }
+
+          for (let dot = 0; dot < 3; dot += 1) {
+            ctx.fillStyle = color(dot === 0 ? "cyan" : dot === 1 ? "salmon" : "amber", 0.88);
+            ctx.beginPath();
+            ctx.arc(22 + dot * 16, 18, 3.2, 0, Math.PI * 2);
+            ctx.fill();
+          }
+
+          ctx.restore();
+        });
+      }
+
+      function drawSlips(time) {
+        slips.forEach((slip, index) => {
+          const bob = Math.sin(time * 0.0008 * slip.speed + slip.phase) * 12;
+          const nx = slip.x + Math.sin(time * 0.0003 + slip.phase) * 26;
+          const ny = slip.y + bob;
+          const cx = nx + slip.w * 0.5;
+          const cy = ny + slip.h * 0.5;
+          const dx = cx / window.innerWidth - pointer.x;
+          const dy = cy / window.innerHeight - pointer.y;
+          const dist = Math.hypot(dx, dy);
+          const focusBoost = Math.max(0, 1 - dist / (0.12 + state.focus * 0.4));
+          const alpha = 0.14 + focusBoost * 0.22;
+
+          ctx.save();
+          ctx.translate(nx, ny);
+          ctx.rotate(slip.angle + Math.sin(time * 0.0005 + index) * 0.02);
+          ctx.fillStyle = `rgba(15, 21, 30, ${0.5 + focusBoost * 0.16})`;
+          ctx.strokeStyle = color(slip.tint, 0.22 + focusBoost * 0.42);
+          ctx.lineWidth = 1.1;
+          ctx.beginPath();
+          ctx.roundRect(0, 0, slip.w, slip.h, 12);
+          ctx.fill();
+          ctx.stroke();
+
+          for (let row = 0; row < 5; row += 1) {
+            const y = 14 + row * ((slip.h - 28) / 4);
+            ctx.strokeStyle = `rgba(235, 237, 241, ${0.04 + alpha * 0.2})`;
+            ctx.beginPath();
+            ctx.moveTo(14, y);
+            ctx.lineTo(slip.w - 14, y);
+            ctx.stroke();
+          }
+
+          const barWidth = slip.w * (0.22 + focusBoost * 0.34);
+          ctx.fillStyle = color(slip.tint, 0.28 + focusBoost * 0.5);
+          ctx.fillRect(14, slip.h - 18, barWidth, 5);
+          ctx.restore();
+        });
+      }
+
+      function drawStreaks(time) {
+        streaks.forEach((streak, index) => {
+          const px = pointer.x - 0.5;
+          const shift = Math.sin(time * 0.0009 * streak.speed + index) * 18 + px * 60 * state.trail;
+          const x = streak.x + shift;
+          const y = streak.y - (time * 0.03 * streak.speed) % (window.innerHeight + streak.len);
+          const grad = ctx.createLinearGradient(x, y, x + streak.sway * 14, y + streak.len);
+          const tint = index % 3 === 0 ? "cyan" : index % 3 === 1 ? "salmon" : "amber";
+          grad.addColorStop(0, color(tint, 0));
+          grad.addColorStop(0.2, color(tint, 0.08 + state.glow * 0.08));
+          grad.addColorStop(0.75, color(tint, 0.02 + state.trail * 0.12));
+          grad.addColorStop(1, color(tint, 0));
+          ctx.strokeStyle = grad;
+          ctx.lineWidth = streak.width;
+          ctx.beginPath();
+          ctx.moveTo(x, y);
+          ctx.lineTo(x + streak.sway * 12, y + streak.len);
+          ctx.stroke();
+        });
+      }
+
+      function drawOrbitDots(time) {
+        orbitDots.forEach((dot, index) => {
+          const driftX = Math.sin(time * 0.0006 * dot.speed + index) * dot.drift * window.innerWidth * 18;
+          const driftY = Math.cos(time * 0.0008 * dot.speed + index) * dot.drift * window.innerHeight * 12;
+          const x = dot.baseX * window.innerWidth + driftX + (pointer.x - 0.5) * 12;
+          const y = dot.baseY * window.innerHeight + driftY + (pointer.y - 0.5) * 8;
+          let fill = "rgba(209, 237, 246, 0.5)";
+          if (dot.tint === 1) fill = "rgba(255, 156, 142, 0.44)";
+          if (dot.tint === 2) fill = "rgba(245, 193, 115, 0.38)";
+          if (dot.tint === 3) fill = "rgba(255, 85, 118, 0.34)";
+          ctx.fillStyle = fill;
+          ctx.beginPath();
+          ctx.arc(x, y, dot.radius, 0, Math.PI * 2);
+          ctx.fill();
+        });
+      }
+
+      function drawFigureEchoes(w, h, time) {
+        const baseX = w * (0.48 + (pointer.x - 0.5) * 0.04);
+        const baseY = h * 0.65;
+        const spread = 38 + state.trail * 120;
+        const lift = (pointer.y - 0.5) * 30;
+        const tone =
+          state.mode === "proof" ? "rgba(214, 232, 240, 0.18)" :
+          state.mode === "flood" ? "rgba(255, 164, 150, 0.16)" :
+          "rgba(245, 193, 115, 0.16)";
+
+        for (let i = -1; i <= 1; i += 1) {
+          ctx.save();
+          ctx.translate(baseX + i * spread, baseY + i * 4 + lift);
+          ctx.scale(1 + Math.abs(i) * 0.04, 1);
+          ctx.rotate(i * 0.04 + Math.sin(time * 0.0007 + i) * 0.012);
+
+          ctx.strokeStyle = tone;
+          ctx.lineWidth = 1.2;
+          ctx.beginPath();
+          ctx.moveTo(0, -110);
+          ctx.quadraticCurveTo(34, -88, 28, -38);
+          ctx.quadraticCurveTo(18, 38, 0, 126);
+          ctx.quadraticCurveTo(-22, 32, -26, -42);
+          ctx.quadraticCurveTo(-31, -90, 0, -110);
+          ctx.stroke();
+
+          ctx.beginPath();
+          ctx.arc(0, -128, 22, 0, Math.PI * 2);
+          ctx.stroke();
+
+          ctx.beginPath();
+          ctx.moveTo(-10, -6);
+          ctx.lineTo(-62, 56 + i * 8);
+          ctx.moveTo(10, 4);
+          ctx.lineTo(64, 42 - i * 8);
+          ctx.moveTo(-2, 124);
+          ctx.lineTo(-26, 222);
+          ctx.moveTo(2, 124);
+          ctx.lineTo(28, 218);
+          ctx.stroke();
+
+          ctx.restore();
+        }
+      }
+
+      function drawFlares() {
+        for (let i = flareBursts.length - 1; i >= 0; i -= 1) {
+          const flare = flareBursts[i];
+          flare.life -= 0.016;
+          flare.radius += 8;
+          if (flare.life <= 0) {
+            flareBursts.splice(i, 1);
+            continue;
+          }
+          const grad = ctx.createRadialGradient(flare.x, flare.y, 0, flare.x, flare.y, flare.radius);
+          grad.addColorStop(0, `rgba(255, 255, 255, ${flare.life * 0.26})`);
+          grad.addColorStop(0.35, `rgba(245, 193, 115, ${flare.life * 0.22})`);
+          grad.addColorStop(1, "rgba(255, 255, 255, 0)");
+          ctx.fillStyle = grad;
+          ctx.fillRect(flare.x - flare.radius, flare.y - flare.radius, flare.radius * 2, flare.radius * 2);
+        }
+      }
+
+      function animate(time) {
+        state.time = time;
+        pointer.x += (pointer.tx - pointer.x) * 0.08;
+        pointer.y += (pointer.ty - pointer.y) * 0.08;
+
+        const w = window.innerWidth;
+        const h = window.innerHeight;
+        ctx.clearRect(0, 0, w, h);
+
+        drawBackground(w, h);
+
+        const blend = state.mode === "proof" ? "lighter" : state.mode === "flood" ? "screen" : "soft-light";
+        ctx.save();
+        ctx.globalCompositeOperation = blend;
+        drawStreaks(time);
+        ctx.restore();
+
+        drawWindows(w, h, time);
+        drawFigureEchoes(w, h, time);
+        drawSlips(time);
+        drawOrbitDots(time);
+        drawFlares();
+
+        requestAnimationFrame(animate);
+      }
+
+      setMode("proof");
+      resize();
+      requestAnimationFrame(animate);
+      window.addEventListener("resize", resize);
+    </script>
+  </body>
+</html>

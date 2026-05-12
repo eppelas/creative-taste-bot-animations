@@ -1,0 +1,758 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>#047 Creeper Lattice Weather</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --paper: #edf0e6;
+        --paper-warm: #f6f2e8;
+        --paper-deep: #dbe2d0;
+        --ink: #24323a;
+        --muted: rgba(36, 50, 58, 0.6);
+        --line: rgba(36, 50, 58, 0.14);
+        --cyan: #79c8d2;
+        --sage: #89b48f;
+        --acid: #d2da63;
+        --coral: #d78f73;
+        --moss: #64846a;
+        --shadow: 0 26px 74px rgba(68, 82, 62, 0.14);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        width: 100%;
+        min-height: 100%;
+        overflow: hidden;
+        background:
+          radial-gradient(circle at 16% 18%, rgba(121, 200, 210, 0.12), transparent 24%),
+          radial-gradient(circle at 82% 18%, rgba(215, 143, 115, 0.1), transparent 22%),
+          radial-gradient(circle at 54% 86%, rgba(137, 180, 143, 0.12), transparent 28%),
+          linear-gradient(180deg, var(--paper-warm) 0%, var(--paper) 56%, var(--paper-deep) 100%);
+        color: var(--ink);
+        font-family: "Avenir Next", "Trebuchet MS", sans-serif;
+      }
+
+      body::before,
+      body::after {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+      }
+
+      body::before {
+        opacity: 0.08;
+        background-image:
+          linear-gradient(rgba(255, 255, 255, 0.65) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.65) 1px, transparent 1px);
+        background-size: 3px 3px;
+        mix-blend-mode: soft-light;
+      }
+
+      body::after {
+        opacity: 0.18;
+        background-image:
+          linear-gradient(rgba(36, 50, 58, 0.06) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(36, 50, 58, 0.06) 1px, transparent 1px);
+        background-size: min(4vw, 38px) min(4vw, 38px);
+        mask-image: radial-gradient(circle at 50% 50%, black 42%, transparent 88%);
+      }
+
+      canvas {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        display: block;
+      }
+
+      .hud {
+        position: fixed;
+        inset: 16px;
+        display: grid;
+        grid-template-columns: minmax(0, 31rem) minmax(18rem, 24rem);
+        justify-content: space-between;
+        align-items: start;
+        gap: 16px;
+        pointer-events: none;
+      }
+
+      .note,
+      .control-panel,
+      .chip,
+      .back {
+        pointer-events: auto;
+      }
+
+      .note,
+      .control-panel,
+      .back {
+        border: 1px solid var(--line);
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.8), rgba(250, 249, 244, 0.64)),
+          rgba(255, 255, 255, 0.68);
+        backdrop-filter: blur(18px);
+        box-shadow: var(--shadow);
+      }
+
+      .note,
+      .control-panel {
+        border-radius: 24px;
+        padding: 15px 16px 16px;
+        display: grid;
+        gap: 10px;
+      }
+
+      .control-panel {
+        justify-self: end;
+        width: min(24rem, 100%);
+        gap: 14px;
+      }
+
+      h1,
+      h2,
+      p {
+        margin: 0;
+      }
+
+      .eyebrow,
+      .label,
+      .small,
+      .value,
+      .chip {
+        font-family: "Azeret Mono", "IBM Plex Mono", "SFMono-Regular", monospace;
+      }
+
+      .eyebrow,
+      .label,
+      .small {
+        font-size: 11px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      h1 {
+        font-size: clamp(2rem, 4.3vw, 3.8rem);
+        line-height: 0.92;
+        letter-spacing: -0.06em;
+      }
+
+      .hint,
+      .meta,
+      .section-copy {
+        color: rgba(36, 50, 58, 0.78);
+        line-height: 1.48;
+      }
+
+      .hint {
+        font-size: 0.98rem;
+      }
+
+      .meta,
+      .section-copy,
+      .small {
+        font-size: 0.8rem;
+      }
+
+      .readout {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .value {
+        display: block;
+        margin-top: 0.24rem;
+        font-size: 0.96rem;
+        color: var(--ink);
+      }
+
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .chip {
+        border: 1px solid rgba(36, 50, 58, 0.14);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.52);
+        color: var(--ink);
+        padding: 10px 12px;
+        cursor: pointer;
+        transition:
+          transform 180ms ease,
+          border-color 180ms ease,
+          background 180ms ease;
+        font-size: 0.74rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .chip:hover,
+      .chip:focus-visible {
+        transform: translateY(-1px);
+        border-color: rgba(36, 50, 58, 0.3);
+        outline: none;
+      }
+
+      .chip.active {
+        border-color: rgba(36, 50, 58, 0.3);
+        background:
+          linear-gradient(90deg, rgba(121, 200, 210, 0.16), rgba(137, 180, 143, 0.16)),
+          rgba(255, 255, 255, 0.68);
+      }
+
+      .sections {
+        display: grid;
+        gap: 10px;
+      }
+
+      .section {
+        display: grid;
+        gap: 4px;
+      }
+
+      .back {
+        position: fixed;
+        right: 16px;
+        bottom: 16px;
+        border-radius: 999px;
+        padding: 11px 14px;
+        text-decoration: none;
+        color: var(--ink);
+        font-family: "Azeret Mono", "IBM Plex Mono", "SFMono-Regular", monospace;
+        font-size: 0.74rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+
+      @media (max-width: 1080px) {
+        .hud {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .control-panel {
+          justify-self: start;
+          width: min(28rem, 100%);
+        }
+      }
+
+      @media (max-width: 720px) {
+        .hud {
+          inset: 12px;
+          gap: 12px;
+        }
+
+        .note,
+        .control-panel {
+          padding: 13px 14px 14px;
+          border-radius: 20px;
+        }
+
+        .readout {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .back {
+          right: 12px;
+          bottom: 12px;
+          padding: 10px 12px;
+          font-size: 0.68rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="scene"></canvas>
+
+    <div class="hud">
+      <section class="note">
+        <p class="eyebrow">Code Animation Study #047</p>
+        <h1>Creeper Lattice Weather</h1>
+        <p class="hint">
+          A pale distributed field that turns the latest creeper-lattice image
+          branch into browser-native motion: hanging stems, bead capsules, and
+          quiet calibration marks spread across the page instead of resolving
+          into one hero specimen or another dark console.
+        </p>
+        <div class="sections">
+          <div class="section">
+            <h2 class="small">Idea</h2>
+            <p class="section-copy">
+              Denser lower-field growth and calmer upper air give the page a
+              specimen-weather logic instead of a centered poster object.
+            </p>
+          </div>
+          <div class="section">
+            <h2 class="small">Interaction</h2>
+            <p class="section-copy">
+              Move to bend the local current. Press or drag to seed temporary
+              weather cells that make nearby creepers open, knot, or rain
+              pollen.
+            </p>
+          </div>
+          <div class="section">
+            <h2 class="small">Next</h2>
+            <p class="section-copy">
+              This branch could widen into a larger HTML editorial page, a
+              semantic garden weather board, or a quiet print-ready motion
+              system with text overlays.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section class="control-panel" aria-label="Field controls">
+        <p class="small">Field laws</p>
+        <div class="chips">
+          <button class="chip active" data-mode="drift" type="button">Drift</button>
+          <button class="chip" data-mode="knot" type="button">Knot</button>
+          <button class="chip" data-mode="rain" type="button">Rain</button>
+        </div>
+        <div class="readout">
+          <p class="label">Density<span class="value" id="densityValue">68%</span></p>
+          <p class="label">Wake<span class="value" id="wakeValue">soft</span></p>
+          <p class="label">Bloom<span class="value" id="bloomValue">calm</span></p>
+        </div>
+        <p class="meta">
+          The chips swap the same field between hanging draft, tangled pull,
+          and spore shower without introducing a separate UI object. The whole
+          page stays one living diagram.
+        </p>
+      </section>
+    </div>
+
+    <a class="back" href="../../index.html">Back to index</a>
+
+    <script>
+      const canvas = document.getElementById("scene");
+      const context = canvas.getContext("2d");
+
+      const densityValue = document.getElementById("densityValue");
+      const wakeValue = document.getElementById("wakeValue");
+      const bloomValue = document.getElementById("bloomValue");
+      const chips = [...document.querySelectorAll(".chip")];
+
+      const pointer = {
+        x: 0,
+        y: 0,
+        targetX: 0,
+        targetY: 0,
+        active: false,
+        down: false,
+        pulse: 0,
+      };
+
+      const field = {
+        width: 0,
+        height: 0,
+        anchors: [],
+        vines: [],
+        spores: [],
+        cells: [],
+        mode: "drift",
+        time: 0,
+      };
+
+      const modes = {
+        drift: { sway: 0.85, curl: 0.22, pollen: 18, wake: "soft", bloom: "calm" },
+        knot: { sway: 0.58, curl: 0.54, pollen: 12, wake: "tensed", bloom: "braid" },
+        rain: { sway: 1.1, curl: 0.18, pollen: 28, wake: "wide", bloom: "falling" },
+      };
+
+      function setMode(mode) {
+        field.mode = mode;
+        chips.forEach((chip) => chip.classList.toggle("active", chip.dataset.mode === mode));
+        wakeValue.textContent = modes[mode].wake;
+        bloomValue.textContent = modes[mode].bloom;
+      }
+
+      chips.forEach((chip) => {
+        chip.addEventListener("click", () => setMode(chip.dataset.mode));
+      });
+
+      function resize() {
+        const dpr = window.devicePixelRatio || 1;
+        field.width = window.innerWidth;
+        field.height = window.innerHeight;
+        canvas.width = Math.round(field.width * dpr);
+        canvas.height = Math.round(field.height * dpr);
+        canvas.style.width = field.width + "px";
+        canvas.style.height = field.height + "px";
+        context.setTransform(dpr, 0, 0, dpr, 0, 0);
+        buildField();
+      }
+
+      function randomBetween(min, max) {
+        return min + Math.random() * (max - min);
+      }
+
+      function buildField() {
+        field.anchors = [];
+        field.vines = [];
+        field.spores = [];
+        field.cells = [];
+
+        const cols = field.width < 760 ? 5 : 7;
+        const rows = field.height < 900 ? 5 : 6;
+        const marginX = field.width * 0.12;
+        const marginTop = field.height * 0.12;
+        const usableWidth = field.width - marginX * 2;
+        const usableHeight = field.height * 0.72;
+
+        for (let row = 0; row < rows; row += 1) {
+          for (let col = 0; col < cols; col += 1) {
+            const x = marginX + usableWidth * (col / Math.max(1, cols - 1)) + randomBetween(-28, 28);
+            const y = marginTop + usableHeight * (row / Math.max(1, rows - 1)) + randomBetween(-22, 22);
+            field.anchors.push({ x, y, row, col });
+          }
+        }
+
+        const vineCount = field.width < 760 ? 26 : 40;
+        for (let i = 0; i < vineCount; i += 1) {
+          const anchor = field.anchors[Math.floor(Math.random() * field.anchors.length)];
+          const length = randomBetween(field.height * 0.14, field.height * 0.34) + anchor.row * 22;
+          const segments = Math.floor(randomBetween(8, 12));
+          const beads = [];
+          const beadCount = Math.floor(randomBetween(2, 5));
+          for (let j = 0; j < beadCount; j += 1) {
+            beads.push({
+              t: randomBetween(0.16, 0.94),
+              radius: randomBetween(3, 8),
+              hue: ["cyan", "sage", "coral", "acid"][Math.floor(Math.random() * 4)],
+            });
+          }
+          field.vines.push({
+            anchor,
+            length,
+            segments,
+            offset: randomBetween(0, Math.PI * 2),
+            thickness: randomBetween(0.8, 2.4),
+            bias: randomBetween(-1, 1),
+            branchT: randomBetween(0.24, 0.8),
+            branchLength: randomBetween(16, 46),
+            beads,
+          });
+        }
+
+        const sporeCount = field.width < 760 ? 64 : 108;
+        for (let i = 0; i < sporeCount; i += 1) {
+          field.spores.push({
+            x: randomBetween(marginX * 0.6, field.width - marginX * 0.6),
+            y: randomBetween(field.height * 0.18, field.height * 0.94),
+            z: Math.random(),
+            drift: randomBetween(0.2, 1),
+            size: randomBetween(1.2, 3.8),
+            seed: randomBetween(0, Math.PI * 2),
+          });
+        }
+      }
+
+      function addCell(x, y) {
+        field.cells.push({
+          x,
+          y,
+          radius: 16,
+          energy: 1,
+          seed: randomBetween(0, Math.PI * 2),
+        });
+        if (field.cells.length > 8) {
+          field.cells.shift();
+        }
+      }
+
+      function getPalette(name) {
+        switch (name) {
+          case "sage":
+            return "#89b48f";
+          case "coral":
+            return "#d78f73";
+          case "acid":
+            return "#d2da63";
+          default:
+            return "#79c8d2";
+        }
+      }
+
+      function drawGrid() {
+        context.save();
+        context.lineWidth = 1;
+        context.strokeStyle = "rgba(36, 50, 58, 0.12)";
+        context.setLineDash([5, 11]);
+        for (let i = 0; i < field.anchors.length; i += 1) {
+          const anchor = field.anchors[i];
+          if (anchor.col < 6) {
+            const next = field.anchors.find((candidate) => candidate.row === anchor.row && candidate.col === anchor.col + 1);
+            if (next) {
+              context.beginPath();
+              context.moveTo(anchor.x, anchor.y);
+              context.lineTo(next.x, next.y);
+              context.stroke();
+            }
+          }
+          if (anchor.row < 5) {
+            const next = field.anchors.find((candidate) => candidate.col === anchor.col && candidate.row === anchor.row + 1);
+            if (next) {
+              context.beginPath();
+              context.moveTo(anchor.x, anchor.y);
+              context.lineTo(next.x, next.y);
+              context.stroke();
+            }
+          }
+        }
+        context.setLineDash([]);
+
+        for (const anchor of field.anchors) {
+          context.fillStyle = "rgba(36, 50, 58, 0.16)";
+          context.fillRect(anchor.x - 3.5, anchor.y - 3.5, 7, 7);
+          context.strokeStyle = "rgba(121, 200, 210, 0.16)";
+          context.strokeRect(anchor.x - 7.5, anchor.y - 7.5, 15, 15);
+        }
+        context.restore();
+      }
+
+      function drawCells(time) {
+        for (const cell of field.cells) {
+          context.save();
+          const pulse = 1 + Math.sin(time * 0.002 + cell.seed) * 0.08;
+          const radius = cell.radius * (1.2 - cell.energy * 0.3) * pulse;
+          const gradient = context.createRadialGradient(cell.x, cell.y, 0, cell.x, cell.y, radius * 3.5);
+          gradient.addColorStop(0, "rgba(121, 200, 210, 0.14)");
+          gradient.addColorStop(0.45, "rgba(137, 180, 143, 0.09)");
+          gradient.addColorStop(1, "rgba(121, 200, 210, 0)");
+          context.fillStyle = gradient;
+          context.beginPath();
+          context.arc(cell.x, cell.y, radius * 3.5, 0, Math.PI * 2);
+          context.fill();
+          context.restore();
+
+          cell.radius += 0.35;
+          cell.energy *= 0.988;
+        }
+        field.cells = field.cells.filter((cell) => cell.energy > 0.08);
+      }
+
+      function drawVine(vine, time) {
+        const mode = modes[field.mode];
+        const points = [];
+        const pointerDx = pointer.x - vine.anchor.x;
+        const pointerDy = pointer.y - vine.anchor.y;
+        const pointerDistance = Math.hypot(pointerDx, pointerDy);
+        const pointerInfluence = pointer.active ? Math.max(0, 1 - pointerDistance / (field.width < 760 ? 180 : 240)) : 0;
+
+        let cellInfluence = 0;
+        let cellPullX = 0;
+        let cellPullY = 0;
+        for (const cell of field.cells) {
+          const dx = cell.x - vine.anchor.x;
+          const dy = cell.y - vine.anchor.y;
+          const distance = Math.hypot(dx, dy);
+          const influence = Math.max(0, 1 - distance / 220) * cell.energy;
+          cellInfluence += influence;
+          cellPullX += dx * influence;
+          cellPullY += dy * influence;
+        }
+
+        const currentX = pointerInfluence * pointerDx * 0.06 + cellPullX * 0.0008;
+        const currentY = pointerInfluence * pointerDy * 0.02 + cellPullY * 0.0003;
+
+        for (let i = 0; i <= vine.segments; i += 1) {
+          const t = i / vine.segments;
+          const localWave =
+            Math.sin(time * 0.0011 * mode.sway + vine.offset + t * 5.4 + vine.bias * 0.6) * (16 + 18 * t) +
+            Math.cos(time * 0.0008 + vine.offset * 1.7 + t * 9.2) * (8 + 12 * t);
+          const curl =
+            Math.sin(time * 0.0013 + vine.offset * 2.3 + t * 12) * mode.curl * 46 * t;
+          const x = vine.anchor.x + vine.bias * 18 * t + localWave + curl + currentX * (0.4 + t * 1.1);
+          const y = vine.anchor.y + t * vine.length + Math.sin(vine.offset + t * 8 + time * 0.0009) * 8 + currentY * t;
+          points.push({ x, y, t });
+        }
+
+        context.save();
+        context.lineWidth = vine.thickness;
+        context.lineCap = "round";
+        context.strokeStyle = `rgba(93, 125, 101, ${0.24 + cellInfluence * 0.16})`;
+        context.beginPath();
+        context.moveTo(points[0].x, points[0].y);
+        for (let i = 1; i < points.length - 1; i += 1) {
+          const current = points[i];
+          const next = points[i + 1];
+          const midX = (current.x + next.x) * 0.5;
+          const midY = (current.y + next.y) * 0.5;
+          context.quadraticCurveTo(current.x, current.y, midX, midY);
+        }
+        const last = points[points.length - 1];
+        context.lineTo(last.x, last.y);
+        context.stroke();
+
+        const branchPoint = points[Math.max(1, Math.floor(vine.branchT * (points.length - 1)))];
+        const branchAngle = Math.sin(time * 0.0013 + vine.offset) * 0.7 + vine.bias * 0.9;
+        context.lineWidth = Math.max(0.7, vine.thickness * 0.7);
+        context.strokeStyle = "rgba(121, 162, 127, 0.22)";
+        context.beginPath();
+        context.moveTo(branchPoint.x, branchPoint.y);
+        context.quadraticCurveTo(
+          branchPoint.x + Math.cos(branchAngle) * vine.branchLength * 0.6,
+          branchPoint.y + Math.sin(branchAngle) * 14,
+          branchPoint.x + Math.cos(branchAngle) * vine.branchLength,
+          branchPoint.y + Math.sin(branchAngle) * 20
+        );
+        context.stroke();
+
+        for (const bead of vine.beads) {
+          const point = points[Math.min(points.length - 1, Math.floor(bead.t * (points.length - 1)))];
+          const open = 0.72 + Math.sin(time * 0.0016 + vine.offset * 1.3 + bead.t * 10 + cellInfluence * 5) * 0.18 + cellInfluence * 0.2;
+          const radius = bead.radius * open;
+          context.fillStyle = getPalette(bead.hue);
+          context.globalAlpha = 0.2 + bead.t * 0.1;
+          context.beginPath();
+          context.ellipse(point.x, point.y, radius, radius * 0.76, vine.bias * 0.5, 0, Math.PI * 2);
+          context.fill();
+
+          context.globalAlpha = 0.38;
+          context.strokeStyle = "rgba(255, 255, 255, 0.6)";
+          context.lineWidth = 0.9;
+          context.stroke();
+
+          context.globalAlpha = 0.18 + cellInfluence * 0.2;
+          context.fillStyle = "#ffffff";
+          context.beginPath();
+          context.arc(point.x - radius * 0.22, point.y - radius * 0.18, Math.max(1, radius * 0.18), 0, Math.PI * 2);
+          context.fill();
+        }
+
+        context.restore();
+      }
+
+      function drawSpores(time) {
+        const mode = modes[field.mode];
+        for (const spore of field.spores) {
+          const driftScale = 0.4 + spore.z * 0.8;
+          const pointerDistance = Math.hypot(pointer.x - spore.x, pointer.y - spore.y);
+          const pointerLift = pointer.active ? Math.max(0, 1 - pointerDistance / 180) : 0;
+          const x =
+            spore.x +
+            Math.sin(time * 0.0006 * spore.drift + spore.seed) * 8 * driftScale +
+            (pointer.x - spore.x) * pointerLift * 0.02;
+          let y =
+            spore.y +
+            Math.cos(time * 0.0008 * spore.drift + spore.seed * 0.7) * 6 * driftScale +
+            (field.mode === "rain" ? time * 0.012 * (0.4 + spore.z) : 0);
+
+          if (field.mode === "rain" && y > field.height + 10) {
+            spore.y = -10;
+            y = spore.y;
+          }
+
+          context.save();
+          context.globalAlpha = 0.12 + spore.z * 0.26 + pointerLift * 0.16;
+          context.fillStyle = spore.z > 0.66 ? "#ffffff" : spore.z > 0.33 ? "#79c8d2" : "#d2da63";
+          if (spore.z > 0.62) {
+            context.fillRect(x - spore.size * 0.5, y - spore.size * 0.5, spore.size, spore.size);
+          } else {
+            context.beginPath();
+            context.arc(x, y, spore.size * 0.5, 0, Math.PI * 2);
+            context.fill();
+          }
+          context.restore();
+        }
+
+        densityValue.textContent = `${Math.round(62 + mode.pollen * 0.4 + field.cells.length * 1.2)}%`;
+      }
+
+      function render(time) {
+        field.time = time;
+        pointer.x += (pointer.targetX - pointer.x) * 0.14;
+        pointer.y += (pointer.targetY - pointer.y) * 0.14;
+        pointer.pulse += ((pointer.down ? 1 : 0) - pointer.pulse) * 0.08;
+
+        context.clearRect(0, 0, field.width, field.height);
+
+        const backgroundGlow = context.createRadialGradient(
+          field.width * 0.55,
+          field.height * 0.62,
+          40,
+          field.width * 0.55,
+          field.height * 0.62,
+          field.width * 0.5
+        );
+        backgroundGlow.addColorStop(0, "rgba(255, 255, 255, 0.28)");
+        backgroundGlow.addColorStop(0.4, "rgba(255, 255, 255, 0.08)");
+        backgroundGlow.addColorStop(1, "rgba(255, 255, 255, 0)");
+        context.fillStyle = backgroundGlow;
+        context.fillRect(0, 0, field.width, field.height);
+
+        drawCells(time);
+        drawGrid();
+        for (const vine of field.vines) {
+          drawVine(vine, time);
+        }
+        drawSpores(time);
+
+        if (pointer.active) {
+          context.save();
+          const radius = 42 + pointer.pulse * 54;
+          const gradient = context.createRadialGradient(pointer.x, pointer.y, 0, pointer.x, pointer.y, radius * 2.8);
+          gradient.addColorStop(0, "rgba(121, 200, 210, 0.16)");
+          gradient.addColorStop(0.48, "rgba(137, 180, 143, 0.08)");
+          gradient.addColorStop(1, "rgba(121, 200, 210, 0)");
+          context.fillStyle = gradient;
+          context.beginPath();
+          context.arc(pointer.x, pointer.y, radius * 2.8, 0, Math.PI * 2);
+          context.fill();
+          context.restore();
+        }
+
+        requestAnimationFrame(render);
+      }
+
+      function updatePointer(event) {
+        pointer.targetX = event.clientX;
+        pointer.targetY = event.clientY;
+        if (!pointer.active) {
+          pointer.x = event.clientX;
+          pointer.y = event.clientY;
+        }
+        pointer.active = true;
+      }
+
+      window.addEventListener("pointermove", (event) => {
+        updatePointer(event);
+        if (pointer.down && Math.random() > 0.78) {
+          addCell(event.clientX, event.clientY);
+        }
+      });
+
+      window.addEventListener("pointerdown", (event) => {
+        updatePointer(event);
+        pointer.down = true;
+        addCell(event.clientX, event.clientY);
+      });
+
+      window.addEventListener("pointerup", () => {
+        pointer.down = false;
+      });
+
+      window.addEventListener("pointerleave", () => {
+        pointer.active = false;
+        pointer.down = false;
+      });
+
+      window.addEventListener("resize", resize);
+
+      setMode("drift");
+      resize();
+      requestAnimationFrame(render);
+    </script>
+  </body>
+</html>

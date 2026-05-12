@@ -1,0 +1,998 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>#069 Crimson Canopy Railyard</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg-top: #14070c;
+        --bg-mid: #09060a;
+        --bg-bottom: #020203;
+        --panel: rgba(18, 11, 14, 0.76);
+        --panel-soft: rgba(29, 17, 22, 0.48);
+        --line: rgba(255, 214, 219, 0.14);
+        --line-strong: rgba(255, 231, 234, 0.28);
+        --text: #f4e7e5;
+        --muted: rgba(244, 231, 229, 0.66);
+        --ember: #e54455;
+        --ember-hot: #ff7f7c;
+        --ember-deep: #851724;
+        --dust: #f2c197;
+        --cyan: #8bc8d6;
+        --shadow: 0 28px 90px rgba(0, 0, 0, 0.44);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        background:
+          radial-gradient(circle at 18% 18%, rgba(139, 200, 214, 0.08), transparent 18%),
+          radial-gradient(circle at 76% 16%, rgba(255, 127, 124, 0.08), transparent 20%),
+          radial-gradient(circle at 50% 62%, rgba(229, 68, 85, 0.14), transparent 28%),
+          linear-gradient(180deg, var(--bg-top) 0%, var(--bg-mid) 38%, var(--bg-bottom) 100%);
+        color: var(--text);
+        font-family: "Avenir Next Condensed", "Trebuchet MS", "Arial Narrow", sans-serif;
+      }
+
+      body {
+        overflow: hidden;
+      }
+
+      body::before,
+      body::after {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+      }
+
+      body::before {
+        opacity: 0.11;
+        background-image:
+          linear-gradient(rgba(255, 222, 227, 0.08) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 222, 227, 0.08) 1px, transparent 1px);
+        background-size: min(4vw, 42px) min(4vw, 42px);
+        mask-image: radial-gradient(circle at 50% 48%, black 34%, transparent 88%);
+      }
+
+      body::after {
+        opacity: 0.08;
+        mix-blend-mode: screen;
+        background-image:
+          repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0 1px, transparent 1px 4px),
+          linear-gradient(180deg, rgba(255, 255, 255, 0.1), transparent 24%, transparent 76%, rgba(255, 255, 255, 0.05));
+      }
+
+      a {
+        color: inherit;
+      }
+
+      canvas {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        display: block;
+      }
+
+      .frame {
+        position: fixed;
+        inset: 16px;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-rows: auto 1fr auto;
+        gap: 14px;
+        pointer-events: none;
+      }
+
+      .title,
+      .footer,
+      .back,
+      .status {
+        position: relative;
+        border: 1px solid var(--line);
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02)),
+          var(--panel);
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(16px);
+      }
+
+      .title,
+      .footer {
+        overflow: hidden;
+        border-radius: 28px;
+        pointer-events: auto;
+      }
+
+      .title::after,
+      .footer::after,
+      .status::after {
+        content: "";
+        position: absolute;
+        inset: 1px;
+        border: 1px solid rgba(255, 238, 240, 0.12);
+        border-radius: inherit;
+        pointer-events: none;
+      }
+
+      .title {
+        grid-column: 1;
+        grid-row: 1;
+        max-width: 780px;
+        padding: 18px 20px;
+        display: grid;
+        gap: 10px;
+      }
+
+      .topline {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+        color: var(--muted);
+        font-family: "Azeret Mono", "IBM Plex Mono", monospace;
+        font-size: 0.72rem;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+      }
+
+      .status {
+        grid-column: 2;
+        grid-row: 1;
+        justify-self: end;
+        align-self: start;
+        width: min(300px, 34vw);
+        border-radius: 24px;
+        padding: 14px 16px;
+        pointer-events: auto;
+      }
+
+      .back {
+        grid-column: 2;
+        grid-row: 1;
+        justify-self: end;
+        align-self: end;
+        pointer-events: auto;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        border-radius: 999px;
+        padding: 10px 14px;
+        font-family: "Azeret Mono", "IBM Plex Mono", monospace;
+        font-size: 0.72rem;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        text-decoration: none;
+      }
+
+      .footer {
+        grid-column: 1 / -1;
+        grid-row: 3;
+        align-self: end;
+        padding: 12px;
+      }
+
+      h1,
+      h2,
+      p {
+        margin: 0;
+      }
+
+      h1 {
+        font-size: clamp(2.5rem, 5.6vw, 5.8rem);
+        line-height: 0.88;
+        letter-spacing: -0.06em;
+        text-transform: uppercase;
+      }
+
+      h1 span {
+        color: var(--ember-hot);
+      }
+
+      .lede,
+      .status-copy,
+      .note-copy {
+        color: var(--muted);
+        line-height: 1.5;
+      }
+
+      .prompt {
+        width: fit-content;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 10px;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 223, 226, 0.12);
+        background: rgba(255, 255, 255, 0.04);
+        font-family: "Azeret Mono", "IBM Plex Mono", monospace;
+        font-size: 0.72rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+
+      .pulse-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: var(--ember-hot);
+        box-shadow: 0 0 0 0 rgba(255, 127, 124, 0.26);
+        animation: pulse 2.7s ease-in-out infinite;
+      }
+
+      .status h2,
+      .label {
+        font-family: "Azeret Mono", "IBM Plex Mono", monospace;
+        font-size: 0.72rem;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+      }
+
+      .status h2 {
+        margin-bottom: 8px;
+      }
+
+      .readouts {
+        margin-top: 10px;
+        display: grid;
+        gap: 8px;
+      }
+
+      .readout {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        border-top: 1px solid rgba(255, 223, 226, 0.08);
+        padding-top: 8px;
+      }
+
+      .readout-value {
+        color: var(--text);
+      }
+
+      .note-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .note {
+        position: relative;
+        min-height: 100%;
+        padding: 12px 13px;
+        border-radius: 18px;
+        border: 1px solid rgba(255, 223, 226, 0.08);
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.01)),
+          var(--panel-soft);
+      }
+
+      .note::after {
+        content: "";
+        position: absolute;
+        inset: 1px;
+        border-radius: inherit;
+        border: 1px solid rgba(255, 238, 240, 0.08);
+        pointer-events: none;
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          box-shadow: 0 0 0 0 rgba(255, 127, 124, 0.2);
+        }
+        50% {
+          box-shadow: 0 0 0 8px rgba(255, 127, 124, 0);
+        }
+      }
+
+      @media (max-width: 980px) {
+        body {
+          overflow: auto;
+        }
+
+        .frame {
+          position: relative;
+          inset: auto;
+          padding: 12px;
+          grid-template-columns: 1fr;
+          grid-template-rows: auto auto auto auto;
+        }
+
+        .title,
+        .status,
+        .back,
+        .footer {
+          grid-column: 1;
+        }
+
+        .title {
+          grid-row: 1;
+          max-width: none;
+        }
+
+        .status {
+          grid-row: 2;
+          width: 100%;
+          justify-self: stretch;
+        }
+
+        .back {
+          grid-row: 3;
+          justify-self: start;
+          align-self: start;
+        }
+
+        .footer {
+          grid-row: 4;
+        }
+
+        .note-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="scene" aria-hidden="true"></canvas>
+
+    <div class="frame">
+      <section class="title">
+        <div class="topline">
+          <span>#069</span>
+          <span>Crimson maintenance world</span>
+          <span>Canvas + HTML</span>
+        </div>
+        <h1>Crimson Canopy <span>Railyard</span></h1>
+        <p class="lede">
+          A dark browser-native maintenance district where impossible red canopy
+          lanes sag over channels, pylons, and survey rails. Small crews keep
+          the field alive, so the crimson branch reads as an inhabited system
+          instead of another centered poster bloom.
+        </p>
+        <div class="prompt">
+          <span class="pulse-dot"></span>
+          <span>Move to bend heat. Click to send a convoy pulse.</span>
+        </div>
+      </section>
+
+      <aside class="status">
+        <h2>Field Readout</h2>
+        <p class="status-copy">
+          Autonomous route traffic, drifting ember weather, and local canopy
+          lift keep the scene moving even when the viewer does nothing.
+        </p>
+        <div class="readouts">
+          <div class="readout">
+            <span class="label">District</span>
+            <span class="readout-value">Lower survey basin</span>
+          </div>
+          <div class="readout">
+            <span class="label">Flow Law</span>
+            <span class="readout-value">Weighted sag + rail pressure</span>
+          </div>
+          <div class="readout">
+            <span class="label">Touch</span>
+            <span class="readout-value">Local thermal lift</span>
+          </div>
+        </div>
+      </aside>
+
+      <a class="back" href="../../index.html">Back to index</a>
+
+      <section class="footer">
+        <div class="note-grid">
+          <article class="note">
+            <p class="label">Idea</p>
+            <p class="note-copy">
+              This page turns the liked nuclear-red field into one maintained
+              place with channels, work lights, and layered canopy fabric rather
+              than another abstract specimen or detached control board.
+            </p>
+          </article>
+          <article class="note">
+            <p class="label">Interaction</p>
+            <p class="note-copy">
+              Pointer proximity lifts the nearest canopy lanes, brightens local
+              heat, and nudges worker traffic. Clicking injects a brief convoy
+              pulse that runs down the rail network.
+            </p>
+          </article>
+          <article class="note">
+            <p class="label">Next</p>
+            <p class="note-copy">
+              A deeper variant could let separate districts hand off cargo
+              states or weather regimes, keeping the world-scale crimson branch
+              legible without sliding back into poster flatness.
+            </p>
+          </article>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      const canvas = document.getElementById("scene");
+      const ctx = canvas.getContext("2d");
+
+      const pointer = {
+        x: 0.5,
+        y: 0.55,
+        tx: 0.5,
+        ty: 0.55,
+        active: false,
+      };
+
+      const state = {
+        width: 0,
+        height: 0,
+        dpr: Math.min(window.devicePixelRatio || 1, 2),
+        ridges: [],
+        routes: [],
+        workers: [],
+        pylons: [],
+        particles: [],
+        pulses: [],
+      };
+
+      function clamp(value, min, max) {
+        return Math.max(min, Math.min(max, value));
+      }
+
+      function lerp(a, b, t) {
+        return a + (b - a) * t;
+      }
+
+      function dist(ax, ay, bx, by) {
+        return Math.hypot(ax - bx, ay - by);
+      }
+
+      function resize() {
+        state.width = window.innerWidth;
+        state.height = window.innerHeight;
+        canvas.width = Math.floor(state.width * state.dpr);
+        canvas.height = Math.floor(state.height * state.dpr);
+        canvas.style.width = state.width + "px";
+        canvas.style.height = state.height + "px";
+        ctx.setTransform(state.dpr, 0, 0, state.dpr, 0, 0);
+        buildScene();
+      }
+
+      function buildPolyline(points, steps = 18) {
+        const output = [];
+        for (let i = 0; i < points.length - 1; i++) {
+          const a = points[i];
+          const b = points[i + 1];
+          for (let s = 0; s < steps; s++) {
+            const t = s / steps;
+            output.push({
+              x: lerp(a.x, b.x, t),
+              y: lerp(a.y, b.y, t),
+            });
+          }
+        }
+        output.push(points[points.length - 1]);
+        return output;
+      }
+
+      function buildScene() {
+        const w = state.width;
+        const h = state.height;
+        state.ridges = [];
+        state.routes = [];
+        state.workers = [];
+        state.pylons = [];
+        state.particles = [];
+        state.pulses = [];
+
+        const ridgeSeeds = [
+          { y: 0.24, bend: 0.1, amp: 0.06, thick: 0.12 },
+          { y: 0.39, bend: 0.14, amp: 0.08, thick: 0.14 },
+          { y: 0.55, bend: 0.08, amp: 0.07, thick: 0.15 },
+          { y: 0.72, bend: 0.16, amp: 0.06, thick: 0.18 },
+        ];
+
+        ridgeSeeds.forEach((seed, index) => {
+          const points = [];
+          const count = 9;
+          for (let i = 0; i < count; i++) {
+            const t = i / (count - 1);
+            points.push({
+              x: t,
+              y:
+                seed.y +
+                Math.sin(t * Math.PI * 2 + index * 0.9) * seed.amp +
+                (t - 0.5) * seed.bend,
+            });
+          }
+          state.ridges.push({
+            points,
+            thickness: seed.thick,
+            phase: index * 1.3,
+            speed: 0.22 + index * 0.05,
+            glow: 0.4 + index * 0.1,
+          });
+        });
+
+        const routeSeeds = [
+          [
+            { x: 0.04, y: 0.76 },
+            { x: 0.2, y: 0.66 },
+            { x: 0.42, y: 0.55 },
+            { x: 0.64, y: 0.45 },
+            { x: 0.94, y: 0.34 },
+          ],
+          [
+            { x: 0.1, y: 0.88 },
+            { x: 0.26, y: 0.74 },
+            { x: 0.46, y: 0.65 },
+            { x: 0.68, y: 0.61 },
+            { x: 0.9, y: 0.58 },
+          ],
+          [
+            { x: 0.16, y: 0.3 },
+            { x: 0.32, y: 0.42 },
+            { x: 0.54, y: 0.54 },
+            { x: 0.78, y: 0.7 },
+          ],
+          [
+            { x: 0.2, y: 0.16 },
+            { x: 0.38, y: 0.28 },
+            { x: 0.58, y: 0.33 },
+            { x: 0.84, y: 0.28 },
+          ],
+        ];
+
+        routeSeeds.forEach((seed, index) => {
+          const points = buildPolyline(seed, 22);
+          state.routes.push({
+            points,
+            width: index < 2 ? 3.4 : 2.2,
+            hue: index < 2 ? "ember" : "dust",
+            pulseOffset: Math.random(),
+          });
+        });
+
+        state.routes.forEach((route, routeIndex) => {
+          const workerCount = routeIndex === 0 ? 3 : 2;
+          for (let i = 0; i < workerCount; i++) {
+            state.workers.push({
+              routeIndex,
+              progress: (i / workerCount + Math.random() * 0.2) % 1,
+              speed: 0.024 + Math.random() * 0.018,
+              size: 2.8 + Math.random() * 1.8,
+              bias: Math.random(),
+            });
+          }
+        });
+
+        const pylonSeeds = [
+          [0.12, 0.69],
+          [0.3, 0.58],
+          [0.51, 0.48],
+          [0.73, 0.39],
+          [0.87, 0.33],
+          [0.18, 0.82],
+          [0.44, 0.64],
+          [0.71, 0.61],
+          [0.29, 0.25],
+          [0.61, 0.31],
+          [0.82, 0.27],
+        ];
+
+        pylonSeeds.forEach(([x, y], index) => {
+          state.pylons.push({
+            x,
+            y,
+            height: 26 + (index % 3) * 12,
+            phase: index * 0.8,
+          });
+        });
+
+        const particleCount = Math.max(160, Math.floor((w * h) / 9000));
+        for (let i = 0; i < particleCount; i++) {
+          state.particles.push({
+            x: Math.random(),
+            y: Math.random(),
+            speed: 0.0004 + Math.random() * 0.0014,
+            drift: (Math.random() - 0.5) * 0.0008,
+            size: 0.8 + Math.random() * 2.4,
+            alpha: 0.12 + Math.random() * 0.6,
+            flavor: Math.random(),
+          });
+        }
+
+        pointer.x = clamp(pointer.x, 0, 1);
+        pointer.y = clamp(pointer.y, 0, 1);
+      }
+
+      function routePoint(route, progress) {
+        const total = route.points.length - 1;
+        const pos = clamp(progress, 0, 0.9999) * total;
+        const index = Math.floor(pos);
+        const t = pos - index;
+        const a = route.points[index];
+        const b = route.points[index + 1];
+        return {
+          x: lerp(a.x, b.x, t),
+          y: lerp(a.y, b.y, t),
+        };
+      }
+
+      function findNearestRoutePoint(nx, ny) {
+        let best = null;
+        state.routes.forEach((route, routeIndex) => {
+          route.points.forEach((point, pointIndex) => {
+            const d = dist(nx, ny, point.x, point.y);
+            if (!best || d < best.d) {
+              best = { routeIndex, pointIndex, d };
+            }
+          });
+        });
+        return best;
+      }
+
+      function spawnPulse(nx, ny) {
+        const hit = findNearestRoutePoint(nx, ny);
+        if (!hit) return;
+        state.pulses.push({
+          routeIndex: hit.routeIndex,
+          progress: hit.pointIndex / (state.routes[hit.routeIndex].points.length - 1),
+          age: 0,
+          life: 1.8,
+        });
+      }
+
+      function drawSky(time) {
+        const gradient = ctx.createLinearGradient(0, 0, 0, state.height);
+        gradient.addColorStop(0, "#20090f");
+        gradient.addColorStop(0.38, "#0a070b");
+        gradient.addColorStop(1, "#010102");
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, state.width, state.height);
+
+        const haze = ctx.createRadialGradient(
+          state.width * 0.56,
+          state.height * 0.5,
+          0,
+          state.width * 0.56,
+          state.height * 0.5,
+          state.width * 0.54,
+        );
+        haze.addColorStop(0, "rgba(229, 68, 85, 0.22)");
+        haze.addColorStop(0.55, "rgba(142, 32, 43, 0.12)");
+        haze.addColorStop(1, "rgba(0, 0, 0, 0)");
+        ctx.fillStyle = haze;
+        ctx.fillRect(0, 0, state.width, state.height);
+
+        ctx.save();
+        ctx.globalAlpha = 0.18;
+        for (let i = 0; i < 9; i++) {
+          const y = state.height * (0.08 + i * 0.1);
+          ctx.fillStyle = i % 2 === 0 ? "rgba(255, 255, 255, 0.02)" : "rgba(229, 68, 85, 0.03)";
+          ctx.fillRect(0, y + Math.sin(time * 0.2 + i) * 8, state.width, 1);
+        }
+        ctx.restore();
+      }
+
+      function drawTerrain() {
+        const layers = [
+          { y: 0.72, color: "rgba(40, 10, 16, 0.92)" },
+          { y: 0.81, color: "rgba(21, 7, 10, 0.96)" },
+          { y: 0.9, color: "rgba(10, 5, 7, 1)" },
+        ];
+
+        layers.forEach((layer, index) => {
+          ctx.beginPath();
+          ctx.moveTo(0, state.height);
+          for (let i = 0; i <= 10; i++) {
+            const t = i / 10;
+            const y =
+              state.height *
+              (layer.y +
+                Math.sin(t * Math.PI * 2 + index * 0.7) * (0.025 + index * 0.01) +
+                Math.cos(t * Math.PI * 4 + index) * 0.012);
+            ctx.lineTo(t * state.width, y);
+          }
+          ctx.lineTo(state.width, state.height);
+          ctx.closePath();
+          ctx.fillStyle = layer.color;
+          ctx.fill();
+        });
+      }
+
+      function drawRidges(time) {
+        state.ridges.forEach((ridge, ridgeIndex) => {
+          const ridgePath = [];
+          ridge.points.forEach((point, pointIndex) => {
+            const sway = Math.sin(time * ridge.speed + ridge.phase + pointIndex * 0.6) * 0.012;
+            const px = point.x;
+            const py = point.y + sway;
+            const pDist = dist(pointer.x, pointer.y, px, py);
+            const lift = Math.max(0, 1 - pDist / 0.24) * 0.03;
+            ridgePath.push({
+              x: px * state.width,
+              y: (py - lift) * state.height,
+            });
+          });
+
+          const underside = [...ridgePath].reverse().map((point, pointIndex) => ({
+            x: point.x,
+            y: point.y + state.height * ridge.thickness + Math.sin(time * 0.4 + pointIndex) * 6,
+          }));
+
+          const gradient = ctx.createLinearGradient(0, ridgePath[0].y, 0, underside[0].y);
+          gradient.addColorStop(0, `rgba(255, 126, 122, ${0.2 + ridge.glow * 0.18})`);
+          gradient.addColorStop(0.42, `rgba(188, 42, 59, ${0.3 + ridge.glow * 0.22})`);
+          gradient.addColorStop(1, "rgba(56, 12, 20, 0.8)");
+
+          ctx.beginPath();
+          ctx.moveTo(ridgePath[0].x, ridgePath[0].y);
+          ridgePath.slice(1).forEach((point) => ctx.lineTo(point.x, point.y));
+          underside.forEach((point) => ctx.lineTo(point.x, point.y));
+          ctx.closePath();
+          ctx.fillStyle = gradient;
+          ctx.fill();
+
+          ctx.strokeStyle = `rgba(255, 208, 198, ${0.18 + ridge.glow * 0.1})`;
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(ridgePath[0].x, ridgePath[0].y);
+          ridgePath.slice(1).forEach((point) => ctx.lineTo(point.x, point.y));
+          ctx.stroke();
+
+          ctx.save();
+          ctx.globalCompositeOperation = "screen";
+          ctx.strokeStyle = `rgba(229, 68, 85, ${0.1 + ridge.glow * 0.18})`;
+          ctx.lineWidth = ridge.thickness * 80;
+          ctx.beginPath();
+          ctx.moveTo(ridgePath[0].x, ridgePath[0].y + ridge.thickness * state.height * 0.46);
+          ridgePath.slice(1).forEach((point) =>
+            ctx.lineTo(point.x, point.y + ridge.thickness * state.height * 0.46),
+          );
+          ctx.stroke();
+          ctx.restore();
+
+          for (let i = 0; i < ridgePath.length - 1; i++) {
+            if ((i + ridgeIndex) % 2 !== 0) continue;
+            const point = ridgePath[i];
+            ctx.strokeStyle = "rgba(248, 207, 170, 0.16)";
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(point.x, point.y + 8);
+            ctx.lineTo(point.x - 18, point.y + state.height * ridge.thickness * 0.82);
+            ctx.stroke();
+          }
+        });
+      }
+
+      function drawRoutes(time) {
+        state.routes.forEach((route) => {
+          ctx.save();
+          ctx.lineCap = "round";
+          ctx.lineJoin = "round";
+
+          const pulseGlow = 0.14 + Math.sin(time * 0.8 + route.pulseOffset * Math.PI * 2) * 0.04;
+          ctx.strokeStyle = route.hue === "ember" ? `rgba(244, 95, 108, ${0.16 + pulseGlow})` : "rgba(242, 193, 151, 0.18)";
+          ctx.lineWidth = route.width * 2.8;
+          ctx.beginPath();
+          route.points.forEach((point, index) => {
+            const x = point.x * state.width;
+            const y = point.y * state.height;
+            if (index === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+          });
+          ctx.stroke();
+
+          ctx.strokeStyle = route.hue === "ember" ? "rgba(255, 189, 183, 0.62)" : "rgba(245, 214, 184, 0.46)";
+          ctx.lineWidth = route.width;
+          ctx.stroke();
+          ctx.restore();
+        });
+      }
+
+      function drawPylons(time) {
+        state.pylons.forEach((pylon, index) => {
+          const x = pylon.x * state.width;
+          const y = pylon.y * state.height;
+          const height = pylon.height + Math.sin(time * 0.8 + pylon.phase) * 3;
+
+          ctx.strokeStyle = "rgba(247, 222, 214, 0.3)";
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(x, y);
+          ctx.lineTo(x, y - height);
+          ctx.stroke();
+
+          ctx.beginPath();
+          ctx.moveTo(x - 8, y - height * 0.6);
+          ctx.lineTo(x + 8, y - height * 0.6);
+          ctx.stroke();
+
+          const glow = 0.3 + Math.sin(time * 1.4 + index) * 0.18;
+          ctx.fillStyle = `rgba(255, 132, 124, ${glow})`;
+          ctx.beginPath();
+          ctx.arc(x, y - height, 2.2, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.fillStyle = "rgba(242, 193, 151, 0.14)";
+          ctx.beginPath();
+          ctx.arc(x, y, 5, 0, Math.PI * 2);
+          ctx.fill();
+        });
+      }
+
+      function drawWorkers(time, dt) {
+        state.workers.forEach((worker, index) => {
+          const route = state.routes[worker.routeIndex];
+          const point = routePoint(route, worker.progress);
+          const px = point.x * state.width;
+          const py = point.y * state.height;
+          const pointerBias = Math.max(0, 1 - dist(pointer.x, pointer.y, point.x, point.y) / 0.16);
+          worker.progress = (worker.progress + dt * (worker.speed + pointerBias * 0.012)) % 1;
+
+          ctx.save();
+          ctx.translate(px, py);
+          ctx.fillStyle = "rgba(255, 234, 222, 0.9)";
+          ctx.beginPath();
+          ctx.arc(0, 0, worker.size, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.fillStyle = `rgba(229, 68, 85, ${0.36 + Math.sin(time * 4 + index) * 0.14})`;
+          ctx.beginPath();
+          ctx.arc(0, 0, worker.size * 2.5, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.restore();
+        });
+      }
+
+      function drawPulses(dt) {
+        state.pulses = state.pulses.filter((pulse) => pulse.age < pulse.life);
+        state.pulses.forEach((pulse) => {
+          pulse.age += dt;
+          pulse.progress += dt * 0.36;
+          const route = state.routes[pulse.routeIndex];
+          const point = routePoint(route, pulse.progress % 1);
+          const px = point.x * state.width;
+          const py = point.y * state.height;
+          const lifeT = pulse.age / pulse.life;
+
+          ctx.save();
+          ctx.globalCompositeOperation = "screen";
+          const radius = 10 + lifeT * 40;
+          const gradient = ctx.createRadialGradient(px, py, 0, px, py, radius);
+          gradient.addColorStop(0, "rgba(255, 245, 238, 0.84)");
+          gradient.addColorStop(0.2, "rgba(255, 140, 126, 0.56)");
+          gradient.addColorStop(1, "rgba(255, 140, 126, 0)");
+          ctx.fillStyle = gradient;
+          ctx.beginPath();
+          ctx.arc(px, py, radius, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        });
+      }
+
+      function drawParticles(time, dt) {
+        state.particles.forEach((particle) => {
+          particle.y -= particle.speed * dt * 60;
+          particle.x += particle.drift * dt * 60;
+          const dx = particle.x - pointer.x;
+          const dy = particle.y - pointer.y;
+          const influence = Math.max(0, 1 - Math.hypot(dx, dy) / 0.18);
+          particle.x += dx * 0.002 * influence;
+          particle.y -= 0.001 * influence;
+
+          if (particle.y < -0.04) {
+            particle.y = 1.04;
+            particle.x = Math.random();
+          }
+          if (particle.x < -0.05) particle.x = 1.05;
+          if (particle.x > 1.05) particle.x = -0.05;
+
+          const px = particle.x * state.width;
+          const py = particle.y * state.height;
+          ctx.fillStyle =
+            particle.flavor > 0.78
+              ? `rgba(242, 193, 151, ${particle.alpha * 0.7})`
+              : `rgba(229, 68, 85, ${particle.alpha * (0.5 + 0.2 * Math.sin(time + px * 0.01))})`;
+          ctx.beginPath();
+          if (particle.flavor > 0.92) {
+            ctx.rect(px - particle.size * 0.9, py - particle.size * 0.9, particle.size * 1.8, particle.size * 1.8);
+          } else {
+            ctx.arc(px, py, particle.size, 0, Math.PI * 2);
+          }
+          ctx.fill();
+        });
+      }
+
+      function drawCalibration(time) {
+        ctx.save();
+        ctx.strokeStyle = "rgba(255, 226, 216, 0.12)";
+        ctx.lineWidth = 1;
+        const marks = [
+          [0.08, 0.14, 60],
+          [0.88, 0.18, 48],
+          [0.78, 0.86, 72],
+          [0.16, 0.78, 52],
+        ];
+        marks.forEach(([x, y, size], index) => {
+          const px = x * state.width;
+          const py = y * state.height;
+          ctx.beginPath();
+          ctx.arc(px, py, size, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(px - size - 10, py);
+          ctx.lineTo(px + size + 10, py);
+          ctx.moveTo(px, py - size - 10);
+          ctx.lineTo(px, py + size + 10);
+          ctx.stroke();
+          ctx.fillStyle = "rgba(255, 223, 214, 0.46)";
+          ctx.font = '11px "Azeret Mono", "IBM Plex Mono", monospace';
+          ctx.fillText(`MARK ${index + 1}`, px + size + 14, py - 8);
+        });
+        ctx.restore();
+
+        ctx.save();
+        ctx.globalAlpha = 0.24;
+        for (let i = 0; i < 8; i++) {
+          const x = state.width * (0.1 + i * 0.1);
+          const y = state.height * (0.9 - Math.sin(time * 0.24 + i) * 0.02);
+          ctx.fillStyle = i % 2 === 0 ? "rgba(139, 200, 214, 0.4)" : "rgba(229, 68, 85, 0.28)";
+          ctx.fillRect(x, y, 28, 2);
+        }
+        ctx.restore();
+      }
+
+      let lastTime = performance.now();
+      function frame(now) {
+        const dt = Math.min(0.033, (now - lastTime) / 1000);
+        lastTime = now;
+        const time = now * 0.001;
+        pointer.x = lerp(pointer.x, pointer.tx, 0.08);
+        pointer.y = lerp(pointer.y, pointer.ty, 0.08);
+
+        drawSky(time);
+        drawTerrain();
+        drawRidges(time);
+        drawRoutes(time);
+        drawPylons(time);
+        drawPulses(dt);
+        drawWorkers(time, dt);
+        drawParticles(time, dt);
+        drawCalibration(time);
+
+        requestAnimationFrame(frame);
+      }
+
+      window.addEventListener("pointermove", (event) => {
+        pointer.active = true;
+        pointer.tx = event.clientX / state.width;
+        pointer.ty = event.clientY / state.height;
+      });
+
+      window.addEventListener("pointerleave", () => {
+        pointer.active = false;
+        pointer.tx = 0.5;
+        pointer.ty = 0.55;
+      });
+
+      window.addEventListener("click", (event) => {
+        spawnPulse(event.clientX / state.width, event.clientY / state.height);
+      });
+
+      window.addEventListener("resize", resize);
+
+      resize();
+      requestAnimationFrame(frame);
+    </script>
+  </body>
+</html>

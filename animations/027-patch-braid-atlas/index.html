@@ -1,0 +1,693 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>#027 Patch Braid Atlas</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #06070b;
+        --panel: rgba(11, 14, 22, 0.62);
+        --line: rgba(229, 237, 240, 0.15);
+        --text: #eef1ec;
+        --muted: rgba(238, 241, 236, 0.68);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background:
+          radial-gradient(circle at 20% 18%, rgba(114, 217, 210, 0.08), transparent 22%),
+          radial-gradient(circle at 78% 24%, rgba(255, 135, 173, 0.08), transparent 24%),
+          radial-gradient(circle at 54% 84%, rgba(243, 193, 90, 0.08), transparent 20%),
+          var(--bg);
+        color: var(--text);
+        font-family: "Azeret Mono", "IBM Plex Mono", "SFMono-Regular", monospace;
+      }
+
+      canvas {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        display: block;
+      }
+
+      .hud {
+        position: fixed;
+        inset: 16px;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 16px;
+        pointer-events: none;
+      }
+
+      .panel,
+      .back {
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        background: var(--panel);
+        backdrop-filter: blur(16px);
+        box-shadow: 0 24px 60px rgba(0, 0, 0, 0.3);
+      }
+
+      .panel {
+        width: min(31rem, calc(100vw - 32px));
+        padding: 15px 16px 16px;
+        display: grid;
+        gap: 10px;
+      }
+
+      .back {
+        position: fixed;
+        right: 16px;
+        bottom: 16px;
+        padding: 10px 14px;
+        color: var(--text);
+        text-decoration: none;
+        pointer-events: auto;
+      }
+
+      .eyebrow,
+      .hint,
+      .meta,
+      .stat,
+      .value {
+        margin: 0;
+      }
+
+      .eyebrow {
+        font-size: 11px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: rgba(238, 241, 236, 0.54);
+      }
+
+      h1 {
+        margin: 0;
+        font-size: clamp(1.9rem, 4vw, 3rem);
+        line-height: 0.93;
+      }
+
+      .hint,
+      .meta {
+        color: var(--muted);
+        line-height: 1.45;
+      }
+
+      .hint {
+        font-size: 0.95rem;
+      }
+
+      .meta {
+        font-size: 0.8rem;
+      }
+
+      .readout {
+        display: flex;
+        gap: 0.9rem;
+        flex-wrap: wrap;
+      }
+
+      .stat {
+        font-size: 0.72rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: rgba(238, 241, 236, 0.5);
+      }
+
+      .value {
+        display: block;
+        margin-top: 0.18rem;
+        font-size: 0.92rem;
+        letter-spacing: 0.04em;
+        color: var(--text);
+      }
+
+      @media (max-width: 880px) {
+        .hud {
+          inset: 14px;
+        }
+
+        .panel {
+          width: min(100%, 32rem);
+        }
+
+        .back {
+          right: 14px;
+          bottom: 14px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="scene"></canvas>
+    <div class="hud">
+      <section class="panel">
+        <p class="eyebrow">Code Animation Study #027</p>
+        <h1>Patch Braid Atlas</h1>
+        <p class="hint">
+          A vertical translucent habitat stitched from linked soft chambers,
+          membrane weather, and floating patch organs, so the interaction reads
+          as world behavior instead of another detached dashboard.
+        </p>
+        <p class="meta">
+          Move across the habitat to thicken local pressure. Click one of the
+          floating patches to swap the field law: bloom, mesh, or drift.
+        </p>
+        <div class="readout">
+          <p class="stat">Current law<span class="value" id="modeValue">bloom</span></p>
+          <p class="stat">Field pressure<span class="value" id="pressureValue">0.38</span></p>
+          <p class="stat">Wake depth<span class="value" id="wakeValue">14 mm</span></p>
+        </div>
+      </section>
+    </div>
+    <a class="back" href="../../index.html">Back to index</a>
+    <script src="../../shared/study-notes.js"></script>
+
+    <script>
+      const canvas = document.getElementById("scene");
+      const ctx = canvas.getContext("2d");
+      const modeValue = document.getElementById("modeValue");
+      const pressureValue = document.getElementById("pressureValue");
+      const wakeValue = document.getElementById("wakeValue");
+
+      const pointer = {
+        x: window.innerWidth * 0.5,
+        y: window.innerHeight * 0.52,
+        tx: window.innerWidth * 0.5,
+        ty: window.innerHeight * 0.52,
+        active: false,
+        down: false,
+      };
+
+      const modes = [
+        {
+          id: "bloom",
+          label: "bloom",
+          accent: "#7ce1d4",
+          secondary: "#f7a2c5",
+          glow: "#f7cc7f",
+        },
+        {
+          id: "mesh",
+          label: "mesh",
+          accent: "#8cc4ff",
+          secondary: "#dcb3ff",
+          glow: "#9ef0b5",
+        },
+        {
+          id: "drift",
+          label: "drift",
+          accent: "#f88fa0",
+          secondary: "#f4d082",
+          glow: "#8de4e4",
+        },
+      ];
+
+      let activeMode = modes[0];
+      let w = 0;
+      let h = 0;
+      let dpr = Math.min(window.devicePixelRatio || 1, 2);
+      let time = 0;
+      let pressure = 0.38;
+      let ripple = 0;
+      const cells = [];
+      const dust = [];
+      const pulses = [];
+      const patches = [];
+
+      function resize() {
+        dpr = Math.min(window.devicePixelRatio || 1, 2);
+        w = window.innerWidth;
+        h = window.innerHeight;
+        canvas.width = Math.round(w * dpr);
+        canvas.height = Math.round(h * dpr);
+        canvas.style.width = `${w}px`;
+        canvas.style.height = `${h}px`;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        buildScene();
+      }
+
+      function buildScene() {
+        cells.length = 0;
+        dust.length = 0;
+        patches.length = 0;
+        const count = 18;
+        for (let i = 0; i < count; i += 1) {
+          const t = i / (count - 1);
+          cells.push({
+            t,
+            radius: 36 + Math.sin(i * 0.9) * 10 + (1 - Math.abs(0.5 - t) * 2) * 16,
+            wobble: 0.7 + Math.random() * 1.2,
+            phase: Math.random() * Math.PI * 2,
+            branch: Math.random() * 0.8 + 0.3,
+          });
+        }
+
+        const patchLayout = [
+          { side: -1, t: 0.14, label: "Bloom", hint: "lumen tide" },
+          { side: 1, t: 0.44, label: "Mesh", hint: "veil lattice" },
+          { side: -1, t: 0.74, label: "Drift", hint: "mist current" },
+        ];
+
+        patchLayout.forEach((item, index) => {
+          patches.push({
+            index,
+            side: item.side,
+            t: item.t,
+            label: item.label,
+            hint: item.hint,
+            mode: modes[index],
+            x: 0,
+            y: 0,
+            width: 120,
+            height: 44,
+            hover: 0,
+          });
+        });
+
+        const dustCount = Math.floor(Math.max(50, w * h * 0.00008));
+        for (let i = 0; i < dustCount; i += 1) {
+          dust.push({
+            x: Math.random() * w,
+            y: Math.random() * h,
+            r: Math.random() * 2.2 + 0.4,
+            drift: Math.random() * 0.4 + 0.1,
+            phase: Math.random() * Math.PI * 2,
+          });
+        }
+      }
+
+      function clamp(value, min, max) {
+        return Math.min(max, Math.max(min, value));
+      }
+
+      function lerp(a, b, t) {
+        return a + (b - a) * t;
+      }
+
+      function alpha(hex, value) {
+        const normalized = clamp(value, 0, 1);
+        const alphaHex = Math.round(normalized * 255)
+          .toString(16)
+          .padStart(2, "0");
+        return `${hex}${alphaHex}`;
+      }
+
+      function pointFor(t, driftOffset = 0) {
+        const centerX = w * 0.5;
+        const y = lerp(h * 0.1, h * 0.9, t);
+        const bend =
+          Math.sin(t * 8.4 + time * 0.9 + driftOffset) * w * 0.045 +
+          Math.sin(t * 18 + time * 0.55 + driftOffset * 1.6) * w * 0.018;
+        const influence = Math.exp(-Math.abs(pointer.y - y) / (h * 0.18));
+        const pointerShift = ((pointer.x - centerX) / w) * 170 * influence * (0.22 + pressure);
+        const rippleShift = Math.sin(time * 2.1 + t * 12 + ripple) * 12 * influence;
+        return { x: centerX + bend + pointerShift + rippleShift, y };
+      }
+
+      function drawBackground() {
+        const gradient = ctx.createLinearGradient(0, 0, 0, h);
+        gradient.addColorStop(0, "#07080d");
+        gradient.addColorStop(0.5, "#090b12");
+        gradient.addColorStop(1, "#05060a");
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, w, h);
+
+        ctx.save();
+        ctx.strokeStyle = "rgba(238, 241, 236, 0.05)";
+        ctx.lineWidth = 1;
+        for (let x = 0; x <= w; x += 36) {
+          ctx.beginPath();
+          ctx.moveTo(x + 0.5, 0);
+          ctx.lineTo(x + 0.5, h);
+          ctx.stroke();
+        }
+        for (let y = 0; y <= h; y += 36) {
+          ctx.beginPath();
+          ctx.moveTo(0, y + 0.5);
+          ctx.lineTo(w, y + 0.5);
+          ctx.stroke();
+        }
+        ctx.restore();
+
+        ctx.save();
+        dust.forEach((particle, index) => {
+          const driftX = Math.sin(time * particle.drift + particle.phase) * 12;
+          const driftY = Math.cos(time * particle.drift * 0.8 + index) * 8;
+          const glow = 0.08 + Math.sin(time * 0.9 + index) * 0.02;
+          ctx.fillStyle = alpha(index % 3 === 0 ? activeMode.accent : activeMode.secondary, glow);
+          ctx.beginPath();
+          ctx.arc(particle.x + driftX, particle.y + driftY, particle.r, 0, Math.PI * 2);
+          ctx.fill();
+        });
+        ctx.restore();
+      }
+
+      function drawAtmosphere() {
+        ctx.save();
+        for (let i = 0; i < 6; i += 1) {
+          const y = h * (0.16 + i * 0.14);
+          const center = pointFor(clamp(0.08 + i * 0.16, 0, 1), i * 0.3);
+          const spread = w * (0.22 + (i % 2) * 0.06);
+          const cloud = ctx.createRadialGradient(center.x, y, spread * 0.08, center.x, y, spread);
+          cloud.addColorStop(0, alpha(i % 2 === 0 ? activeMode.secondary : activeMode.accent, 0.06));
+          cloud.addColorStop(0.48, alpha(activeMode.glow, 0.04));
+          cloud.addColorStop(1, "rgba(0,0,0,0)");
+          ctx.fillStyle = cloud;
+          ctx.beginPath();
+          ctx.ellipse(center.x, y, spread, 54 + i * 12, 0, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+
+      function drawBraid() {
+        const leftEdge = [];
+        const rightEdge = [];
+
+        cells.forEach((cell, index) => {
+          const point = pointFor(cell.t, cell.phase * 0.25);
+          const next = pointFor(clamp(cell.t + 0.02, 0, 1), cell.phase * 0.25);
+          const angle = Math.atan2(next.y - point.y, next.x - point.x);
+          const normalX = Math.cos(angle + Math.PI / 2);
+          const normalY = Math.sin(angle + Math.PI / 2);
+          const pointerDist = Math.hypot(pointer.x - point.x, pointer.y - point.y);
+          const localPressure = clamp(1 - pointerDist / 240, 0, 1) * (0.5 + pressure);
+          const radius =
+            cell.radius +
+            Math.sin(time * (0.9 + cell.wobble) + cell.phase) * 8 +
+            localPressure * 24 +
+            Math.sin(time * 2.4 + index * 0.6) * 3;
+
+          leftEdge.push({ x: point.x + normalX * radius, y: point.y + normalY * radius });
+          rightEdge.unshift({ x: point.x - normalX * radius, y: point.y - normalY * radius });
+
+          const halo = ctx.createRadialGradient(point.x, point.y, radius * 0.08, point.x, point.y, radius * 1.45);
+          halo.addColorStop(0, alpha(activeMode.glow, 0.16 + localPressure * 0.16));
+          halo.addColorStop(0.42, alpha(activeMode.secondary, 0.08 + localPressure * 0.06));
+          halo.addColorStop(1, "rgba(0,0,0,0)");
+          ctx.fillStyle = halo;
+          ctx.beginPath();
+          ctx.arc(point.x, point.y, radius * 1.45, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.save();
+          ctx.translate(point.x, point.y);
+          ctx.rotate(angle);
+
+          const bodyGradient = ctx.createLinearGradient(-radius, -radius, radius, radius);
+          bodyGradient.addColorStop(0, alpha(activeMode.accent, 0.28));
+          bodyGradient.addColorStop(0.46, alpha(activeMode.secondary, 0.24));
+          bodyGradient.addColorStop(1, alpha(activeMode.glow, 0.18));
+          ctx.fillStyle = bodyGradient;
+          ctx.strokeStyle = alpha("#f2f5ef", 0.1 + localPressure * 0.08);
+          ctx.lineWidth = 1.15;
+          ctx.beginPath();
+          ctx.ellipse(0, 0, radius * 0.78, radius * 0.56, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+
+          const coreGradient = ctx.createRadialGradient(0, 0, radius * 0.08, 0, 0, radius * 0.58);
+          coreGradient.addColorStop(0, alpha("#fff6ee", 0.18 + localPressure * 0.16));
+          coreGradient.addColorStop(0.65, alpha(activeMode.accent, 0.16));
+          coreGradient.addColorStop(1, "rgba(0,0,0,0)");
+          ctx.fillStyle = coreGradient;
+          ctx.beginPath();
+          ctx.ellipse(0, 0, radius * 0.5, radius * 0.28, 0, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.strokeStyle = alpha(activeMode.secondary, 0.14 + localPressure * 0.14);
+          ctx.lineWidth = 1;
+          const divisions = activeMode.id === "mesh" ? 7 : activeMode.id === "drift" ? 5 : 4;
+          for (let j = -divisions; j <= divisions; j += 1) {
+            const yy = (j / divisions) * radius * 0.34;
+            const span = radius * (0.4 + Math.cos((j / divisions) * Math.PI) * 0.24);
+            ctx.beginPath();
+            ctx.moveTo(-span, yy);
+            ctx.quadraticCurveTo(0, yy * (activeMode.id === "drift" ? 1.8 : 1.2), span, yy);
+            ctx.stroke();
+          }
+
+          const branches = 3 + Math.floor(cell.branch * 4);
+          for (let j = 0; j < branches; j += 1) {
+            const side = j % 2 === 0 ? -1 : 1;
+            const startX = side * radius * 0.42;
+            const startY = (-0.5 + j / Math.max(1, branches - 1)) * radius * 0.42;
+            const branchLen = radius * (0.46 + j * 0.05);
+            ctx.strokeStyle = alpha(activeMode.glow, 0.12 + localPressure * 0.08);
+            ctx.beginPath();
+            ctx.moveTo(startX, startY);
+            ctx.quadraticCurveTo(
+              side * branchLen * 0.65,
+              startY - 12 * side + Math.sin(time * 1.5 + index + j) * 8,
+              side * branchLen,
+              startY + Math.cos(time * 1.1 + index + j) * 12
+            );
+            ctx.stroke();
+          }
+
+          ctx.restore();
+        });
+
+        ctx.save();
+        ctx.fillStyle = alpha(activeMode.accent, 0.08);
+        ctx.beginPath();
+        leftEdge.forEach((point, index) => {
+          if (index === 0) ctx.moveTo(point.x, point.y);
+          else ctx.lineTo(point.x, point.y);
+        });
+        rightEdge.forEach((point) => ctx.lineTo(point.x, point.y));
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+      }
+
+      function drawFilaments() {
+        ctx.save();
+        ctx.strokeStyle = alpha(activeMode.secondary, 0.12);
+        ctx.lineWidth = 1.1;
+        for (let i = 0; i < cells.length - 1; i += 1) {
+          const a = pointFor(cells[i].t, 0.2);
+          const b = pointFor(cells[i + 1].t, 0.2);
+          ctx.beginPath();
+          ctx.moveTo(a.x, a.y);
+          ctx.bezierCurveTo(
+            a.x + Math.sin(time + i) * 24,
+            lerp(a.y, b.y, 0.3),
+            b.x - Math.cos(time * 0.8 + i) * 24,
+            lerp(a.y, b.y, 0.7),
+            b.x,
+            b.y
+          );
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      function drawSideColonies() {
+        ctx.save();
+        cells.forEach((cell, index) => {
+          if (index % 2 !== 0) return;
+          const anchor = pointFor(cell.t, 0.18);
+          const side = index % 4 === 0 ? -1 : 1;
+          const colonyX = anchor.x + side * (84 + Math.sin(time * 1.2 + index) * 18);
+          const colonyY = anchor.y + Math.cos(time * 0.9 + index) * 18;
+          const colonyR = 16 + Math.sin(time * 1.4 + index) * 3;
+
+          ctx.strokeStyle = alpha(activeMode.glow, 0.14);
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(anchor.x, anchor.y);
+          ctx.quadraticCurveTo(
+            lerp(anchor.x, colonyX, 0.5),
+            lerp(anchor.y, colonyY, 0.5) - 14,
+            colonyX,
+            colonyY
+          );
+          ctx.stroke();
+
+          const glow = ctx.createRadialGradient(colonyX, colonyY, colonyR * 0.1, colonyX, colonyY, colonyR * 1.7);
+          glow.addColorStop(0, alpha(activeMode.glow, 0.18));
+          glow.addColorStop(0.55, alpha(activeMode.secondary, 0.1));
+          glow.addColorStop(1, "rgba(0,0,0,0)");
+          ctx.fillStyle = glow;
+          ctx.beginPath();
+          ctx.arc(colonyX, colonyY, colonyR * 1.7, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.fillStyle = alpha(activeMode.accent, 0.18);
+          ctx.strokeStyle = alpha("#f2f6ef", 0.08);
+          ctx.beginPath();
+          ctx.ellipse(colonyX, colonyY, colonyR * 1.1, colonyR * 0.82, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+        });
+        ctx.restore();
+      }
+
+      function updatePatches() {
+        patches.forEach((patch) => {
+          const anchor = pointFor(patch.t, 0.4);
+          patch.x = anchor.x + patch.side * (w * 0.14 + Math.sin(time * 1.3 + patch.index) * 18);
+          patch.y = anchor.y + Math.cos(time * 0.9 + patch.index) * 12;
+          const inside =
+            Math.abs(pointer.x - patch.x) < patch.width * 0.5 &&
+            Math.abs(pointer.y - patch.y) < patch.height * 0.5;
+          patch.hover = lerp(patch.hover, inside ? 1 : 0, 0.14);
+        });
+      }
+
+      function drawPatches() {
+        ctx.save();
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        patches.forEach((patch) => {
+          const anchor = pointFor(patch.t, 0.4);
+          const active = patch.mode.id === activeMode.id;
+          const glow = active ? 1 : patch.hover;
+
+          ctx.strokeStyle = alpha(patch.mode.accent, 0.18 + glow * 0.22);
+          ctx.lineWidth = 1.2;
+          ctx.beginPath();
+          ctx.moveTo(anchor.x, anchor.y);
+          ctx.quadraticCurveTo(
+            lerp(anchor.x, patch.x, 0.5),
+            lerp(anchor.y, patch.y, 0.5) - 18,
+            patch.x,
+            patch.y
+          );
+          ctx.stroke();
+
+          const left = patch.x - patch.width * 0.5;
+          const top = patch.y - patch.height * 0.5;
+          const fill = ctx.createLinearGradient(left, top, left + patch.width, top + patch.height);
+          fill.addColorStop(0, alpha(patch.mode.accent, 0.16 + glow * 0.14));
+          fill.addColorStop(1, alpha(patch.mode.secondary, 0.14 + glow * 0.12));
+          ctx.fillStyle = fill;
+          ctx.strokeStyle = alpha("#f4f7ef", 0.08 + glow * 0.12);
+          ctx.beginPath();
+          ctx.ellipse(patch.x, patch.y, patch.width * 0.5, patch.height * 0.58, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = alpha("#f2f6ef", 0.9);
+          ctx.font = "600 12px Azeret Mono, IBM Plex Mono, monospace";
+          ctx.fillText(patch.label, patch.x, patch.y - 6);
+          ctx.fillStyle = alpha("#f2f6ef", 0.58);
+          ctx.font = "11px Azeret Mono, IBM Plex Mono, monospace";
+          ctx.fillText(patch.hint, patch.x, patch.y + 10);
+        });
+        ctx.restore();
+      }
+
+      function drawPulses() {
+        for (let i = pulses.length - 1; i >= 0; i -= 1) {
+          const pulse = pulses[i];
+          pulse.life -= 0.018;
+          pulse.radius += 2.6;
+          if (pulse.life <= 0) {
+            pulses.splice(i, 1);
+            continue;
+          }
+
+          ctx.strokeStyle = alpha(pulse.color, pulse.life * 0.28);
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(pulse.x, pulse.y, pulse.radius, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+      }
+
+      function setMode(mode) {
+        activeMode = mode;
+        modeValue.textContent = mode.label;
+        ripple += 0.8;
+      }
+
+      function emitPulse(x, y, color) {
+        pulses.push({
+          x,
+          y,
+          radius: 10,
+          color,
+          life: 1,
+        });
+      }
+
+      function pickPatch(x, y) {
+        return patches.find(
+          (patch) =>
+            Math.abs(x - patch.x) < patch.width * 0.5 &&
+            Math.abs(y - patch.y) < patch.height * 0.5
+        );
+      }
+
+      function animate() {
+        time += 0.016;
+        pointer.x = lerp(pointer.x, pointer.tx, 0.14);
+        pointer.y = lerp(pointer.y, pointer.ty, 0.14);
+        pressure = lerp(pressure, pointer.active ? 0.78 : 0.38, pointer.down ? 0.08 : 0.03);
+        ripple = lerp(ripple, 0, 0.02);
+
+        pressureValue.textContent = pressure.toFixed(2);
+        wakeValue.textContent = `${Math.round(12 + pressure * 14)} mm`;
+
+        updatePatches();
+        drawBackground();
+        drawAtmosphere();
+        drawFilaments();
+        drawBraid();
+        drawSideColonies();
+        drawPatches();
+        drawPulses();
+
+        requestAnimationFrame(animate);
+      }
+
+      window.addEventListener("pointermove", (event) => {
+        pointer.tx = event.clientX;
+        pointer.ty = event.clientY;
+        pointer.active = true;
+      });
+
+      window.addEventListener("pointerdown", (event) => {
+        pointer.down = true;
+        pointer.tx = event.clientX;
+        pointer.ty = event.clientY;
+        const patch = pickPatch(event.clientX, event.clientY);
+        if (patch) {
+          setMode(patch.mode);
+          emitPulse(patch.x, patch.y, patch.mode.glow);
+          return;
+        }
+        emitPulse(event.clientX, event.clientY, activeMode.accent);
+      });
+
+      window.addEventListener("pointerup", () => {
+        pointer.down = false;
+      });
+
+      window.addEventListener("pointerleave", () => {
+        pointer.active = false;
+        pointer.down = false;
+      });
+
+      window.addEventListener("resize", resize);
+
+      resize();
+      modeValue.textContent = activeMode.label;
+      animate();
+    </script>
+  </body>
+</html>

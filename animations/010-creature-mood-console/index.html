@@ -1,0 +1,661 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>#010 Creature Mood Console</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #140d0f;
+        --panel: rgba(28, 18, 22, 0.8);
+        --line: rgba(255, 236, 213, 0.14);
+        --text: #f9f0df;
+        --muted: rgba(249, 240, 223, 0.65);
+        --soft: #f4d79a;
+        --rose: #cf4f66;
+        --deep: #30131f;
+        --cyan: #8eb7bc;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        background:
+          radial-gradient(circle at 18% 20%, rgba(244, 215, 154, 0.08), transparent 20%),
+          radial-gradient(circle at 72% 78%, rgba(142, 183, 188, 0.08), transparent 26%),
+          linear-gradient(180deg, rgba(255, 244, 231, 0.04), transparent 22%),
+          var(--bg);
+        color: var(--text);
+        font-family: "Avenir Next", "Trebuchet MS", "Segoe UI", sans-serif;
+      }
+
+      canvas {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        display: block;
+      }
+
+      .hud {
+        position: fixed;
+        inset: 18px;
+        display: grid;
+        grid-template-columns: minmax(260px, 340px) minmax(220px, 300px);
+        justify-content: space-between;
+        align-items: start;
+        gap: 18px;
+        pointer-events: none;
+      }
+
+      .panel,
+      .rail {
+        display: grid;
+        gap: 12px;
+        padding: 16px;
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        background: var(--panel);
+        backdrop-filter: blur(16px);
+        box-shadow: 0 28px 90px rgba(0, 0, 0, 0.34);
+        pointer-events: auto;
+      }
+
+      .eyebrow,
+      .hint,
+      .meta,
+      .status,
+      .label,
+      .small {
+        margin: 0;
+      }
+
+      .eyebrow {
+        font-size: 11px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: rgba(249, 240, 223, 0.48);
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 600;
+      }
+
+      .hint,
+      .meta,
+      .small {
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.45;
+      }
+
+      .cards {
+        display: grid;
+        gap: 10px;
+      }
+
+      .card {
+        width: 100%;
+        display: grid;
+        gap: 8px;
+        padding: 12px 13px;
+        border: 1px solid rgba(255, 236, 213, 0.1);
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.03);
+        color: var(--text);
+        text-align: left;
+        cursor: pointer;
+      }
+
+      .card.active {
+        border-color: rgba(244, 215, 154, 0.3);
+        box-shadow: inset 0 0 0 1px rgba(244, 215, 154, 0.16);
+      }
+
+      .card strong {
+        font-size: 13px;
+        font-weight: 600;
+      }
+
+      .small {
+        font-size: 11px;
+      }
+
+      .meters {
+        display: grid;
+        gap: 10px;
+      }
+
+      .meter {
+        display: grid;
+        gap: 6px;
+      }
+
+      .meter-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        font-size: 11px;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      .bar {
+        height: 7px;
+        border-radius: 999px;
+        overflow: hidden;
+        background: rgba(255, 255, 255, 0.05);
+      }
+
+      .fill {
+        height: 100%;
+        width: 40%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, var(--rose), var(--soft));
+        transform-origin: left center;
+      }
+
+      .status {
+        padding-top: 4px;
+        border-top: 1px solid rgba(255, 236, 213, 0.08);
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.45;
+      }
+
+      .back {
+        width: fit-content;
+        padding: 8px 12px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.04);
+        color: var(--text);
+        text-decoration: none;
+      }
+
+      @media (max-width: 920px) {
+        .hud {
+          inset: 14px;
+          grid-template-columns: 1fr;
+          align-content: end;
+        }
+
+        .rail {
+          order: 3;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="scene"></canvas>
+    <div class="hud">
+      <section class="panel">
+        <p class="eyebrow">Interactive control surface</p>
+        <h1>#010 Creature Mood Console</h1>
+        <p class="hint">
+          Hover the creature to pull its gaze and pressure field. Tap a mood
+          card to swap the membrane logic, facial expression, and orbiting
+          calibrations.
+        </p>
+        <a class="back" href="../../index.html">Index</a>
+      </section>
+
+      <section class="rail" aria-label="Mood controls">
+        <div class="cards" id="cards"></div>
+        <div class="meters">
+          <div class="meter">
+            <div class="meter-row">
+              <span>Attention</span>
+              <span id="attentionValue">0.40</span>
+            </div>
+            <div class="bar"><div class="fill" id="attentionFill"></div></div>
+          </div>
+          <div class="meter">
+            <div class="meter-row">
+              <span>Warmth</span>
+              <span id="warmthValue">0.58</span>
+            </div>
+            <div class="bar"><div class="fill" id="warmthFill"></div></div>
+          </div>
+          <div class="meter">
+            <div class="meter-row">
+              <span>Tension</span>
+              <span id="tensionValue">0.34</span>
+            </div>
+            <div class="bar"><div class="fill" id="tensionFill"></div></div>
+          </div>
+        </div>
+        <p class="status" id="status">
+          Mood card loaded. The right rail acts like exposed emotional hardware.
+        </p>
+      </section>
+    </div>
+    <script src="../../shared/study-notes.js"></script>
+
+    <script>
+      const canvas = document.getElementById("scene");
+      const ctx = canvas.getContext("2d");
+      const cardsRoot = document.getElementById("cards");
+      const statusNode = document.getElementById("status");
+      const meterNodes = {
+        attention: {
+          value: document.getElementById("attentionValue"),
+          fill: document.getElementById("attentionFill"),
+        },
+        warmth: {
+          value: document.getElementById("warmthValue"),
+          fill: document.getElementById("warmthFill"),
+        },
+        tension: {
+          value: document.getElementById("tensionValue"),
+          fill: document.getElementById("tensionFill"),
+        },
+      };
+
+      const moods = [
+        {
+          id: "bashful",
+          title: "Bashful Drift",
+          blurb: "Eyes widen, blush lights pool, membrane retreats from the cursor.",
+          attention: 0.42,
+          warmth: 0.76,
+          tension: 0.26,
+          hueA: "#f4d79a",
+          hueB: "#c65771",
+          hueC: "#8eb7bc",
+          mouth: 0.24,
+          eyeOpen: 1.18,
+          ripple: 0.9,
+          recoil: 1.0,
+          orbit: 0.8,
+        },
+        {
+          id: "alert",
+          title: "Alert Bloom",
+          blurb: "Calibration rings sharpen and the face leans into nearby motion.",
+          attention: 0.74,
+          warmth: 0.54,
+          tension: 0.62,
+          hueA: "#f3e7cf",
+          hueB: "#d35a51",
+          hueC: "#9bc7cb",
+          mouth: 0.08,
+          eyeOpen: 1.34,
+          ripple: 1.2,
+          recoil: 0.35,
+          orbit: 1.1,
+        },
+        {
+          id: "sour",
+          title: "Sour Theater",
+          blurb: "The lips flatten, side fins twitch, and the shell holds extra pressure.",
+          attention: 0.58,
+          warmth: 0.34,
+          tension: 0.78,
+          hueA: "#d6d1b8",
+          hueB: "#8a3949",
+          hueC: "#92a9a8",
+          mouth: -0.1,
+          eyeOpen: 1.04,
+          ripple: 0.7,
+          recoil: 0.55,
+          orbit: 1.4,
+        },
+        {
+          id: "feral",
+          title: "Feral Lilt",
+          blurb: "Extra tendrils wake up and the creature answers with sudden local flare.",
+          attention: 0.66,
+          warmth: 0.62,
+          tension: 0.86,
+          hueA: "#efd2a6",
+          hueB: "#e15667",
+          hueC: "#8bc4c5",
+          mouth: 0.02,
+          eyeOpen: 1.26,
+          ripple: 1.5,
+          recoil: 0.2,
+          orbit: 1.8,
+        },
+      ];
+
+      let width = 0;
+      let height = 0;
+      let dpr = 1;
+      let activeMood = moods[0];
+      let cards = [];
+      let start = performance.now();
+
+      const pointer = {
+        x: 0,
+        y: 0,
+        tx: 0,
+        ty: 0,
+        active: false,
+        intensity: 0,
+      };
+
+      const displayState = {
+        attention: activeMood.attention,
+        warmth: activeMood.warmth,
+        tension: activeMood.tension,
+      };
+
+      const TAU = Math.PI * 2;
+      const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+      const lerp = (a, b, t) => a + (b - a) * t;
+
+      function resize() {
+        dpr = window.devicePixelRatio || 1;
+        width = window.innerWidth;
+        height = window.innerHeight;
+        canvas.width = width * dpr;
+        canvas.height = height * dpr;
+        canvas.style.width = `${width}px`;
+        canvas.style.height = `${height}px`;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+
+      function buildCards() {
+        cardsRoot.innerHTML = "";
+        cards = moods.map((mood) => {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = `card${mood.id === activeMood.id ? " active" : ""}`;
+          button.innerHTML = `<strong>${mood.title}</strong><p class="small">${mood.blurb}</p>`;
+          button.addEventListener("click", () => setMood(mood));
+          cardsRoot.appendChild(button);
+          return { mood, button };
+        });
+      }
+
+      function setMood(nextMood) {
+        activeMood = nextMood;
+        cards.forEach(({ mood, button }) => {
+          button.classList.toggle("active", mood.id === nextMood.id);
+        });
+        statusNode.textContent = nextMood.blurb;
+      }
+
+      function updateMeters() {
+        for (const key of ["attention", "warmth", "tension"]) {
+          const target = activeMood[key];
+          displayState[key] = lerp(displayState[key], target, 0.06);
+          meterNodes[key].value.textContent = displayState[key].toFixed(2);
+          meterNodes[key].fill.style.transform = `scaleX(${displayState[key]})`;
+        }
+      }
+
+      function drawBackground(t) {
+        const gradient = ctx.createLinearGradient(0, 0, 0, height);
+        gradient.addColorStop(0, "#1a1014");
+        gradient.addColorStop(0.4, "#120b0f");
+        gradient.addColorStop(1, "#090608");
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, width, height);
+
+        for (let i = 0; i < 28; i++) {
+          const y = (i / 27) * height;
+          const sway = Math.sin(t * 0.35 + i * 0.42) * 14;
+          ctx.strokeStyle = `rgba(255, 238, 216, ${0.03 + (i % 4) * 0.008})`;
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(0, y + sway);
+          ctx.bezierCurveTo(width * 0.22, y - sway, width * 0.68, y + sway, width, y - sway * 0.3);
+          ctx.stroke();
+        }
+      }
+
+      function drawOrbitRings(cx, cy, radius, t) {
+        const orbitCount = 4 + Math.round(activeMood.orbit * 2);
+        for (let i = 0; i < orbitCount; i++) {
+          const ringR = radius * (1.1 + i * 0.15);
+          ctx.strokeStyle = `rgba(255, 238, 216, ${0.06 - i * 0.008})`;
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          for (let step = 0; step <= 88; step++) {
+            const angle = (step / 88) * TAU;
+            const wave = Math.sin(angle * (2 + i * 0.18) + t * (0.7 + i * 0.08)) * radius * 0.022 * activeMood.ripple;
+            const pulse = Math.cos(angle * 3 - t * 0.5 + i) * radius * 0.015;
+            const x = cx + Math.cos(angle) * (ringR + wave + pulse);
+            const y = cy + Math.sin(angle) * (ringR * 0.72 + wave * 0.9);
+            if (step === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+          }
+          ctx.stroke();
+        }
+      }
+
+      function drawCreature(t) {
+        const cx = width * 0.49;
+        const cy = height * 0.54;
+        const radius = Math.min(width, height) * 0.17;
+        const dx = pointer.x - cx;
+        const dy = pointer.y - cy;
+        const dist = Math.hypot(dx, dy);
+        const influence = clamp(1 - dist / (radius * 2.4), 0, 1) * pointer.intensity;
+        const pullX = dist > 0 ? dx / dist : 0;
+        const pullY = dist > 0 ? dy / dist : 0;
+        const lean = (activeMood.attention - activeMood.recoil * 0.35) * influence;
+        const recoil = activeMood.recoil * influence;
+        const centerX = cx + pullX * radius * (lean - recoil * 0.75);
+        const centerY = cy + pullY * radius * (lean * 0.45 - recoil * 0.3);
+
+        drawOrbitRings(centerX, centerY, radius, t);
+
+        const blob = new Path2D();
+        const points = 84;
+        for (let i = 0; i <= points; i++) {
+          const angle = (i / points) * TAU;
+          const base = radius * (0.92 + Math.sin(angle * 3 + t * 0.8) * 0.05 * activeMood.ripple);
+          const wobble =
+            Math.sin(angle * 5 - t * 1.1) * radius * 0.08 * activeMood.ripple +
+            Math.cos(angle * 2 + t * 0.6) * radius * 0.04;
+          const pointerBias = Math.cos(angle - Math.atan2(dy, dx || 0.0001)) * radius * influence * (0.16 - recoil * 0.08);
+          const r = base + wobble + pointerBias;
+          const x = centerX + Math.cos(angle) * r;
+          const y = centerY + Math.sin(angle) * r * 0.86;
+          if (i === 0) blob.moveTo(x, y);
+          else blob.lineTo(x, y);
+        }
+        blob.closePath();
+
+        const shell = ctx.createRadialGradient(
+          centerX - radius * 0.25,
+          centerY - radius * 0.28,
+          radius * 0.15,
+          centerX,
+          centerY,
+          radius * 1.15
+        );
+        shell.addColorStop(0, activeMood.hueA);
+        shell.addColorStop(0.38, activeMood.hueB);
+        shell.addColorStop(1, activeMood.hueC);
+        ctx.fillStyle = shell;
+        ctx.globalAlpha = 0.92;
+        ctx.fill(blob);
+        ctx.globalAlpha = 1;
+
+        ctx.save();
+        ctx.clip(blob);
+
+        for (let i = 0; i < 22; i++) {
+          const laneY = centerY - radius * 0.7 + (i / 21) * radius * 1.5;
+          const amp = radius * (0.03 + (i % 5) * 0.008) * activeMood.ripple;
+          ctx.strokeStyle = `rgba(255, 248, 231, ${0.05 + (i % 3) * 0.018})`;
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(centerX - radius * 1.1, laneY);
+          ctx.bezierCurveTo(
+            centerX - radius * 0.35,
+            laneY + Math.sin(t + i) * amp,
+            centerX + radius * 0.2,
+            laneY - Math.cos(t * 0.8 + i * 0.4) * amp,
+            centerX + radius * 1.1,
+            laneY + Math.sin(t * 0.65 + i * 0.55) * amp
+          );
+          ctx.stroke();
+        }
+
+        for (let i = 0; i < 140; i++) {
+          const seed = i * 12.9898;
+          const px = centerX + Math.sin(seed) * radius * 0.8 + Math.cos(t * 0.3 + seed) * radius * 0.08;
+          const py = centerY + Math.cos(seed * 0.73) * radius * 0.56 + Math.sin(t * 0.4 + seed) * radius * 0.08;
+          const size = 1 + ((i * 7) % 3);
+          ctx.fillStyle = i % 5 === 0 ? "rgba(255, 245, 228, 0.34)" : "rgba(54, 20, 31, 0.24)";
+          ctx.fillRect(px, py, size, size);
+        }
+
+        ctx.restore();
+
+        ctx.strokeStyle = "rgba(255, 238, 216, 0.2)";
+        ctx.lineWidth = 1.2;
+        ctx.stroke(blob);
+
+        drawFace(centerX, centerY, radius, t, influence, pullX, pullY);
+        drawTendrils(centerX, centerY, radius, t, influence);
+      }
+
+      function drawFace(cx, cy, radius, t, influence, pullX, pullY) {
+        const eyeOffsetX = radius * 0.32;
+        const eyeY = cy - radius * 0.08 + pullY * radius * 0.04;
+        const pupilShift = pullX * radius * 0.06 * (0.6 + influence * activeMood.attention);
+        const eyeOpen = radius * 0.12 * activeMood.eyeOpen * (1 + influence * 0.08);
+        const blush = clamp(activeMood.warmth + influence * 0.24, 0, 1);
+
+        const eye = (x) => {
+          ctx.fillStyle = "rgba(253, 246, 232, 0.95)";
+          ctx.beginPath();
+          ctx.ellipse(x, eyeY, radius * 0.14, eyeOpen, 0, 0, TAU);
+          ctx.fill();
+          ctx.fillStyle = "rgba(38, 14, 18, 0.9)";
+          ctx.beginPath();
+          ctx.arc(x + pupilShift, eyeY + pullY * 4, radius * 0.048, 0, TAU);
+          ctx.fill();
+        };
+
+        eye(cx - eyeOffsetX);
+        eye(cx + eyeOffsetX);
+
+        ctx.strokeStyle = `rgba(214, 106, 122, ${0.2 + blush * 0.16})`;
+        ctx.lineWidth = radius * 0.03;
+        ctx.beginPath();
+        ctx.arc(cx, cy + radius * 0.15, radius * 0.18, Math.PI * (0.18 - activeMood.mouth), Math.PI * (0.82 + activeMood.mouth));
+        ctx.stroke();
+
+        for (const side of [-1, 1]) {
+          ctx.fillStyle = `rgba(72, 20, 30, ${0.07 + activeMood.tension * 0.05})`;
+          ctx.beginPath();
+          ctx.ellipse(cx + side * radius * 0.2, cy + radius * 0.15, radius * 0.11, radius * 0.035, side * 0.18, 0, TAU);
+          ctx.fill();
+
+          ctx.fillStyle = `rgba(241, 128, 145, ${0.08 + blush * 0.12})`;
+          ctx.beginPath();
+          ctx.ellipse(cx + side * radius * 0.28, cy + radius * 0.08, radius * 0.12, radius * 0.06, side * 0.25, 0, TAU);
+          ctx.fill();
+        }
+      }
+
+      function drawTendrils(cx, cy, radius, t, influence) {
+        const count = 6 + Math.round(activeMood.orbit * 2);
+        for (let i = 0; i < count; i++) {
+          const angle = -Math.PI * 0.95 + (i / (count - 1 || 1)) * Math.PI * 1.9;
+          const startX = cx + Math.cos(angle) * radius * 0.84;
+          const startY = cy + Math.sin(angle) * radius * 0.58;
+          const reach = radius * (0.45 + (i % 3) * 0.08 + activeMood.tension * 0.22);
+          const drift = Math.sin(t * (0.8 + i * 0.08) + i) * radius * 0.08;
+          ctx.strokeStyle = i % 2 === 0 ? "rgba(142, 183, 188, 0.2)" : "rgba(255, 231, 198, 0.14)";
+          ctx.lineWidth = 1.2;
+          ctx.beginPath();
+          ctx.moveTo(startX, startY);
+          ctx.bezierCurveTo(
+            startX + Math.cos(angle - 0.3) * reach * 0.35,
+            startY + Math.sin(angle - 0.4) * reach * 0.2 + drift,
+            startX + Math.cos(angle + 0.4) * reach * 0.8,
+            startY + Math.sin(angle + 0.2) * reach * 0.9 - drift * 0.4,
+            startX + Math.cos(angle) * reach * 1.2,
+            startY + Math.sin(angle) * reach * 1.1
+          );
+          ctx.stroke();
+
+          if (influence > 0.02 && i % 2 === 0) {
+            ctx.fillStyle = "rgba(255, 244, 224, 0.22)";
+            ctx.fillRect(
+              startX + Math.cos(angle) * reach * 0.9 + drift * 0.12,
+              startY + Math.sin(angle) * reach * 0.86,
+              5,
+              5
+            );
+          }
+        }
+      }
+
+      function drawRailHints(t) {
+        const right = width - 84;
+        for (let i = 0; i < 9; i++) {
+          const y = height * 0.18 + i * 40;
+          const pulse = 0.4 + Math.sin(t * 1.4 + i) * 0.25;
+          ctx.strokeStyle = `rgba(255, 238, 216, ${0.08 + pulse * 0.05})`;
+          ctx.beginPath();
+          ctx.moveTo(right - 24, y);
+          ctx.lineTo(right + 24, y);
+          ctx.stroke();
+          ctx.fillStyle = `rgba(207, 79, 102, ${0.18 + pulse * 0.14})`;
+          ctx.fillRect(right - 4, y - 4, 8, 8);
+        }
+      }
+
+      function frame(now) {
+        const t = (now - start) * 0.001;
+        pointer.x = lerp(pointer.x, pointer.tx, 0.12);
+        pointer.y = lerp(pointer.y, pointer.ty, 0.12);
+        pointer.intensity = lerp(pointer.intensity, pointer.active ? 1 : 0, 0.05);
+
+        drawBackground(t);
+        drawCreature(t);
+        drawRailHints(t);
+        updateMeters();
+
+        requestAnimationFrame(frame);
+      }
+
+      window.addEventListener("pointermove", (event) => {
+        pointer.tx = event.clientX;
+        pointer.ty = event.clientY;
+        pointer.active = true;
+      });
+
+      window.addEventListener("pointerleave", () => {
+        pointer.active = false;
+      });
+
+      window.addEventListener("pointerdown", (event) => {
+        pointer.tx = event.clientX;
+        pointer.ty = event.clientY;
+        pointer.active = true;
+      });
+
+      window.addEventListener("resize", resize);
+
+      resize();
+      pointer.tx = width * 0.62;
+      pointer.ty = height * 0.48;
+      pointer.x = pointer.tx;
+      pointer.y = pointer.ty;
+      buildCards();
+      setMood(activeMood);
+      requestAnimationFrame(frame);
+    </script>
+  </body>
+</html>

@@ -1,0 +1,416 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>#006 Soft Echo Nursery</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --text: #f6efe2;
+        --muted: #a69f94;
+        --panel: rgba(31, 27, 24, 0.36);
+        --line: rgba(246, 239, 226, 0.18);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        background:
+          radial-gradient(circle at 20% 16%, rgba(210, 190, 149, 0.18), transparent 26%),
+          radial-gradient(circle at 78% 72%, rgba(122, 141, 110, 0.18), transparent 28%),
+          linear-gradient(180deg, #72665a 0%, #51493f 46%, #352f29 100%);
+        color: var(--text);
+        font-family: "Avenir Next", "Segoe UI", sans-serif;
+      }
+
+      canvas {
+        position: fixed;
+        inset: 0;
+        display: block;
+        width: 100vw;
+        height: 100vh;
+      }
+
+      .hud {
+        position: fixed;
+        inset: auto 18px 18px 18px;
+        display: flex;
+        justify-content: space-between;
+        align-items: end;
+        gap: 18px;
+        pointer-events: none;
+      }
+
+      .title {
+        display: grid;
+        gap: 4px;
+      }
+
+      h1,
+      p {
+        margin: 0;
+      }
+
+      h1 {
+        font-size: 13px;
+        font-weight: 560;
+        letter-spacing: 0.01em;
+      }
+
+      p {
+        max-width: 560px;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.42;
+      }
+
+      .back {
+        pointer-events: auto;
+        color: var(--text);
+        text-decoration: none;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 8px 11px;
+        font-size: 12px;
+        background: var(--panel);
+        backdrop-filter: blur(14px);
+      }
+
+      @media (max-width: 720px) {
+        .hud {
+          top: 14px;
+          bottom: auto;
+          flex-direction: column;
+          align-items: start;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="scene"></canvas>
+    <div class="hud">
+      <div class="title">
+        <h1>#006 Soft Echo Nursery</h1>
+        <p>
+          A nursery of awkward soft creatures idles under warm paper light:
+          breathing bellies, badly aligned yellow eyes, tiny stitched smiles,
+          and just enough glow to feel alive rather than polished.
+        </p>
+      </div>
+      <a class="back" href="../../index.html">Index</a>
+    </div>
+    <script src="../../shared/study-notes.js"></script>
+
+    <script>
+      const canvas = document.getElementById("scene");
+      const ctx = canvas.getContext("2d", { alpha: false });
+
+      const TAU = Math.PI * 2;
+      const creatures = [];
+      const motes = [];
+      const stitches = [];
+
+      let width = 0;
+      let height = 0;
+      let dpr = 1;
+      let start = performance.now();
+
+      const rand = (min, max) => min + Math.random() * (max - min);
+      const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+
+      function seed() {
+        creatures.length = 0;
+        motes.length = 0;
+        stitches.length = 0;
+
+        const cols = width < 720 ? 3 : 4;
+        const rows = width < 720 ? 4 : 3;
+        const jitterX = width / (cols * 8);
+        const jitterY = height / (rows * 8);
+
+        let id = 0;
+        for (let row = 0; row < rows; row++) {
+          for (let col = 0; col < cols; col++) {
+            const px = ((col + 0.5) / cols) * width + rand(-jitterX, jitterX);
+            const py = ((row + 0.54) / rows) * height + rand(-jitterY, jitterY);
+            creatures.push({
+              id,
+              x: px,
+              y: py,
+              scale: rand(0.74, 1.18) * (width < 720 ? 0.9 : 1),
+              squish: rand(0.82, 1.16),
+              hue: rand(0, 1),
+              phase: rand(0, TAU),
+              drift: rand(-24, 24),
+              earTilt: rand(-0.5, 0.5),
+              eyeSpread: rand(12, 22),
+              eyeDrop: rand(-2, 6),
+              blinkOffset: rand(0, 6),
+              blinkRate: rand(1.7, 3.4),
+              mouthOffset: rand(-7, 7),
+              smile: rand(-0.3, 0.7),
+              legLength: rand(14, 28),
+            });
+            id += 1;
+          }
+        }
+
+        for (let i = 0; i < creatures.length - 1; i++) {
+          const a = creatures[i];
+          const b = creatures[i + 1];
+          if (Math.abs(a.y - b.y) < height * 0.18) {
+            stitches.push({
+              a,
+              b,
+              phase: rand(0, TAU),
+            });
+          }
+        }
+
+        const moteCount = clamp(Math.floor((width * height) / 18000), 40, 120);
+        for (let i = 0; i < moteCount; i++) {
+          motes.push({
+            x: rand(0, width),
+            y: rand(0, height),
+            size: rand(1, 4),
+            speed: rand(0.2, 0.8),
+            phase: rand(0, TAU),
+          });
+        }
+      }
+
+      function resize() {
+        dpr = Math.min(window.devicePixelRatio || 1, 2);
+        width = Math.floor(window.innerWidth);
+        height = Math.floor(window.innerHeight);
+        canvas.width = Math.floor(width * dpr);
+        canvas.height = Math.floor(height * dpr);
+        canvas.style.width = width + "px";
+        canvas.style.height = height + "px";
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        seed();
+      }
+
+      function drawBackdrop(t) {
+        const wash = ctx.createLinearGradient(0, 0, 0, height);
+        wash.addColorStop(0, "#77685b");
+        wash.addColorStop(0.48, "#584d43");
+        wash.addColorStop(1, "#312b26");
+        ctx.fillStyle = wash;
+        ctx.fillRect(0, 0, width, height);
+
+        const bloom = ctx.createRadialGradient(
+          width * 0.44,
+          height * 0.34,
+          0,
+          width * 0.44,
+          height * 0.34,
+          Math.max(width, height) * 0.72,
+        );
+        bloom.addColorStop(0, "rgba(246, 220, 182, 0.22)");
+        bloom.addColorStop(0.48, "rgba(184, 170, 118, 0.08)");
+        bloom.addColorStop(1, "rgba(0, 0, 0, 0)");
+        ctx.fillStyle = bloom;
+        ctx.fillRect(0, 0, width, height);
+
+        ctx.strokeStyle = "rgba(245, 236, 219, 0.05)";
+        ctx.lineWidth = 1;
+        for (let y = 24; y < height; y += 32) {
+          ctx.beginPath();
+          ctx.moveTo(0, y + Math.sin(t * 0.4 + y * 0.02) * 3);
+          ctx.lineTo(width, y + Math.cos(t * 0.32 + y * 0.015) * 3);
+          ctx.stroke();
+        }
+
+        for (const mote of motes) {
+          const mx = mote.x + Math.sin(t * 0.2 + mote.phase) * 16;
+          const my = (mote.y + t * 10 * mote.speed + Math.cos(t + mote.phase) * 8) % (height + 20);
+          ctx.fillStyle = `rgba(255, 248, 232, ${0.05 + mote.size * 0.012})`;
+          ctx.beginPath();
+          ctx.arc(mx, my - 10, mote.size, 0, TAU);
+          ctx.fill();
+        }
+      }
+
+      function drawStitches(t) {
+        ctx.lineCap = "round";
+        for (const link of stitches) {
+          const sway = Math.sin(t * 0.9 + link.phase) * 6;
+          ctx.strokeStyle = "rgba(255, 238, 208, 0.12)";
+          ctx.lineWidth = 1.2;
+          ctx.setLineDash([3, 9]);
+          ctx.beginPath();
+          ctx.moveTo(link.a.x, link.a.y + 16);
+          ctx.quadraticCurveTo(
+            (link.a.x + link.b.x) * 0.5 + sway,
+            ((link.a.y + link.b.y) * 0.5) - 18,
+            link.b.x,
+            link.b.y + 16,
+          );
+          ctx.stroke();
+        }
+        ctx.setLineDash([]);
+      }
+
+      function drawCreature(creature, t) {
+        const bob = Math.sin(t * 1.2 + creature.phase) * 8;
+        const sway = Math.cos(t * 0.8 + creature.phase) * creature.drift * 0.2;
+        const breath = 1 + Math.sin(t * 1.7 + creature.phase) * 0.065;
+        const bodyW = 58 * creature.scale;
+        const bodyH = 72 * creature.scale * creature.squish * breath;
+        const x = creature.x + sway;
+        const y = creature.y + bob;
+
+        ctx.save();
+        ctx.translate(x, y);
+
+        ctx.fillStyle = "rgba(44, 31, 24, 0.22)";
+        ctx.beginPath();
+        ctx.ellipse(0, bodyH * 0.54, bodyW * 0.82, bodyH * 0.22, 0, 0, TAU);
+        ctx.fill();
+
+        for (let side = -1; side <= 1; side += 2) {
+          const earX = side * bodyW * 0.34;
+          const earY = -bodyH * 0.36;
+          const earPulse = 1 + Math.sin(t * 1.5 + creature.phase + side) * 0.08;
+          ctx.save();
+          ctx.translate(earX, earY);
+          ctx.rotate(creature.earTilt * side + Math.sin(t + creature.phase + side) * 0.1);
+          ctx.scale(earPulse, 1);
+          ctx.fillStyle = side < 0 ? "rgba(223, 198, 174, 0.92)" : "rgba(206, 221, 195, 0.9)";
+          ctx.beginPath();
+          ctx.ellipse(0, 0, bodyW * 0.16, bodyH * 0.2, side * 0.24, 0, TAU);
+          ctx.fill();
+          ctx.restore();
+        }
+
+        ctx.beginPath();
+        for (let i = 0; i <= 14; i++) {
+          const pct = i / 14;
+          const angle = pct * TAU;
+          const wobble =
+            1 +
+            Math.sin(angle * 3 + t * 1.6 + creature.phase) * 0.07 +
+            Math.cos(angle * 5 - t * 0.9 + creature.phase) * 0.05;
+          const radiusX = bodyW * wobble * (0.86 + Math.sin(angle * 2 + creature.phase) * 0.04);
+          const radiusY = bodyH * wobble * (0.84 + Math.cos(angle * 3 - creature.phase) * 0.03);
+          const px = Math.cos(angle - Math.PI / 2) * radiusX;
+          const py = Math.sin(angle - Math.PI / 2) * radiusY;
+          if (i === 0) {
+            ctx.moveTo(px, py);
+          } else {
+            ctx.lineTo(px, py);
+          }
+        }
+        ctx.closePath();
+
+        const fill = ctx.createLinearGradient(0, -bodyH, 0, bodyH);
+        fill.addColorStop(0, creature.hue > 0.5 ? "#d8c7b4" : "#d6d8c4");
+        fill.addColorStop(0.55, creature.hue > 0.5 ? "#bba791" : "#b9c4a8");
+        fill.addColorStop(1, creature.hue > 0.5 ? "#7b685a" : "#6f7765");
+        ctx.fillStyle = fill;
+        ctx.fill();
+
+        const glow = ctx.createRadialGradient(
+          0,
+          bodyH * 0.06,
+          0,
+          0,
+          bodyH * 0.06,
+          bodyW * 1.2,
+        );
+        glow.addColorStop(0, "rgba(255, 209, 137, 0.22)");
+        glow.addColorStop(0.6, "rgba(255, 244, 220, 0.05)");
+        glow.addColorStop(1, "rgba(0, 0, 0, 0)");
+        ctx.fillStyle = glow;
+        ctx.fill();
+
+        ctx.strokeStyle = "rgba(72, 55, 45, 0.22)";
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        for (let side = -1; side <= 1; side += 2) {
+          ctx.strokeStyle = "rgba(95, 80, 70, 0.46)";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(side * bodyW * 0.18, bodyH * 0.58);
+          ctx.lineTo(side * bodyW * 0.12, bodyH * 0.58 + creature.legLength);
+          ctx.stroke();
+        }
+
+        const blink = Math.max(0, Math.sin(t * creature.blinkRate + creature.blinkOffset));
+        const blinkOpen = 1 - Math.pow(blink, 18);
+        const eyeY = -bodyH * 0.04 + creature.eyeDrop;
+        const leftEyeX = -creature.eyeSpread;
+        const rightEyeX = creature.eyeSpread * 0.78;
+
+        function eye(xPos, lidTilt) {
+          ctx.save();
+          ctx.translate(xPos, eyeY);
+          ctx.rotate(lidTilt);
+          ctx.fillStyle = "#efe65f";
+          ctx.beginPath();
+          ctx.ellipse(0, 0, 11, 15 * blinkOpen + 1.4, 0, 0, TAU);
+          ctx.fill();
+          ctx.fillStyle = "rgba(32, 22, 16, 0.92)";
+          ctx.beginPath();
+          ctx.ellipse(0, 1.2, 3.2, 4.8 * blinkOpen + 0.8, 0, 0, TAU);
+          ctx.fill();
+          ctx.restore();
+        }
+
+        eye(leftEyeX, -0.08);
+        eye(rightEyeX, 0.11);
+
+        ctx.strokeStyle = "rgba(92, 60, 52, 0.8)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(-10, bodyH * 0.1);
+        ctx.quadraticCurveTo(
+          creature.mouthOffset,
+          bodyH * (0.16 + creature.smile * 0.05),
+          12,
+          bodyH * 0.08,
+        );
+        ctx.stroke();
+
+        ctx.strokeStyle = "rgba(251, 242, 226, 0.38)";
+        ctx.lineWidth = 1.1;
+        ctx.setLineDash([2, 5]);
+        ctx.beginPath();
+        ctx.moveTo(-bodyW * 0.18, -bodyH * 0.52);
+        ctx.lineTo(bodyW * 0.04, -bodyH * 0.28);
+        ctx.lineTo(-bodyW * 0.06, -bodyH * 0.04);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        ctx.restore();
+      }
+
+      function frame(now) {
+        const t = (now - start) / 1000;
+        drawBackdrop(t);
+        drawStitches(t);
+
+        creatures
+          .slice()
+          .sort((a, b) => a.y - b.y)
+          .forEach((creature) => drawCreature(creature, t));
+
+        requestAnimationFrame(frame);
+      }
+
+      window.addEventListener("resize", resize);
+      resize();
+      requestAnimationFrame(frame);
+    </script>
+  </body>
+</html>

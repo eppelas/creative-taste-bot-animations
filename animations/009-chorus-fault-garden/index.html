@@ -1,0 +1,617 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>#009 Chorus Fault Garden</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #070504;
+        --panel: rgba(13, 10, 10, 0.64);
+        --line: rgba(247, 238, 226, 0.12);
+        --text: #f6eee2;
+        --muted: rgba(246, 238, 226, 0.7);
+        --accent: #f04c52;
+        --soft: #f1d7aa;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        background:
+          radial-gradient(circle at 22% 22%, rgba(255, 228, 180, 0.08), transparent 22%),
+          radial-gradient(circle at 72% 64%, rgba(133, 14, 27, 0.16), transparent 30%),
+          linear-gradient(180deg, rgba(255, 244, 231, 0.04), transparent 20%),
+          var(--bg);
+        color: var(--text);
+        font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+      }
+
+      canvas {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        display: block;
+      }
+
+      .hud {
+        position: fixed;
+        inset: 18px 18px auto 18px;
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+        gap: 18px;
+        pointer-events: none;
+      }
+
+      .panel {
+        width: min(420px, calc(100vw - 36px));
+        display: grid;
+        gap: 10px;
+        padding: 14px 14px 12px;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: var(--panel);
+        backdrop-filter: blur(16px);
+        pointer-events: auto;
+        box-shadow: 0 24px 80px rgba(0, 0, 0, 0.34);
+      }
+
+      .eyebrow,
+      .hint,
+      .meta {
+        margin: 0;
+      }
+
+      .eyebrow {
+        font-size: 11px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: rgba(246, 238, 226, 0.52);
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 560;
+      }
+
+      .hint,
+      .meta {
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.45;
+      }
+
+      textarea {
+        width: 100%;
+        min-height: 110px;
+        resize: none;
+        border: 1px solid rgba(246, 238, 226, 0.12);
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.035);
+        color: var(--text);
+        padding: 12px 13px;
+        font: inherit;
+        line-height: 1.42;
+        outline: none;
+      }
+
+      textarea:focus {
+        border-color: rgba(240, 76, 82, 0.32);
+        box-shadow: 0 0 0 1px rgba(240, 76, 82, 0.18);
+      }
+
+      .controls {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+      }
+
+      button,
+      .back {
+        appearance: none;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.04);
+        color: var(--text);
+        padding: 8px 12px;
+        font: inherit;
+        font-size: 12px;
+        text-decoration: none;
+        cursor: pointer;
+      }
+
+      .meta {
+        max-width: 240px;
+        text-align: right;
+      }
+
+      @media (max-width: 860px) {
+        .hud {
+          inset: auto 14px 14px 14px;
+          flex-direction: column;
+          align-items: stretch;
+        }
+
+        .panel {
+          width: 100%;
+        }
+
+        .controls {
+          flex-wrap: wrap;
+        }
+
+        .meta {
+          max-width: none;
+          text-align: left;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="scene"></canvas>
+    <div class="hud">
+      <section class="panel">
+        <p class="eyebrow">Text-reactive study</p>
+        <h1>#009 Chorus Fault Garden</h1>
+        <p class="hint">
+          Each sentence grows into one organism cluster. Move across the field
+          to bend it locally; rewrite the text to reseed the colony.
+        </p>
+        <textarea id="seed">
+Low signal under the leaves.
+The relay remembers a warm mistake.
+A shy red weather opens and closes.
+Several small witnesses lean toward the noise.
+Another thought arrives late and grows sideways.</textarea
+        >
+        <div class="controls">
+          <button id="shuffle" type="button">Load another chorus</button>
+          <p class="meta">Distributed semantic organisms instead of one hero object.</p>
+        </div>
+      </section>
+      <a class="back" href="../../index.html">Index</a>
+    </div>
+    <script src="../../shared/study-notes.js"></script>
+
+    <script>
+      const canvas = document.getElementById("scene");
+      const ctx = canvas.getContext("2d", { alpha: false });
+      const textarea = document.getElementById("seed");
+      const shuffleButton = document.getElementById("shuffle");
+
+      const TAU = Math.PI * 2;
+      const palette = [
+        ["#f04c52", "#6f101d", "#f4e5ca"],
+        ["#ff7a52", "#8f2318", "#f6dca8"],
+        ["#d94a65", "#560e1b", "#f6e9d6"],
+        ["#e6804d", "#742617", "#f3d2a6"],
+      ];
+      const chorusLibrary = [
+        `A red pane exhales under pressure.
+Three quiet creatures pretend to be marks.
+The floor keeps a memory of rain.
+One delayed phrase opens a deeper seam.`,
+        `Signal dust collects around the apology.
+The field bends and answers in soft fragments.
+Something warm hides in the darker patch.
+Several witness-lines drift out of sync.`,
+        `A paper weather system leans to the left.
+Thin calibration bones blink once.
+The shy cluster copies the loud one badly.
+Late light enters and changes the grammar.`,
+      ];
+
+      let width = 0;
+      let height = 0;
+      let dpr = 1;
+      let start = performance.now();
+      let stems = [];
+      let motes = [];
+      let clusters = [];
+      let fieldPoints = [];
+
+      const pointer = {
+        x: 0,
+        y: 0,
+        tx: 0,
+        ty: 0,
+        active: false,
+        strength: 0,
+      };
+
+      const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+      const lerp = (a, b, t) => a + (b - a) * t;
+
+      function hashString(input) {
+        let h = 2166136261;
+        for (let i = 0; i < input.length; i++) {
+          h ^= input.charCodeAt(i);
+          h = Math.imul(h, 16777619);
+        }
+        return h >>> 0;
+      }
+
+      function seeded(seed) {
+        let state = seed >>> 0;
+        return function next() {
+          state = (1664525 * state + 1013904223) >>> 0;
+          return state / 4294967296;
+        };
+      }
+
+      function splitIdeas(text) {
+        return text
+          .split(/\n+/)
+          .flatMap((line) => line.split(/[.!?]+/))
+          .map((part) => part.trim())
+          .filter(Boolean)
+          .slice(0, 7);
+      }
+
+      function reseed() {
+        const ideas = splitIdeas(textarea.value);
+        const normalized = ideas.length ? ideas : ["Quiet weather holds the line"];
+        const rootSeed = hashString(normalized.join("|"));
+        const rand = seeded(rootSeed);
+
+        clusters = normalized.map((idea, index) => {
+          const seed = hashString(idea + ":" + index);
+          const local = seeded(seed);
+          const tone = palette[Math.floor(local() * palette.length)];
+          const group = Math.floor(local() * 4);
+          const anchorX = width * (0.12 + (index + 0.5) / normalized.length * 0.76);
+          const anchorY =
+            height *
+            (0.26 + group * 0.16 + local() * 0.12 + ((index % 2) * 0.06));
+          const buds = [];
+          const budCount = 8 + Math.floor(local() * 9);
+          for (let i = 0; i < budCount; i++) {
+            buds.push({
+              orbit: 16 + local() * 70 + i * 1.8,
+              angle: local() * TAU,
+              size: 4 + local() * 18,
+              stretch: 0.65 + local() * 1.7,
+              alpha: 0.15 + local() * 0.55,
+              blink: local() * TAU,
+              offset: local() * 26,
+            });
+          }
+          return {
+            text: idea,
+            seed,
+            x: anchorX + (local() - 0.5) * 40,
+            y: anchorY,
+            rx: 82 + local() * 120,
+            ry: 42 + local() * 76,
+            sway: local() * TAU,
+            density: 16 + Math.floor(local() * 18),
+            bodyAlpha: 0.15 + local() * 0.18,
+            colors: tone,
+            buds,
+          };
+        });
+
+        fieldPoints = [];
+        stems = [];
+        motes = [];
+
+        const pointCount = clamp(140 + clusters.length * 28, 160, 340);
+        for (let i = 0; i < pointCount; i++) {
+          const cluster = clusters[Math.floor(rand() * clusters.length)];
+          fieldPoints.push({
+            cluster,
+            orbit: rand() * Math.max(cluster.rx, cluster.ry) * 0.92,
+            angle: rand() * TAU,
+            speed: 0.2 + rand() * 0.9,
+            size: 1 + rand() * 3.4,
+            drift: rand() * TAU,
+            alpha: 0.08 + rand() * 0.24,
+          });
+        }
+
+        for (let i = 0; i < clusters.length * 6; i++) {
+          const cluster = clusters[i % clusters.length];
+          stems.push({
+            cluster,
+            phase: rand() * TAU,
+            alpha: 0.1 + rand() * 0.16,
+            bend: -40 + rand() * 80,
+            lift: 30 + rand() * 120,
+          });
+        }
+
+        const moteCount = clamp(Math.floor((width * height) / 14000), 70, 180);
+        for (let i = 0; i < moteCount; i++) {
+          motes.push({
+            x: rand() * width,
+            y: rand() * height,
+            size: 0.8 + rand() * 2.6,
+            phase: rand() * TAU,
+            speed: 0.2 + rand() * 0.6,
+          });
+        }
+      }
+
+      function resize() {
+        dpr = Math.min(window.devicePixelRatio || 1, 2);
+        width = Math.floor(window.innerWidth);
+        height = Math.floor(window.innerHeight);
+        canvas.width = Math.floor(width * dpr);
+        canvas.height = Math.floor(height * dpr);
+        canvas.style.width = width + "px";
+        canvas.style.height = height + "px";
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        pointer.x = width * 0.5;
+        pointer.y = height * 0.5;
+        pointer.tx = pointer.x;
+        pointer.ty = pointer.y;
+        reseed();
+      }
+
+      function drawBackground(t) {
+        ctx.fillStyle = "#070504";
+        ctx.fillRect(0, 0, width, height);
+
+        const halo = ctx.createRadialGradient(
+          width * 0.5,
+          height * 0.48,
+          0,
+          width * 0.5,
+          height * 0.48,
+          Math.max(width, height) * 0.72,
+        );
+        halo.addColorStop(0, "rgba(113, 15, 29, 0.24)");
+        halo.addColorStop(0.46, "rgba(20, 8, 8, 0.18)");
+        halo.addColorStop(1, "rgba(0, 0, 0, 0)");
+        ctx.fillStyle = halo;
+        ctx.fillRect(0, 0, width, height);
+
+        for (let y = 0; y < height; y += 3) {
+          const alpha = 0.008 + (y / height) * 0.007;
+          ctx.fillStyle = `rgba(247, 239, 226, ${alpha})`;
+          ctx.fillRect(0, y, width, 1);
+        }
+
+        ctx.strokeStyle = "rgba(247, 239, 226, 0.03)";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        const gridX = width < 720 ? 52 : 74;
+        const gridY = width < 720 ? 38 : 52;
+        for (let x = 0; x <= width; x += gridX) {
+          ctx.moveTo(x + 0.5, 0);
+          ctx.lineTo(x + 0.5, height);
+        }
+        for (let y = 0; y <= height; y += gridY) {
+          ctx.moveTo(0, y + 0.5);
+          ctx.lineTo(width, y + 0.5);
+        }
+        ctx.stroke();
+
+        for (const mote of motes) {
+          const x = mote.x + Math.sin(t * 0.2 + mote.phase) * 12;
+          const y =
+            (mote.y + t * 5 * mote.speed + Math.cos(t * 0.31 + mote.phase) * 4) %
+            (height + 20);
+          ctx.fillStyle = `rgba(255, 246, 235, ${0.04 + mote.size * 0.012})`;
+          ctx.fillRect(x, y - 10, mote.size, mote.size);
+        }
+      }
+
+      function pointerForce(x, y) {
+        const dx = x - pointer.x;
+        const dy = y - pointer.y;
+        const dist = Math.hypot(dx, dy);
+        const zone = width < 720 ? 160 : 220;
+        const falloff = Math.exp(-Math.pow(dist / zone, 2));
+        return pointer.strength * falloff;
+      }
+
+      function drawStems(t) {
+        ctx.save();
+        ctx.lineCap = "round";
+        for (const stem of stems) {
+          const cluster = stem.cluster;
+          const local = seeded(stem.cluster.seed + Math.floor(stem.phase * 1000));
+          const startX = cluster.x + (local() - 0.5) * cluster.rx * 0.8;
+          const startY = cluster.y + cluster.ry * 0.18 + local() * cluster.ry * 0.3;
+          const force = pointerForce(startX, startY);
+          const bend =
+            stem.bend +
+            Math.sin(t * 0.8 + stem.phase) * 26 +
+            (pointer.x - startX) * force * 0.16;
+          const lift = stem.lift + Math.cos(t * 0.9 + stem.phase) * 18;
+          ctx.strokeStyle = `rgba(245, 224, 194, ${stem.alpha + force * 0.2})`;
+          ctx.lineWidth = 1.1 + force * 1.8;
+          ctx.beginPath();
+          ctx.moveTo(startX, startY);
+          ctx.bezierCurveTo(
+            startX + bend * 0.26,
+            startY - lift * 0.5,
+            startX - bend * 0.12,
+            startY - lift,
+            startX + bend * 0.45,
+            startY - lift * 1.16,
+          );
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      function drawClusters(t) {
+        ctx.save();
+        ctx.globalCompositeOperation = "lighter";
+
+        for (const cluster of clusters) {
+          const force = pointerForce(cluster.x, cluster.y);
+          const swayX = Math.sin(t * 0.6 + cluster.sway) * 12;
+          const swayY = Math.cos(t * 0.44 + cluster.sway) * 8;
+          const biasX = (pointer.x - cluster.x) * force * 0.08;
+          const biasY = (pointer.y - cluster.y) * force * 0.04;
+          const cx = cluster.x + swayX + biasX;
+          const cy = cluster.y + swayY + biasY;
+
+          const bloom = ctx.createRadialGradient(cx, cy, 0, cx, cy, cluster.rx * 0.95);
+          bloom.addColorStop(0, cluster.colors[0] + "55");
+          bloom.addColorStop(0.42, cluster.colors[1] + "44");
+          bloom.addColorStop(1, "rgba(0,0,0,0)");
+          ctx.fillStyle = bloom;
+          ctx.beginPath();
+          ctx.ellipse(cx, cy, cluster.rx, cluster.ry, Math.sin(cluster.sway) * 0.2, 0, TAU);
+          ctx.fill();
+
+          ctx.globalCompositeOperation = "source-over";
+          ctx.strokeStyle = `rgba(245, 233, 214, ${0.08 + force * 0.2})`;
+          ctx.lineWidth = 1 + force * 1.5;
+          ctx.setLineDash([2, 14]);
+          ctx.beginPath();
+          ctx.ellipse(
+            cx + Math.sin(t * 0.3 + cluster.sway) * 5,
+            cy,
+            cluster.rx * 0.56,
+            cluster.ry * 0.46,
+            Math.cos(cluster.sway) * 0.4,
+            0,
+            TAU,
+          );
+          ctx.stroke();
+          ctx.setLineDash([]);
+          ctx.globalCompositeOperation = "lighter";
+
+          for (const bud of cluster.buds) {
+            const angle = bud.angle + t * 0.14 + Math.sin(t * 0.5 + bud.blink) * 0.26;
+            const radius =
+              bud.orbit *
+              (0.78 + Math.sin(t * 0.7 + bud.blink) * 0.12 + force * 0.4);
+            const bx = cx + Math.cos(angle) * radius + Math.sin(t + bud.offset) * 6;
+            const by = cy + Math.sin(angle) * radius * 0.55 + Math.cos(t * 0.9 + bud.offset) * 4;
+            const stretch = bud.stretch + force * 0.7;
+
+            ctx.save();
+            ctx.translate(bx, by);
+            ctx.rotate(angle * 0.6);
+            ctx.fillStyle = `rgba(240, 76, 82, ${bud.alpha})`;
+            ctx.beginPath();
+            ctx.ellipse(0, 0, bud.size, bud.size * 0.5 * stretch, 0, 0, TAU);
+            ctx.fill();
+            ctx.fillStyle = `rgba(244, 229, 202, ${0.09 + bud.alpha * 0.35})`;
+            ctx.beginPath();
+            ctx.ellipse(0, 0, bud.size * 0.32, bud.size * 0.18 * stretch, 0, 0, TAU);
+            ctx.fill();
+            ctx.restore();
+          }
+        }
+
+        ctx.restore();
+      }
+
+      function drawFieldPoints(t) {
+        ctx.save();
+        for (const point of fieldPoints) {
+          const cluster = point.cluster;
+          const force = pointerForce(cluster.x, cluster.y);
+          const angle = point.angle + t * point.speed * 0.2;
+          const radius = point.orbit * (0.8 + Math.sin(t * 0.7 + point.drift) * 0.16);
+          const x =
+            cluster.x +
+            Math.cos(angle) * cluster.rx * (radius / Math.max(cluster.rx, 1)) +
+            (pointer.x - cluster.x) * force * 0.04;
+          const y =
+            cluster.y +
+            Math.sin(angle) * cluster.ry * (radius / Math.max(cluster.ry, 1)) * 0.66 +
+            (pointer.y - cluster.y) * force * 0.03;
+
+          ctx.fillStyle = `rgba(241, 215, 170, ${point.alpha + force * 0.16})`;
+          ctx.fillRect(x, y, point.size, point.size);
+
+          if ((point.cluster.seed + Math.floor(point.orbit)) % 5 === 0) {
+            ctx.fillStyle = `rgba(255, 84, 90, ${0.06 + force * 0.16})`;
+            ctx.fillRect(x - 5, y, 3, 3);
+          }
+        }
+        ctx.restore();
+      }
+
+      function drawLabels(t) {
+        ctx.save();
+        ctx.font = '11px "IBM Plex Sans", "Segoe UI", sans-serif';
+        ctx.textBaseline = "middle";
+
+        clusters.forEach((cluster, index) => {
+          const force = pointerForce(cluster.x, cluster.y);
+          const y = cluster.y - cluster.ry - 18 + Math.sin(t * 0.6 + index) * 3;
+          const x = cluster.x - cluster.rx * 0.32 + force * 12;
+          const short = cluster.text.slice(0, 26);
+          ctx.fillStyle = `rgba(245, 236, 225, ${0.32 + force * 0.4})`;
+          ctx.fillText(short, x, y);
+          ctx.strokeStyle = `rgba(245, 236, 225, ${0.08 + force * 0.18})`;
+          ctx.beginPath();
+          ctx.moveTo(x - 8, y);
+          ctx.lineTo(x - 2, y);
+          ctx.lineTo(cluster.x - cluster.rx * 0.1, cluster.y - cluster.ry * 0.22);
+          ctx.stroke();
+        });
+
+        ctx.restore();
+      }
+
+      function frame(now) {
+        const t = (now - start) * 0.001;
+        pointer.x = lerp(pointer.x, pointer.tx, 0.11);
+        pointer.y = lerp(pointer.y, pointer.ty, 0.11);
+        pointer.strength = lerp(pointer.strength, pointer.active ? 1 : 0.12, 0.06);
+
+        drawBackground(t);
+        drawStems(t);
+        drawClusters(t);
+        drawFieldPoints(t);
+        drawLabels(t);
+        requestAnimationFrame(frame);
+      }
+
+      let reseedTimer = 0;
+      textarea.addEventListener("input", () => {
+        window.clearTimeout(reseedTimer);
+        reseedTimer = window.setTimeout(reseed, 180);
+      });
+
+      shuffleButton.addEventListener("click", () => {
+        const pick = chorusLibrary[Math.floor(Math.random() * chorusLibrary.length)];
+        textarea.value = pick;
+        reseed();
+      });
+
+      window.addEventListener("pointermove", (event) => {
+        pointer.tx = event.clientX;
+        pointer.ty = event.clientY;
+        pointer.active = true;
+      });
+
+      window.addEventListener("pointerdown", (event) => {
+        pointer.tx = event.clientX;
+        pointer.ty = event.clientY;
+        pointer.active = true;
+      });
+
+      window.addEventListener("pointerleave", () => {
+        pointer.active = false;
+      });
+
+      window.addEventListener("resize", resize);
+
+      resize();
+      requestAnimationFrame(frame);
+    </script>
+  </body>
+</html>

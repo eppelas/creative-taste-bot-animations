@@ -1,0 +1,1130 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>#062 Salt Funicular Atlas</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --sky: #f4eddc;
+        --paper: #ebdcc4;
+        --sand: #d8c0a0;
+        --ridge: #ae8f6a;
+        --cliff: #7c6550;
+        --ink: #31404b;
+        --muted: rgba(49, 64, 75, 0.62);
+        --line: rgba(49, 64, 75, 0.14);
+        --line-strong: rgba(49, 64, 75, 0.28);
+        --salt: #f9f3eb;
+        --mint: #97baa8;
+        --teal: #83bdc9;
+        --rose: #d99b87;
+        --amber: #d1a35f;
+        --shadow: 0 32px 90px rgba(101, 76, 48, 0.18);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        overflow: hidden;
+        background:
+          radial-gradient(circle at 16% 16%, rgba(255, 255, 255, 0.95), transparent 18%),
+          radial-gradient(circle at 84% 20%, rgba(131, 189, 201, 0.14), transparent 20%),
+          radial-gradient(circle at 18% 80%, rgba(217, 155, 135, 0.12), transparent 22%),
+          linear-gradient(180deg, #faf4ea 0%, var(--sky) 38%, var(--paper) 70%, #d6c0a5 100%);
+        color: var(--ink);
+        font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", serif;
+      }
+
+      body::before,
+      body::after {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+      }
+
+      body::before {
+        opacity: 0.08;
+        background-image:
+          linear-gradient(rgba(49, 64, 75, 0.1) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(49, 64, 75, 0.1) 1px, transparent 1px);
+        background-size: 90px 90px;
+        mask-image: radial-gradient(circle at 56% 48%, black 36%, transparent 88%);
+      }
+
+      body::after {
+        opacity: 0.15;
+        mix-blend-mode: soft-light;
+        background-image:
+          linear-gradient(rgba(255, 255, 255, 0.84) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.84) 1px, transparent 1px);
+        background-size: 4px 4px;
+      }
+
+      canvas {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        display: block;
+      }
+
+      a {
+        color: inherit;
+      }
+
+      .hud {
+        position: fixed;
+        inset: 16px;
+        display: grid;
+        grid-template-columns: minmax(280px, 330px) minmax(0, 1fr) minmax(250px, 310px);
+        grid-template-rows: auto minmax(0, 1fr) auto;
+        gap: 14px;
+        pointer-events: none;
+      }
+
+      .panel,
+      .world,
+      .notes,
+      .back,
+      .chip,
+      .meter,
+      .legend-card,
+      .station {
+        position: relative;
+        border: 1px solid var(--line);
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.76), rgba(250, 244, 235, 0.54)),
+          rgba(255, 249, 242, 0.52);
+        backdrop-filter: blur(16px);
+        box-shadow: var(--shadow);
+      }
+
+      .panel,
+      .world,
+      .notes {
+        pointer-events: auto;
+        border-radius: 30px;
+        overflow: hidden;
+      }
+
+      .panel::after,
+      .world::after,
+      .notes::after,
+      .legend-card::after,
+      .station::after {
+        content: "";
+        position: absolute;
+        inset: 1px;
+        border-radius: inherit;
+        border: 1px solid rgba(255, 255, 255, 0.42);
+        pointer-events: none;
+      }
+
+      .panel {
+        padding: 16px 17px 18px;
+        display: grid;
+        gap: 12px;
+        align-content: start;
+      }
+
+      .intro {
+        grid-column: 1;
+        grid-row: 1 / span 2;
+      }
+
+      .controls {
+        grid-column: 3;
+        grid-row: 1 / span 2;
+      }
+
+      .world {
+        grid-column: 2;
+        grid-row: 1 / span 2;
+        min-height: min(78vh, 940px);
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.32), rgba(249, 243, 234, 0.12)),
+          rgba(255, 248, 239, 0.18);
+      }
+
+      .world::before {
+        content: "";
+        position: absolute;
+        inset: 20px;
+        border-radius: 28px;
+        border: 1px solid rgba(49, 64, 75, 0.08);
+        background:
+          radial-gradient(circle at 18% 20%, rgba(255, 255, 255, 0.52), transparent 18%),
+          radial-gradient(circle at 78% 16%, rgba(131, 189, 201, 0.12), transparent 22%),
+          radial-gradient(circle at 30% 82%, rgba(217, 155, 135, 0.1), transparent 20%);
+        pointer-events: none;
+      }
+
+      .notes {
+        grid-column: 1 / -1;
+        grid-row: 3;
+        padding: 13px;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .world-overlay {
+        position: relative;
+        z-index: 1;
+        min-height: 100%;
+        padding: 18px;
+        display: grid;
+        grid-template-columns: 1.4fr 0.9fr;
+        grid-template-rows: auto 1fr auto;
+        gap: 12px;
+      }
+
+      .header-strip,
+      .cutaway,
+      .legend,
+      .world-footer {
+        position: relative;
+        border: 1px solid rgba(49, 64, 75, 0.1);
+        border-radius: 24px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.44), rgba(255, 248, 240, 0.18)),
+          rgba(255, 255, 255, 0.16);
+        overflow: hidden;
+      }
+
+      .header-strip {
+        grid-column: 1 / -1;
+        padding: 14px 16px;
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: center;
+      }
+
+      .cutaway {
+        min-height: 540px;
+        padding: 14px;
+        display: grid;
+        align-content: end;
+      }
+
+      .legend {
+        padding: 14px;
+        display: grid;
+        grid-template-rows: auto auto 1fr;
+        gap: 12px;
+      }
+
+      .world-footer {
+        grid-column: 1 / -1;
+        padding: 12px 14px;
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .back {
+        position: fixed;
+        right: 16px;
+        bottom: 16px;
+        pointer-events: auto;
+        border-radius: 999px;
+        padding: 11px 14px;
+        font-family: "Azeret Mono", "IBM Plex Mono", "SFMono-Regular", monospace;
+        font-size: 0.74rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        text-decoration: none;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+
+      .mono,
+      .eyebrow,
+      .small,
+      .chip,
+      .meter-label,
+      .legend-label,
+      .station-id,
+      .footer-label {
+        font-family: "Azeret Mono", "IBM Plex Mono", "SFMono-Regular", monospace;
+      }
+
+      .eyebrow,
+      .small,
+      .legend-label,
+      .footer-label {
+        font-size: 0.72rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+
+      .eyebrow,
+      .small,
+      .legend-label,
+      .footer-label,
+      .meter-label,
+      .station-id {
+        color: var(--muted);
+      }
+
+      .intro h1 {
+        font-size: clamp(2rem, 2.5vw, 3rem);
+        line-height: 0.95;
+        margin-top: 4px;
+      }
+
+      .intro p,
+      .legend-copy,
+      .note-card p {
+        color: rgba(49, 64, 75, 0.78);
+        line-height: 1.5;
+      }
+
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .chip {
+        border-radius: 999px;
+        padding: 7px 11px;
+        font-size: 0.7rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .meter-stack,
+      .legend-cards,
+      .station-list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .meter {
+        border-radius: 18px;
+        padding: 11px 12px 12px;
+      }
+
+      .meter-head,
+      .station-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 8px;
+        margin-bottom: 8px;
+      }
+
+      .meter-track {
+        height: 10px;
+        border-radius: 999px;
+        background: rgba(49, 64, 75, 0.08);
+        overflow: hidden;
+      }
+
+      .meter-fill {
+        height: 100%;
+        width: 50%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, var(--teal), var(--mint), var(--amber));
+        transition: width 240ms ease;
+      }
+
+      .header-title h2 {
+        font-size: 1rem;
+        letter-spacing: 0.04em;
+      }
+
+      .statusline {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 8px;
+      }
+
+      .statusline span {
+        border-radius: 999px;
+        padding: 6px 10px;
+        border: 1px solid rgba(49, 64, 75, 0.12);
+        background: rgba(255, 255, 255, 0.42);
+        font-size: 0.72rem;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+
+      .section-label {
+        margin-bottom: 10px;
+      }
+
+      .cutaway-grid {
+        position: relative;
+        min-height: 100%;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+        align-items: stretch;
+      }
+
+      .station {
+        border-radius: 22px;
+        padding: 12px;
+        display: grid;
+        grid-template-rows: auto 1fr auto;
+        gap: 10px;
+        min-height: 140px;
+      }
+
+      .station-body {
+        display: grid;
+        gap: 7px;
+        align-content: start;
+      }
+
+      .station-title {
+        font-size: 0.96rem;
+      }
+
+      .station-copy {
+        font-size: 0.88rem;
+        line-height: 1.45;
+        color: rgba(49, 64, 75, 0.75);
+      }
+
+      .station-bar {
+        height: 8px;
+        border-radius: 999px;
+        overflow: hidden;
+        background: rgba(49, 64, 75, 0.08);
+      }
+
+      .station-bar span {
+        display: block;
+        height: 100%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, rgba(131, 189, 201, 0.9), rgba(217, 155, 135, 0.75));
+      }
+
+      .legend-cards {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .legend-card,
+      .note-card {
+        border-radius: 20px;
+        padding: 12px 13px;
+      }
+
+      .legend-card h3,
+      .note-card h3 {
+        font-size: 0.95rem;
+        margin-top: 4px;
+        margin-bottom: 6px;
+      }
+
+      .footer-cell {
+        padding: 10px 0 0;
+        border-top: 1px solid rgba(49, 64, 75, 0.1);
+      }
+
+      .footer-value {
+        display: block;
+        margin-top: 6px;
+        font-size: 0.9rem;
+        color: rgba(49, 64, 75, 0.76);
+      }
+
+      @media (max-width: 1180px) {
+        body {
+          overflow: auto;
+        }
+
+        .hud {
+          position: relative;
+          inset: auto;
+          min-height: 100vh;
+          padding: 16px;
+          grid-template-columns: 1fr;
+          grid-template-rows: auto auto auto auto;
+        }
+
+        .intro,
+        .world,
+        .controls,
+        .notes {
+          grid-column: 1;
+          grid-row: auto;
+        }
+
+        .world {
+          min-height: 780px;
+        }
+
+        .notes {
+          grid-template-columns: 1fr;
+        }
+
+        .world-overlay {
+          grid-template-columns: 1fr;
+          grid-template-rows: auto auto auto auto;
+        }
+
+        .cutaway-grid,
+        .legend-cards,
+        .world-footer {
+          grid-template-columns: 1fr;
+        }
+
+        .back {
+          position: static;
+          display: inline-flex;
+          margin: 0 16px 16px auto;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="scene" aria-hidden="true"></canvas>
+
+    <main class="hud">
+      <section class="panel intro">
+        <p class="eyebrow">Animation #062</p>
+        <h1>Salt Funicular Atlas</h1>
+        <p>
+          A daylight cliff system instead of another dark dashboard: terraced
+          greenhouses, brine reservoirs, and a small route car all breathe as
+          one cutaway infrastructure page.
+        </p>
+        <div class="chips">
+          <span class="chip">Daylight world</span>
+          <span class="chip">Cutaway systems</span>
+          <span class="chip">Pointer climate</span>
+        </div>
+        <div class="meter-stack">
+          <div class="meter">
+            <div class="meter-head">
+              <span class="meter-label">Salt lift</span>
+              <span class="mono" id="saltValue">52%</span>
+            </div>
+            <div class="meter-track"><div class="meter-fill" id="saltFill"></div></div>
+          </div>
+          <div class="meter">
+            <div class="meter-head">
+              <span class="meter-label">Greenhouse hush</span>
+              <span class="mono" id="hushValue">48%</span>
+            </div>
+            <div class="meter-track"><div class="meter-fill" id="hushFill"></div></div>
+          </div>
+          <div class="meter">
+            <div class="meter-head">
+              <span class="meter-label">Wind shear</span>
+              <span class="mono" id="windValue">34%</span>
+            </div>
+            <div class="meter-track"><div class="meter-fill" id="windFill"></div></div>
+          </div>
+        </div>
+        <p class="small">
+          Move the pointer across the cliff to warm a local terrace. Click to
+          cycle the weather law between calm, descent, and bloom.
+        </p>
+      </section>
+
+      <section class="world">
+        <div class="world-overlay">
+          <div class="header-strip">
+            <div class="header-title">
+              <p class="eyebrow">Coastal section</p>
+              <h2>Descending route through salt terraces</h2>
+            </div>
+            <div class="statusline">
+              <span id="modeLabel">Calm spill</span>
+              <span id="carLabel">Cabin north</span>
+              <span id="focusLabel">Terrace 03</span>
+            </div>
+          </div>
+
+          <section class="cutaway">
+            <div>
+              <p class="legend-label section-label">Station register</p>
+              <div class="cutaway-grid" id="stationGrid">
+                <article class="station">
+                  <div class="station-head">
+                    <span class="station-id">T1</span>
+                    <span class="mono" id="stationAValue">61%</span>
+                  </div>
+                  <div class="station-body">
+                    <h3 class="station-title">Upper mist intake</h3>
+                    <p class="station-copy">
+                      Sky-catch basins loosen white salt dust before it reaches
+                      the growing trays.
+                    </p>
+                  </div>
+                  <div class="station-bar"><span id="stationABar" style="width: 61%"></span></div>
+                </article>
+                <article class="station">
+                  <div class="station-head">
+                    <span class="station-id">T2</span>
+                    <span class="mono" id="stationBValue">46%</span>
+                  </div>
+                  <div class="station-body">
+                    <h3 class="station-title">Funicular seed dock</h3>
+                    <p class="station-copy">
+                      Route car exchanges cuttings, damp wraps, and amber tags
+                      with the suspended walk.
+                    </p>
+                  </div>
+                  <div class="station-bar"><span id="stationBBar" style="width: 46%"></span></div>
+                </article>
+                <article class="station">
+                  <div class="station-head">
+                    <span class="station-id">T3</span>
+                    <span class="mono" id="stationCValue">53%</span>
+                  </div>
+                  <div class="station-body">
+                    <h3 class="station-title">Brine commons</h3>
+                    <p class="station-copy">
+                      Warmer lower chambers feed the whole section through
+                      shared runoff and translucent rails.
+                    </p>
+                  </div>
+                  <div class="station-bar"><span id="stationCBar" style="width: 53%"></span></div>
+                </article>
+              </div>
+            </div>
+          </section>
+
+          <aside class="legend">
+            <div>
+              <p class="eyebrow">Atlas notes</p>
+              <p class="legend-copy">
+                The page stays architectural and inhabited: no central idol,
+                no mascot, no corridor portrait. One diagonal route and a few
+                climate pressures drive everything.
+              </p>
+            </div>
+            <div class="legend-cards">
+              <article class="legend-card">
+                <p class="legend-label">Humidity jars</p>
+                <h3>Condensation stores</h3>
+                <p class="station-copy">
+                  Watch the hanging droplets brighten nearest the pointer.
+                </p>
+              </article>
+              <article class="legend-card">
+                <p class="legend-label">Terrace law</p>
+                <h3>Shared descent</h3>
+                <p class="station-copy">
+                  Every shelf inherits motion from the same route, never a
+                  detached widget lane.
+                </p>
+              </article>
+            </div>
+            <div class="station-list">
+              <div class="meter">
+                <div class="meter-head">
+                  <span class="meter-label">Route drift</span>
+                  <span class="mono" id="routeValue">41%</span>
+                </div>
+                <div class="meter-track"><div class="meter-fill" id="routeFill"></div></div>
+              </div>
+              <div class="meter">
+                <div class="meter-head">
+                  <span class="meter-label">Reservoir glow</span>
+                  <span class="mono" id="reservoirValue">58%</span>
+                </div>
+                <div class="meter-track"><div class="meter-fill" id="reservoirFill"></div></div>
+              </div>
+            </div>
+          </aside>
+
+          <footer class="world-footer">
+            <div class="footer-cell">
+              <span class="footer-label">Section</span>
+              <span class="footer-value">North cliff archive</span>
+            </div>
+            <div class="footer-cell">
+              <span class="footer-label">Current mode</span>
+              <span class="footer-value" id="footerMode">Calm spill</span>
+            </div>
+            <div class="footer-cell">
+              <span class="footer-label">Focus terrace</span>
+              <span class="footer-value" id="footerFocus">Terrace 03</span>
+            </div>
+            <div class="footer-cell">
+              <span class="footer-label">Cycle</span>
+              <span class="footer-value">12 second route loop</span>
+            </div>
+          </footer>
+        </div>
+      </section>
+
+      <section class="panel controls">
+        <p class="eyebrow">Review notes</p>
+        <div class="legend-cards" style="grid-template-columns: 1fr;">
+          <article class="note-card">
+            <p class="legend-label">Idea</p>
+            <h3>Inhabited daylight infrastructure</h3>
+            <p>
+              This grows the anti-autopilot greenhouse cutaway cue from the
+              latest image run into a browser page that reads like a living map
+              instead of a poster creature or dark relay dashboard.
+            </p>
+          </article>
+          <article class="note-card">
+            <p class="legend-label">Interaction</p>
+            <h3>Pointer as local weather</h3>
+            <p>
+              Hover changes salt brightness, wind angle, droplet density, and
+              terrace warmth only near the cursor while click rotates the whole
+              atlas through three climate laws.
+            </p>
+          </article>
+          <article class="note-card">
+            <p class="legend-label">Next</p>
+            <h3>Extend into more rooms</h3>
+            <p>
+              A stronger version could add library chambers, worker paths, or a
+              night cycle while keeping the same diagonal descent grammar.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section class="notes">
+        <article class="note-card">
+          <p class="legend-label">Branch break</p>
+          <h3>Scale shift over repetition</h3>
+          <p>
+            The point here is habitat scale and route logic, not another
+            specimen, portrait, or three-dot creature.
+          </p>
+        </article>
+        <article class="note-card">
+          <p class="legend-label">Formal law</p>
+          <h3>One descending diagonal</h3>
+          <p>
+            Terraces, cables, runoff, and the funicular all share one slanted
+            gravity line so the motion stays coherent.
+          </p>
+        </article>
+        <article class="note-card">
+          <p class="legend-label">Material cue</p>
+          <h3>Salt, glass, paper, mist</h3>
+          <p>
+            The page uses pale mineral light and soft opacity instead of heavy
+            crimson atmosphere or generic glossy sci-fi.
+          </p>
+        </article>
+      </section>
+    </main>
+
+    <a class="back" href="../../index.html">Back to index</a>
+
+    <script>
+      const canvas = document.getElementById("scene");
+      const ctx = canvas.getContext("2d");
+
+      const meters = {
+        salt: { value: document.getElementById("saltValue"), fill: document.getElementById("saltFill") },
+        hush: { value: document.getElementById("hushValue"), fill: document.getElementById("hushFill") },
+        wind: { value: document.getElementById("windValue"), fill: document.getElementById("windFill") },
+        route: { value: document.getElementById("routeValue"), fill: document.getElementById("routeFill") },
+        reservoir: { value: document.getElementById("reservoirValue"), fill: document.getElementById("reservoirFill") }
+      };
+
+      const stationMeters = [
+        { value: document.getElementById("stationAValue"), fill: document.getElementById("stationABar") },
+        { value: document.getElementById("stationBValue"), fill: document.getElementById("stationBBar") },
+        { value: document.getElementById("stationCValue"), fill: document.getElementById("stationCBar") }
+      ];
+
+      const modeLabel = document.getElementById("modeLabel");
+      const carLabel = document.getElementById("carLabel");
+      const focusLabel = document.getElementById("focusLabel");
+      const footerMode = document.getElementById("footerMode");
+      const footerFocus = document.getElementById("footerFocus");
+
+      const modes = [
+        { name: "Calm spill", wind: 0.25, glow: 0.62, droplet: 0.7 },
+        { name: "Descent draft", wind: 0.56, glow: 0.48, droplet: 0.45 },
+        { name: "Bloom exchange", wind: 0.34, glow: 0.78, droplet: 0.88 }
+      ];
+
+      let modeIndex = 0;
+      let width = 0;
+      let height = 0;
+      let time = 0;
+
+      const pointer = {
+        x: 0.58,
+        y: 0.38,
+        tx: 0.58,
+        ty: 0.38,
+        active: false
+      };
+
+      const terraces = [];
+      const droplets = [];
+      const particles = [];
+
+      function resize() {
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        width = window.innerWidth;
+        height = window.innerHeight;
+        canvas.width = Math.round(width * dpr);
+        canvas.height = Math.round(height * dpr);
+        canvas.style.width = width + "px";
+        canvas.style.height = height + "px";
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        buildWorld();
+      }
+
+      function buildWorld() {
+        terraces.length = 0;
+        droplets.length = 0;
+        particles.length = 0;
+
+        const baseY = height * 0.27;
+        const terraceCount = 6;
+
+        for (let i = 0; i < terraceCount; i += 1) {
+          const t = i / (terraceCount - 1);
+          terraces.push({
+            index: i,
+            x: width * (0.18 + t * 0.5),
+            y: baseY + t * height * 0.09,
+            w: width * (0.22 - t * 0.018),
+            h: height * (0.09 + t * 0.01),
+            depth: 0.4 + t * 0.5,
+            hue: 0.5 + t * 0.2
+          });
+        }
+
+        for (let i = 0; i < 40; i += 1) {
+          droplets.push({
+            x: width * (0.18 + Math.random() * 0.58),
+            y: height * (0.12 + Math.random() * 0.38),
+            r: 4 + Math.random() * 10,
+            sway: Math.random() * Math.PI * 2,
+            speed: 0.5 + Math.random() * 0.9
+          });
+        }
+
+        for (let i = 0; i < 120; i += 1) {
+          particles.push({
+            x: width * (0.1 + Math.random() * 0.72),
+            y: height * (0.12 + Math.random() * 0.68),
+            vx: -0.2 + Math.random() * 0.4,
+            vy: -0.15 + Math.random() * 0.3,
+            r: 0.8 + Math.random() * 2.4,
+            life: Math.random()
+          });
+        }
+      }
+
+      function clamp(value, min, max) {
+        return Math.max(min, Math.min(max, value));
+      }
+
+      function lerp(a, b, t) {
+        return a + (b - a) * t;
+      }
+
+      function smoothPointer() {
+        pointer.x = lerp(pointer.x, pointer.tx, 0.08);
+        pointer.y = lerp(pointer.y, pointer.ty, 0.08);
+      }
+
+      function drawSky(mode) {
+        const grad = ctx.createLinearGradient(0, 0, 0, height);
+        grad.addColorStop(0, "rgba(252,247,239,0.92)");
+        grad.addColorStop(0.38, "rgba(239,229,210,0.76)");
+        grad.addColorStop(1, "rgba(210,190,164,0.28)");
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, width, height);
+
+        for (let i = 0; i < 3; i += 1) {
+          const px = width * (0.16 + i * 0.26);
+          const py = height * (0.14 + i * 0.06);
+          const radius = width * (0.13 + i * 0.03);
+          const glow = ctx.createRadialGradient(px, py, 0, px, py, radius);
+          glow.addColorStop(0, "rgba(255,255,255,0.38)");
+          glow.addColorStop(1, "rgba(255,255,255,0)");
+          ctx.fillStyle = glow;
+          ctx.beginPath();
+          ctx.arc(px, py, radius, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        ctx.strokeStyle = "rgba(255,255,255,0.18)";
+        ctx.lineWidth = 1;
+        for (let y = height * 0.18; y < height; y += 90) {
+          ctx.beginPath();
+          ctx.moveTo(width * 0.08, y + Math.sin(time * 0.0004 + y * 0.01) * 4);
+          ctx.lineTo(width * 0.92, y);
+          ctx.stroke();
+        }
+      }
+
+      function drawCliff(mode) {
+        ctx.save();
+        ctx.translate(width * 0.14, height * 0.2);
+
+        ctx.beginPath();
+        ctx.moveTo(width * 0.16, 0);
+        ctx.lineTo(width * 0.56, 0);
+        ctx.lineTo(width * 0.7, height * 0.64);
+        ctx.lineTo(width * 0.04, height * 0.64);
+        ctx.closePath();
+
+        const grad = ctx.createLinearGradient(0, 0, width * 0.6, height * 0.64);
+        grad.addColorStop(0, "rgba(174,143,106,0.8)");
+        grad.addColorStop(0.52, "rgba(124,101,80,0.92)");
+        grad.addColorStop(1, "rgba(90,72,57,0.96)");
+        ctx.fillStyle = grad;
+        ctx.fill();
+
+        for (let i = 0; i < 22; i += 1) {
+          const y = i * height * 0.03 + Math.sin(time * 0.0006 + i) * 4;
+          ctx.strokeStyle = `rgba(255,255,255,${0.04 + i * 0.002})`;
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(width * 0.12 + Math.sin(i * 2) * 8, y);
+          ctx.lineTo(width * 0.58 + Math.cos(i * 0.8) * 10, y + height * 0.04);
+          ctx.stroke();
+        }
+
+        ctx.restore();
+      }
+
+      function drawTerraces(mode) {
+        const px = pointer.x * width;
+        const py = pointer.y * height;
+
+        terraces.forEach((terrace, idx) => {
+          const warmth = clamp(1 - Math.hypot(px - terrace.x, py - terrace.y) / 260, 0, 1);
+          const lift = Math.sin(time * 0.0012 + idx * 0.8) * 8 * (0.4 + warmth);
+          const x = terrace.x;
+          const y = terrace.y + lift;
+          const w = terrace.w;
+          const h = terrace.h;
+
+          ctx.fillStyle = `rgba(249,243,235,${0.16 + warmth * 0.12})`;
+          ctx.strokeStyle = `rgba(49,64,75,${0.18 + warmth * 0.16})`;
+          ctx.lineWidth = 1.2;
+          ctx.beginPath();
+          ctx.moveTo(x - w * 0.5, y);
+          ctx.lineTo(x + w * 0.42, y - h * 0.16);
+          ctx.lineTo(x + w * 0.5, y + h * 0.24);
+          ctx.lineTo(x - w * 0.4, y + h * 0.3);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = `rgba(131,189,201,${0.11 + warmth * 0.15})`;
+          ctx.fillRect(x - w * 0.35, y + h * 0.02, w * 0.5, h * 0.12);
+
+          ctx.strokeStyle = `rgba(255,255,255,${0.12 + warmth * 0.2})`;
+          for (let j = 0; j < 5; j += 1) {
+            const yy = y + h * (0.06 + j * 0.04);
+            ctx.beginPath();
+            ctx.moveTo(x - w * 0.34, yy);
+            ctx.lineTo(x + w * 0.12, yy + Math.sin(time * 0.001 + idx + j) * 2);
+            ctx.stroke();
+          }
+        });
+      }
+
+      function drawRoute(mode) {
+        const top = terraces[0];
+        const bottom = terraces[terraces.length - 1];
+        const t = (Math.sin(time * 0.00052) + 1) * 0.5;
+        const cx = lerp(top.x + 110, bottom.x + 50, t);
+        const cy = lerp(top.y - 80, bottom.y - 26, t);
+
+        ctx.strokeStyle = "rgba(49,64,75,0.26)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(top.x + 106, top.y - 84);
+        ctx.lineTo(bottom.x + 48, bottom.y - 30);
+        ctx.stroke();
+
+        ctx.strokeStyle = "rgba(255,255,255,0.28)";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(top.x + 118, top.y - 78);
+        ctx.lineTo(bottom.x + 60, bottom.y - 24);
+        ctx.stroke();
+
+        ctx.fillStyle = "rgba(249,243,235,0.95)";
+        ctx.strokeStyle = "rgba(49,64,75,0.22)";
+        ctx.lineWidth = 1.4;
+        ctx.beginPath();
+        ctx.roundRect(cx - 18, cy - 12, 36, 24, 10);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = `rgba(217,155,135,${0.34 + modes[modeIndex].glow * 0.25})`;
+        ctx.fillRect(cx - 8, cy - 4, 16, 8);
+
+        carLabel.textContent = t < 0.5 ? "Cabin north" : "Cabin south";
+      }
+
+      function drawDroplets(mode) {
+        droplets.forEach((droplet, idx) => {
+          const x = droplet.x + Math.sin(time * 0.001 * droplet.speed + droplet.sway) * 14;
+          const y = droplet.y + Math.cos(time * 0.0012 * droplet.speed + droplet.sway) * 8;
+          const focus = clamp(1 - Math.hypot(pointer.x * width - x, pointer.y * height - y) / 190, 0, 1);
+          const radius = droplet.r * (1 + focus * 0.35 + modes[modeIndex].droplet * 0.08);
+          const glow = ctx.createRadialGradient(x, y, 0, x, y, radius * 2.4);
+          glow.addColorStop(0, `rgba(255,255,255,${0.28 + focus * 0.22})`);
+          glow.addColorStop(0.55, `rgba(131,189,201,${0.11 + focus * 0.18})`);
+          glow.addColorStop(1, "rgba(131,189,201,0)");
+          ctx.fillStyle = glow;
+          ctx.beginPath();
+          ctx.arc(x, y, radius * 2.2, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.fillStyle = `rgba(255,255,255,${0.46 + focus * 0.26})`;
+          ctx.beginPath();
+          ctx.ellipse(x, y, radius * 0.7, radius, 0, 0, Math.PI * 2);
+          ctx.fill();
+
+          if (idx % 9 === 0) {
+            ctx.strokeStyle = `rgba(49,64,75,${0.08 + focus * 0.08})`;
+            ctx.beginPath();
+            ctx.moveTo(x, y - radius * 2.6);
+            ctx.lineTo(x, y - radius * 1.2);
+            ctx.stroke();
+          }
+        });
+      }
+
+      function drawReservoirs() {
+        for (let i = 0; i < 3; i += 1) {
+          const x = width * (0.58 + i * 0.08);
+          const y = height * (0.58 + i * 0.08);
+          const w = width * 0.085;
+          const h = height * 0.06;
+          const pulse = 0.5 + 0.5 * Math.sin(time * 0.001 + i * 0.9);
+          ctx.strokeStyle = "rgba(49,64,75,0.18)";
+          ctx.strokeRect(x, y, w, h);
+          ctx.fillStyle = `rgba(131,189,201,${0.16 + pulse * 0.16})`;
+          ctx.fillRect(x + 4, y + h * (0.4 - pulse * 0.1), w - 8, h * (0.38 + pulse * 0.16));
+          ctx.fillStyle = "rgba(255,255,255,0.38)";
+          ctx.fillRect(x + 4, y + 4, w - 8, 4);
+        }
+      }
+
+      function drawParticles(mode) {
+        const wind = modes[modeIndex].wind;
+        particles.forEach((particle) => {
+          particle.x += particle.vx + wind * 0.28;
+          particle.y += particle.vy + Math.sin(time * 0.001 + particle.x * 0.01) * 0.08;
+          particle.life += 0.01;
+
+          if (particle.x > width * 0.9 || particle.y > height * 0.92 || particle.x < width * 0.06) {
+            particle.x = width * (0.12 + Math.random() * 0.68);
+            particle.y = height * (0.16 + Math.random() * 0.6);
+            particle.life = Math.random();
+          }
+
+          const alpha = 0.08 + (1 - particle.life % 1) * 0.16;
+          ctx.fillStyle = `rgba(255,255,255,${alpha})`;
+          ctx.beginPath();
+          ctx.arc(particle.x, particle.y, particle.r, 0, Math.PI * 2);
+          ctx.fill();
+        });
+      }
+
+      function updateMeters() {
+        const pulse = 0.5 + 0.5 * Math.sin(time * 0.0011);
+        const pointerBias = pointer.active ? clamp(1 - Math.hypot(pointer.x - 0.58, pointer.y - 0.38) * 1.6, 0, 1) : 0.22;
+        const mode = modes[modeIndex];
+
+        const values = {
+          salt: 38 + pulse * 24 + pointerBias * 18,
+          hush: 30 + (1 - mode.wind) * 34 + pointerBias * 16,
+          wind: 18 + mode.wind * 56 + (1 - pointerBias) * 12,
+          route: 28 + pulse * 18 + mode.wind * 22,
+          reservoir: 34 + mode.glow * 48
+        };
+
+        Object.entries(values).forEach(([key, number]) => {
+          const rounded = Math.round(number);
+          meters[key].value.textContent = rounded + "%";
+          meters[key].fill.style.width = rounded + "%";
+        });
+
+        const stationValues = [
+          42 + pulse * 22 + pointerBias * 10,
+          30 + mode.wind * 26 + Math.abs(Math.sin(time * 0.0014)) * 18,
+          36 + mode.glow * 28 + (1 - pointerBias) * 8
+        ];
+
+        stationValues.forEach((value, index) => {
+          const rounded = Math.round(value);
+          stationMeters[index].value.textContent = rounded + "%";
+          stationMeters[index].fill.style.width = rounded + "%";
+        });
+
+        const terraceIndex = clamp(Math.floor(pointer.y * 6), 0, 5);
+        const focusText = `Terrace 0${terraceIndex + 1}`;
+        focusLabel.textContent = focusText;
+        footerFocus.textContent = focusText;
+        modeLabel.textContent = mode.name;
+        footerMode.textContent = mode.name;
+      }
+
+      function frame(now) {
+        time = now;
+        smoothPointer();
+        const mode = modes[modeIndex];
+        ctx.clearRect(0, 0, width, height);
+        drawSky(mode);
+        drawCliff(mode);
+        drawTerraces(mode);
+        drawRoute(mode);
+        drawDroplets(mode);
+        drawReservoirs();
+        drawParticles(mode);
+        updateMeters();
+        requestAnimationFrame(frame);
+      }
+
+      window.addEventListener("pointermove", (event) => {
+        pointer.tx = event.clientX / width;
+        pointer.ty = event.clientY / height;
+        pointer.active = true;
+      });
+
+      window.addEventListener("pointerleave", () => {
+        pointer.active = false;
+        pointer.tx = 0.58;
+        pointer.ty = 0.38;
+      });
+
+      window.addEventListener("click", () => {
+        modeIndex = (modeIndex + 1) % modes.length;
+      });
+
+      window.addEventListener("resize", resize);
+
+      resize();
+      requestAnimationFrame(frame);
+    </script>
+  </body>
+</html>

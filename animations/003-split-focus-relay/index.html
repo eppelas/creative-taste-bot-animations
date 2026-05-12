@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>#003 Split Focus Relay</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --text: #f2eee5;
+        --muted: #8f8a81;
+        --panel: rgba(5, 5, 5, 0.36);
+        --line: rgba(242, 238, 229, 0.16);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        background:
+          radial-gradient(circle at 50% 18%, rgba(120, 18, 30, 0.18), transparent 28%),
+          radial-gradient(circle at 72% 78%, rgba(52, 8, 12, 0.22), transparent 32%),
+          #020202;
+        color: var(--text);
+        font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+      }
+
+      canvas {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        display: block;
+      }
+
+      .hud {
+        position: fixed;
+        inset: auto 18px 18px 18px;
+        display: flex;
+        justify-content: space-between;
+        align-items: end;
+        gap: 18px;
+        pointer-events: none;
+      }
+
+      .title {
+        display: grid;
+        gap: 4px;
+      }
+
+      h1,
+      p {
+        margin: 0;
+      }
+
+      h1 {
+        font-size: 13px;
+        font-weight: 560;
+      }
+
+      p {
+        max-width: 520px;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.4;
+      }
+
+      .back {
+        pointer-events: auto;
+        color: var(--text);
+        text-decoration: none;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 8px 11px;
+        font-size: 12px;
+        background: var(--panel);
+        backdrop-filter: blur(14px);
+      }
+
+      @media (max-width: 720px) {
+        .hud {
+          top: 14px;
+          bottom: auto;
+          flex-direction: column;
+          align-items: start;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="scene"></canvas>
+    <div class="hud">
+      <div class="title">
+        <h1>#003 Split Focus Relay</h1>
+        <p>
+          Tilted relay panes drift through a nocturnal signal field: reflected
+          traces, focus-doubled streaks, and living control marks with no hero
+          object at the center.
+        </p>
+      </div>
+      <a class="back" href="../../index.html">Index</a>
+    </div>
+    <script src="../../shared/study-notes.js"></script>
+
+    <script>
+      const canvas = document.getElementById("scene");
+      const ctx = canvas.getContext("2d", { alpha: false });
+
+      const TAU = Math.PI * 2;
+      const panes = [];
+      const sparks = [];
+      const lattice = [];
+
+      let width = 0;
+      let height = 0;
+      let dpr = 1;
+      let start = performance.now();
+
+      const rand = (min, max) => min + Math.random() * (max - min);
+      const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+      function seed() {
+        panes.length = 0;
+        sparks.length = 0;
+        lattice.length = 0;
+
+        const cols = width < 760 ? 2 : 3;
+        const rows = width < 760 ? 3 : 2;
+        const basePaneW = Math.min(width * 0.28, 280);
+        const basePaneH = Math.min(height * 0.28, 230);
+        let index = 0;
+
+        for (let row = 0; row < rows; row++) {
+          for (let col = 0; col < cols; col++) {
+            panes.push({
+              index,
+              x: width * (0.2 + (col / Math.max(cols - 1, 1)) * 0.58) + rand(-18, 18),
+              y: height * (0.23 + (row / Math.max(rows - 1, 1)) * 0.5) + rand(-16, 16),
+              w: basePaneW * rand(0.86, 1.08),
+              h: basePaneH * rand(0.82, 1.1),
+              angle: rand(-0.3, 0.3) + (col - (cols - 1) / 2) * 0.08,
+              phase: rand(0, TAU),
+              drift: rand(0.16, 0.44),
+              hue: index % 2 === 0 ? "red" : "amber",
+              slices: 4 + ((row + col) % 3),
+            });
+            index++;
+          }
+        }
+
+        const sparkCount = clamp(Math.floor((width * height) / 1600), 260, 820);
+        for (let i = 0; i < sparkCount; i++) {
+          sparks.push({
+            lane: Math.floor(Math.random() * panes.length),
+            u: Math.random(),
+            v: Math.random(),
+            speed: rand(0.06, 0.22),
+            length: rand(8, 48),
+            weight: rand(0.6, 1.8),
+            heat: Math.random(),
+            phase: rand(0, TAU),
+            split: rand(1.4, 6.4),
+          });
+        }
+
+        for (let i = 0; i < 28; i++) {
+          lattice.push({
+            y: rand(0.08, 0.92),
+            drift: rand(-0.012, 0.012),
+            alpha: rand(0.03, 0.09),
+            phase: rand(0, TAU),
+          });
+        }
+      }
+
+      function resize() {
+        dpr = Math.min(window.devicePixelRatio || 1, 2);
+        width = Math.floor(window.innerWidth);
+        height = Math.floor(window.innerHeight);
+        canvas.width = Math.floor(width * dpr);
+        canvas.height = Math.floor(height * dpr);
+        canvas.style.width = width + "px";
+        canvas.style.height = height + "px";
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        seed();
+      }
+
+      function paneColor(hue, alpha) {
+        if (hue === "amber") {
+          return `rgba(255, 202, 138, ${alpha})`;
+        }
+        return `rgba(255, 72, 92, ${alpha})`;
+      }
+
+      function drawPane(pane, t, swayX, swayY) {
+        const x = pane.x + Math.sin(t * pane.drift + pane.phase) * 16 + swayX;
+        const y = pane.y + Math.cos(t * pane.drift * 0.82 + pane.phase) * 14 + swayY;
+        const angle = pane.angle + Math.sin(t * 0.3 + pane.phase) * 0.08;
+        const ghost = 3 + Math.sin(t * 0.9 + pane.phase) * 4;
+
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(angle);
+
+        const paneGrad = ctx.createLinearGradient(-pane.w * 0.5, -pane.h * 0.5, pane.w * 0.5, pane.h * 0.5);
+        paneGrad.addColorStop(0, "rgba(255,255,255,0.015)");
+        paneGrad.addColorStop(0.5, "rgba(255,255,255,0.05)");
+        paneGrad.addColorStop(1, "rgba(255,255,255,0.01)");
+        ctx.fillStyle = "rgba(8, 8, 8, 0.26)";
+        ctx.strokeStyle = "rgba(246, 241, 228, 0.15)";
+        ctx.lineWidth = 1;
+        ctx.fillRect(-pane.w / 2, -pane.h / 2, pane.w, pane.h);
+        ctx.fillStyle = paneGrad;
+        ctx.fillRect(-pane.w / 2, -pane.h / 2, pane.w, pane.h);
+        ctx.strokeRect(-pane.w / 2, -pane.h / 2, pane.w, pane.h);
+
+        ctx.strokeStyle = "rgba(246, 241, 228, 0.06)";
+        for (let i = 1; i < pane.slices; i++) {
+          const yy = -pane.h / 2 + (pane.h / pane.slices) * i;
+          ctx.beginPath();
+          ctx.moveTo(-pane.w / 2, yy);
+          ctx.lineTo(pane.w / 2, yy);
+          ctx.stroke();
+        }
+
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.03)";
+        for (let i = 0; i < 8; i++) {
+          const xx = -pane.w / 2 + (pane.w / 7) * i;
+          ctx.beginPath();
+          ctx.moveTo(xx, -pane.h / 2);
+          ctx.lineTo(xx, pane.h / 2);
+          ctx.stroke();
+        }
+
+        ctx.fillStyle = "rgba(245, 240, 223, 0.38)";
+        const markerY = -pane.h / 2 - 10;
+        for (let i = 0; i < 3; i++) {
+          const mx = -pane.w * 0.32 + i * pane.w * 0.18;
+          ctx.fillRect(mx - 2, markerY, 4, 4);
+          ctx.fillRect(mx - 10, markerY + 10, 20, 1);
+        }
+
+        ctx.globalCompositeOperation = "lighter";
+        for (const spark of sparks) {
+          if (spark.lane !== pane.index) continue;
+          const lineY = -pane.h / 2 + spark.v * pane.h;
+          const flow = (spark.u + t * spark.speed) % 1;
+          const lineX = -pane.w / 2 + flow * pane.w;
+          const wobble = Math.sin(t * 1.8 + spark.phase + spark.v * 10) * 4;
+          const len = spark.length * (0.7 + Math.sin(t * 1.2 + spark.phase) * 0.22 + spark.heat * 0.4);
+          const alpha = 0.08 + spark.heat * 0.18;
+
+          ctx.strokeStyle = paneColor(pane.hue, alpha);
+          ctx.lineWidth = spark.weight;
+          ctx.beginPath();
+          ctx.moveTo(lineX - len * 0.55, lineY + wobble);
+          ctx.lineTo(lineX + len * 0.45, lineY - wobble * 0.35);
+          ctx.stroke();
+
+          ctx.strokeStyle = paneColor(pane.hue, alpha * 0.45);
+          ctx.beginPath();
+          ctx.moveTo(lineX - len * 0.55 + ghost, lineY + wobble + spark.split);
+          ctx.lineTo(lineX + len * 0.45 + ghost, lineY - wobble * 0.35 + spark.split);
+          ctx.stroke();
+
+          if (spark.heat > 0.8) {
+            ctx.fillStyle = `rgba(255, 244, 230, ${0.06 + spark.heat * 0.08})`;
+            ctx.fillRect(lineX - 1.5, lineY - 1.5, 3, 3);
+          }
+        }
+        ctx.globalCompositeOperation = "source-over";
+
+        ctx.strokeStyle = paneColor(pane.hue, 0.12);
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        const bandY = -pane.h * 0.18 + Math.sin(t * 0.75 + pane.phase) * pane.h * 0.12;
+        ctx.moveTo(-pane.w / 2, bandY);
+        ctx.lineTo(pane.w / 2, bandY + Math.sin(t + pane.phase) * 8);
+        ctx.stroke();
+
+        ctx.restore();
+      }
+
+      function draw(now) {
+        const t = (now - start) * 0.001;
+        const swayX = Math.sin(t * 0.33) * 14;
+        const swayY = Math.cos(t * 0.27) * 10;
+
+        ctx.fillStyle = "rgba(2, 2, 2, 0.22)";
+        ctx.fillRect(0, 0, width, height);
+
+        const field = ctx.createRadialGradient(width * 0.5, height * 0.5, 0, width * 0.5, height * 0.5, Math.max(width, height) * 0.72);
+        field.addColorStop(0, "rgba(74, 8, 16, 0.14)");
+        field.addColorStop(0.6, "rgba(14, 2, 4, 0.06)");
+        field.addColorStop(1, "rgba(0, 0, 0, 0)");
+        ctx.fillStyle = field;
+        ctx.fillRect(0, 0, width, height);
+
+        for (const row of lattice) {
+          const yy = height * row.y + Math.sin(t * 0.55 + row.phase) * 22;
+          ctx.strokeStyle = `rgba(255, 58, 78, ${row.alpha})`;
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(0, yy);
+          ctx.lineTo(width, yy + Math.sin(t * 0.8 + row.phase) * 8);
+          ctx.stroke();
+        }
+
+        const sorted = [...panes].sort((a, b) => a.y - b.y);
+        for (const pane of sorted) {
+          drawPane(pane, t, swayX, swayY);
+        }
+
+        ctx.globalCompositeOperation = "screen";
+        for (let i = 0; i < 18; i++) {
+          const x = ((t * (22 + i * 1.7) + i * 61) % (width + 160)) - 80;
+          const y = height * (0.1 + ((i * 0.07) % 0.8)) + Math.sin(t * 0.7 + i) * 18;
+          const blur = 28 + i * 3;
+          const grad = ctx.createRadialGradient(x, y, 0, x, y, blur);
+          grad.addColorStop(0, i % 3 === 0 ? "rgba(255,220,170,0.18)" : "rgba(255,70,90,0.12)");
+          grad.addColorStop(1, "rgba(0,0,0,0)");
+          ctx.fillStyle = grad;
+          ctx.fillRect(x - blur, y - blur, blur * 2, blur * 2);
+        }
+        ctx.globalCompositeOperation = "source-over";
+
+        ctx.fillStyle = "rgba(255,255,255,0.035)";
+        for (let y = 0; y < height; y += 3) {
+          ctx.fillRect(0, y, width, 1);
+        }
+
+        requestAnimationFrame(draw);
+      }
+
+      window.addEventListener("resize", resize);
+      resize();
+      requestAnimationFrame(draw);
+    </script>
+  </body>
+</html>

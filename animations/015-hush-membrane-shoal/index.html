@@ -1,0 +1,574 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Hush Membrane Shoal</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #05060b;
+        --panel: rgba(10, 11, 18, 0.64);
+        --line: rgba(255, 241, 230, 0.12);
+        --text: #f5ebdf;
+        --muted: rgba(245, 235, 223, 0.7);
+        --accent: #f58ac2;
+        --accent-2: #7de1df;
+        --accent-3: #9b89ff;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        background: var(--bg);
+        color: var(--text);
+        font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      }
+
+      body {
+        overflow: hidden;
+      }
+
+      canvas {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        display: block;
+      }
+
+      .hud {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 1rem;
+        padding: 1rem;
+      }
+
+      .panel,
+      .chip {
+        pointer-events: auto;
+        backdrop-filter: blur(18px);
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        box-shadow: 0 14px 42px rgba(0, 0, 0, 0.28);
+      }
+
+      .panel {
+        width: min(30rem, 100%);
+        padding: 1rem 1rem 0.95rem;
+      }
+
+      .chip {
+        width: min(16rem, 42vw);
+        padding: 0.9rem;
+      }
+
+      .eyebrow,
+      .label,
+      .small {
+        margin: 0;
+        text-transform: uppercase;
+        letter-spacing: 0.16em;
+        font-size: 0.68rem;
+        color: rgba(245, 235, 223, 0.58);
+      }
+
+      h1 {
+        margin: 0.35rem 0 0.55rem;
+        font-size: clamp(1.8rem, 4vw, 3rem);
+        line-height: 0.95;
+        font-weight: 700;
+      }
+
+      .hint,
+      .meta {
+        margin: 0 0 0.8rem;
+        max-width: 34rem;
+        color: var(--muted);
+        line-height: 1.5;
+        font-size: 0.95rem;
+      }
+
+      .meta {
+        font-size: 0.88rem;
+      }
+
+      .rows {
+        display: grid;
+        gap: 0.6rem;
+      }
+
+      .row {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        padding-bottom: 0.38rem;
+        border-bottom: 1px solid rgba(255, 241, 230, 0.08);
+      }
+
+      .value {
+        margin: 0.15rem 0 0;
+        font-size: 1rem;
+        color: var(--text);
+      }
+
+      .back {
+        display: inline-flex;
+        margin-top: 0.25rem;
+        color: var(--text);
+        text-decoration: none;
+        border-bottom: 1px solid rgba(245, 235, 223, 0.3);
+      }
+
+      @media (max-width: 860px) {
+        .hud {
+          flex-direction: column;
+          align-items: stretch;
+        }
+
+        .chip {
+          width: min(100%, 18rem);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="scene"></canvas>
+    <div class="hud">
+      <section class="panel">
+        <p class="eyebrow">Code Animation Study #015</p>
+        <h1>Hush Membrane Shoal</h1>
+        <p class="hint">
+          The translucent HTML branch shifts from specimen display to a shallow,
+          pettable shoal. Soft membranes idle together like a living tide pool,
+          and a passing finger dents, blushes, and combs the whole colony.
+        </p>
+        <p class="meta">
+          Drag slowly to pet. Sweep faster to scratch a brighter wake through
+          the veins. The field stays procedural and shared, not a single hero
+          organism with a dashboard.
+        </p>
+        <a class="back" href="../../index.html">Index</a>
+      </section>
+
+      <section class="chip" aria-label="Shoal readout">
+        <div class="rows">
+          <div class="row">
+            <div>
+              <p class="label">Touch mood</p>
+              <p class="value" id="moodValue">listening</p>
+            </div>
+          </div>
+          <div class="row">
+            <div>
+              <p class="label">Shoal blush</p>
+              <p class="value" id="blushValue">0.34</p>
+            </div>
+          </div>
+          <div class="row">
+            <div>
+              <p class="label">Scratch wake</p>
+              <p class="value" id="wakeValue">soft comb</p>
+            </div>
+          </div>
+        </div>
+        <p class="small" style="margin-top: 0.75rem">
+          Pointer and touch both work. Idle state keeps a slow breathing chorus.
+        </p>
+      </section>
+    </div>
+    <script src="../../shared/study-notes.js"></script>
+
+    <script>
+      const canvas = document.getElementById("scene");
+      const ctx = canvas.getContext("2d");
+      const moodValue = document.getElementById("moodValue");
+      const blushValue = document.getElementById("blushValue");
+      const wakeValue = document.getElementById("wakeValue");
+
+      const TAU = Math.PI * 2;
+      const bodies = [];
+      const motes = [];
+      const threads = [];
+      const ripples = [];
+
+      let width = window.innerWidth;
+      let height = window.innerHeight;
+      let dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+      const pointer = {
+        x: 0.52,
+        y: 0.56,
+        tx: 0.52,
+        ty: 0.56,
+        energy: 0.16,
+        active: false,
+        speed: 0,
+        lastX: 0.52,
+        lastY: 0.56,
+      };
+
+      function rand(min, max) {
+        return min + Math.random() * (max - min);
+      }
+
+      function clamp(value, min, max) {
+        return Math.max(min, Math.min(max, value));
+      }
+
+      function ease(a, b, t) {
+        return a + (b - a) * t;
+      }
+
+      function resize() {
+        width = window.innerWidth;
+        height = window.innerHeight;
+        dpr = Math.min(window.devicePixelRatio || 1, 2);
+        canvas.width = Math.round(width * dpr);
+        canvas.height = Math.round(height * dpr);
+        canvas.style.width = `${width}px`;
+        canvas.style.height = `${height}px`;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        buildScene();
+      }
+
+      function buildScene() {
+        bodies.length = 0;
+        motes.length = 0;
+        threads.length = 0;
+        ripples.length = 0;
+
+        const cols = width < 760 ? 3 : 4;
+        const rows = width < 760 ? 4 : 3;
+        const spacingX = width / (cols + 1);
+        const spacingY = height / (rows + 1.25);
+
+        for (let row = 0; row < rows; row += 1) {
+          for (let col = 0; col < cols; col += 1) {
+            const x = spacingX * (col + 1) + rand(-spacingX * 0.16, spacingX * 0.16);
+            const y = height * 0.22 + spacingY * row + rand(-spacingY * 0.12, spacingY * 0.15);
+            bodies.push({
+              x,
+              y,
+              radius: rand(width * 0.07, width * 0.12),
+              stretch: rand(0.74, 1.24),
+              phase: rand(0, TAU),
+              drift: rand(0.72, 1.4),
+              tilt: rand(-0.6, 0.6),
+              veinCount: Math.round(rand(4, 7)),
+              hue: Math.floor(rand(0, 4)),
+            });
+          }
+        }
+
+        const moteCount = width < 760 ? 110 : 180;
+        for (let i = 0; i < moteCount; i += 1) {
+          motes.push({
+            x: Math.random(),
+            y: Math.random(),
+            size: rand(1.2, 3.2),
+            drift: rand(0.0005, 0.0015),
+            phase: rand(0, TAU),
+          });
+        }
+
+        const threadCount = width < 760 ? 18 : 30;
+        for (let i = 0; i < threadCount; i += 1) {
+          threads.push({
+            y: rand(0.12, 0.9),
+            amp: rand(18, 48),
+            phase: rand(0, TAU),
+            drift: rand(0.4, 1.2),
+            thickness: rand(0.8, 2.8),
+          });
+        }
+      }
+
+      function paintBackground(time) {
+        const base = ctx.createLinearGradient(0, 0, 0, height);
+        base.addColorStop(0, "#05060b");
+        base.addColorStop(0.45, "#080913");
+        base.addColorStop(1, "#04050a");
+        ctx.fillStyle = base;
+        ctx.fillRect(0, 0, width, height);
+
+        const canopy = ctx.createRadialGradient(
+          width * 0.5,
+          height * 0.18,
+          width * 0.02,
+          width * 0.5,
+          height * 0.18,
+          width * 0.7
+        );
+        canopy.addColorStop(0, "rgba(251, 230, 206, 0.11)");
+        canopy.addColorStop(0.3, "rgba(155, 137, 255, 0.09)");
+        canopy.addColorStop(0.62, "rgba(61, 123, 147, 0.08)");
+        canopy.addColorStop(1, "rgba(4, 5, 10, 0)");
+        ctx.fillStyle = canopy;
+        ctx.fillRect(0, 0, width, height);
+
+        threads.forEach((thread, index) => {
+          ctx.beginPath();
+          for (let step = 0; step <= 50; step += 1) {
+            const t = step / 50;
+            const x = t * width;
+            const y =
+              thread.y * height +
+              Math.sin(time * 0.00018 * thread.drift + t * 6 + thread.phase + index) * thread.amp +
+              Math.cos(t * 11 + thread.phase) * thread.amp * 0.2;
+            if (step === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+          }
+          ctx.strokeStyle = `rgba(122, 216, 221, ${0.04 + thread.thickness * 0.02})`;
+          ctx.lineWidth = thread.thickness;
+          ctx.stroke();
+        });
+      }
+
+      function palette(hue, alpha) {
+        if (hue === 0) return `rgba(244, 138, 194, ${alpha})`;
+        if (hue === 1) return `rgba(125, 225, 223, ${alpha})`;
+        if (hue === 2) return `rgba(155, 137, 255, ${alpha})`;
+        return `rgba(245, 228, 208, ${alpha})`;
+      }
+
+      function drawBody(body, time) {
+        const px = pointer.x * width;
+        const py = pointer.y * height;
+        const dx = px - body.x;
+        const dy = py - body.y;
+        const dist = Math.hypot(dx, dy);
+        const influence = clamp(1 - dist / (width * 0.26), 0, 1) * pointer.energy;
+        const scratch = clamp(pointer.speed * 18, 0, 1) * influence;
+        const pulse = Math.sin(time * 0.0011 * body.drift + body.phase) * 0.08;
+        const rx = body.radius * (1.02 + pulse + influence * 0.14);
+        const ry = body.radius * body.stretch * (0.88 - pulse * 0.5 - influence * 0.12);
+        const swayX = Math.sin(time * 0.00054 + body.phase) * width * 0.012;
+        const swayY = Math.cos(time * 0.00048 + body.phase) * height * 0.012;
+        const cx = body.x + swayX - dx * influence * 0.06;
+        const cy = body.y + swayY - dy * influence * 0.06;
+        const tilt = body.tilt + Math.sin(time * 0.0003 + body.phase) * 0.2 - dx * influence * 0.0008;
+
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(tilt);
+
+        const shell = ctx.createRadialGradient(-rx * 0.24, -ry * 0.18, rx * 0.04, 0, 0, rx * 1.16);
+        shell.addColorStop(0, "rgba(255, 245, 236, 0.64)");
+        shell.addColorStop(0.18, palette(body.hue, 0.32 + influence * 0.18));
+        shell.addColorStop(0.48, palette((body.hue + 1) % 4, 0.18 + influence * 0.12));
+        shell.addColorStop(1, "rgba(6, 10, 16, 0.02)");
+        ctx.fillStyle = shell;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, rx, ry, 0, 0, TAU);
+        ctx.fill();
+
+        const blush = ctx.createRadialGradient(dx * -0.18, dy * -0.12, 0, 0, 0, rx * 0.84);
+        blush.addColorStop(0, `rgba(255, 161, 205, ${0.1 + influence * 0.2 + scratch * 0.16})`);
+        blush.addColorStop(0.4, `rgba(123, 224, 221, ${0.08 + influence * 0.1})`);
+        blush.addColorStop(1, "rgba(0, 0, 0, 0)");
+        ctx.fillStyle = blush;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, rx * 0.92, ry * 0.92, 0, 0, TAU);
+        ctx.fill();
+
+        ctx.strokeStyle = `rgba(252, 241, 230, ${0.2 + influence * 0.18})`;
+        ctx.lineWidth = 1.1;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, rx * 0.95, ry * 0.95, 0, 0, TAU);
+        ctx.stroke();
+
+        for (let i = 0; i < body.veinCount; i += 1) {
+          const veinT = i / Math.max(1, body.veinCount - 1);
+          const vx = -rx * 0.56 + veinT * rx * 1.12;
+          ctx.beginPath();
+          for (let step = 0; step <= 18; step += 1) {
+            const t = step / 18;
+            const x = vx + Math.sin(t * TAU + body.phase + veinT * 2.2) * rx * 0.09;
+            const y =
+              -ry * 0.7 +
+              t * ry * 1.4 +
+              Math.cos(t * TAU * 1.5 + body.phase + veinT * 3) * ry * 0.08 +
+              influence * Math.sin(t * TAU + veinT) * ry * 0.12;
+            if (step === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+          }
+          ctx.strokeStyle = `rgba(117, 227, 224, ${0.1 + influence * 0.2 + scratch * 0.18})`;
+          ctx.lineWidth = 0.9 + scratch * 0.7;
+          ctx.stroke();
+        }
+
+        const poreOffsetX = Math.cos(body.phase) * rx * 0.1;
+        const poreOffsetY = Math.sin(body.phase * 1.2) * ry * 0.08;
+        const pore = ctx.createRadialGradient(poreOffsetX, poreOffsetY, 0, poreOffsetX, poreOffsetY, rx * 0.34);
+        pore.addColorStop(0, `rgba(37, 18, 46, ${0.52 + influence * 0.08})`);
+        pore.addColorStop(0.35, `rgba(226, 98, 171, ${0.18 + influence * 0.16})`);
+        pore.addColorStop(1, "rgba(0, 0, 0, 0)");
+        ctx.fillStyle = pore;
+        ctx.beginPath();
+        ctx.ellipse(poreOffsetX, poreOffsetY, rx * 0.24, ry * 0.18, 0, 0, TAU);
+        ctx.fill();
+
+        ctx.restore();
+
+        if (influence > 0.16 && Math.random() < 0.12) {
+          ripples.push({
+            x: cx,
+            y: cy,
+            life: 0,
+            max: 40 + scratch * 28,
+            alpha: 0.11 + scratch * 0.1,
+          });
+        }
+
+        return { influence, scratch };
+      }
+
+      function drawMotes(time) {
+        const px = pointer.x * width;
+        const py = pointer.y * height;
+        motes.forEach((mote) => {
+          const x = (mote.x + Math.sin(time * mote.drift + mote.phase) * 0.02) * width;
+          const y = ((mote.y + time * mote.drift * 0.08) % 1) * height;
+          const dist = Math.hypot(px - x, py - y);
+          const react = clamp(1 - dist / 140, 0, 1) * pointer.energy;
+          ctx.fillStyle = `rgba(248, 238, 227, ${0.08 + react * 0.14})`;
+          ctx.beginPath();
+          ctx.arc(x, y, mote.size + react * 1.4, 0, TAU);
+          ctx.fill();
+        });
+      }
+
+      function drawRipples() {
+        for (let i = ripples.length - 1; i >= 0; i -= 1) {
+          const ripple = ripples[i];
+          ripple.life += 1;
+          const t = ripple.life / ripple.max;
+          if (t >= 1) {
+            ripples.splice(i, 1);
+            continue;
+          }
+          ctx.strokeStyle = `rgba(248, 233, 219, ${(1 - t) * ripple.alpha})`;
+          ctx.lineWidth = 1.4 - t * 0.8;
+          ctx.beginPath();
+          ctx.ellipse(ripple.x, ripple.y, 14 + t * 70, 10 + t * 38, 0, 0, TAU);
+          ctx.stroke();
+        }
+      }
+
+      function drawProbe(time) {
+        const x = pointer.x * width;
+        const y = pointer.y * height;
+        const radius = 28 + pointer.energy * 18 + Math.sin(time * 0.003) * 2;
+        const glow = ctx.createRadialGradient(x, y, 0, x, y, radius * 2);
+        glow.addColorStop(0, `rgba(255, 241, 229, ${0.13 + pointer.energy * 0.12})`);
+        glow.addColorStop(0.32, `rgba(245, 138, 194, ${0.08 + pointer.energy * 0.12})`);
+        glow.addColorStop(0.62, `rgba(125, 225, 223, ${0.06 + pointer.energy * 0.08})`);
+        glow.addColorStop(1, "rgba(0, 0, 0, 0)");
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.arc(x, y, radius * 2, 0, TAU);
+        ctx.fill();
+
+        ctx.strokeStyle = `rgba(247, 236, 228, ${0.2 + pointer.energy * 0.18})`;
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, TAU);
+        ctx.stroke();
+      }
+
+      function updateReadout(blush, scratch) {
+        moodValue.textContent =
+          pointer.energy > 0.72 ? "thrumming" : pointer.energy > 0.34 ? "leaning in" : "listening";
+        blushValue.textContent = blush.toFixed(2);
+        wakeValue.textContent =
+          scratch > 0.56 ? "bright scratch" : scratch > 0.22 ? "warm comb" : "soft comb";
+      }
+
+      function frame(time) {
+        pointer.x = ease(pointer.x, pointer.tx, 0.08);
+        pointer.y = ease(pointer.y, pointer.ty, 0.08);
+        pointer.energy = ease(pointer.energy, pointer.active ? 1 : 0.16, pointer.active ? 0.08 : 0.03);
+        const travel = Math.hypot(pointer.x - pointer.lastX, pointer.y - pointer.lastY);
+        pointer.speed = ease(pointer.speed, clamp(travel * 18, 0, 1), 0.2);
+        pointer.lastX = pointer.x;
+        pointer.lastY = pointer.y;
+
+        paintBackground(time);
+
+        let blush = 0;
+        let scratch = 0;
+        bodies.forEach((body) => {
+          const response = drawBody(body, time);
+          blush += response.influence;
+          scratch += response.scratch;
+        });
+
+        blush = clamp(blush / Math.max(1, bodies.length) * 2.8, 0, 0.99);
+        scratch = clamp(scratch / Math.max(1, bodies.length) * 3.1, 0, 0.99);
+
+        drawMotes(time);
+        drawRipples();
+        drawProbe(time);
+        updateReadout(blush, scratch);
+
+        requestAnimationFrame(frame);
+      }
+
+      function setPointer(clientX, clientY, active) {
+        pointer.tx = clamp(clientX / width, 0, 1);
+        pointer.ty = clamp(clientY / height, 0, 1);
+        pointer.active = active;
+      }
+
+      window.addEventListener("pointermove", (event) => {
+        setPointer(event.clientX, event.clientY, true);
+      });
+
+      window.addEventListener("pointerdown", (event) => {
+        setPointer(event.clientX, event.clientY, true);
+      });
+
+      window.addEventListener("pointerleave", () => {
+        pointer.active = false;
+      });
+
+      window.addEventListener(
+        "touchstart",
+        (event) => {
+          const touch = event.touches[0];
+          if (touch) setPointer(touch.clientX, touch.clientY, true);
+        },
+        { passive: true }
+      );
+
+      window.addEventListener(
+        "touchmove",
+        (event) => {
+          const touch = event.touches[0];
+          if (touch) setPointer(touch.clientX, touch.clientY, true);
+        },
+        { passive: true }
+      );
+
+      window.addEventListener("touchend", () => {
+        pointer.active = false;
+      });
+
+      window.addEventListener("resize", resize);
+
+      resize();
+      requestAnimationFrame(frame);
+    </script>
+  </body>
+</html>

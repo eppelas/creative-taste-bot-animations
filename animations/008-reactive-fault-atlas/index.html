@@ -1,0 +1,547 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>#008 Reactive Fault Atlas</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --text: #f4ede2;
+        --muted: #938a82;
+        --panel: rgba(8, 7, 7, 0.38);
+        --line: rgba(244, 237, 226, 0.16);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        background:
+          radial-gradient(circle at 70% 26%, rgba(122, 10, 22, 0.14), transparent 24%),
+          radial-gradient(circle at 24% 80%, rgba(82, 8, 16, 0.12), transparent 30%),
+          #020202;
+        color: var(--text);
+        font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+      }
+
+      canvas {
+        position: fixed;
+        inset: 0;
+        display: block;
+        width: 100vw;
+        height: 100vh;
+      }
+
+      .hud {
+        position: fixed;
+        inset: auto 18px 18px 18px;
+        display: flex;
+        justify-content: space-between;
+        align-items: end;
+        gap: 18px;
+        pointer-events: none;
+      }
+
+      .title {
+        display: grid;
+        gap: 4px;
+      }
+
+      h1,
+      p {
+        margin: 0;
+      }
+
+      h1 {
+        font-size: 13px;
+        font-weight: 560;
+      }
+
+      p {
+        max-width: 620px;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.42;
+      }
+
+      .back {
+        pointer-events: auto;
+        color: var(--text);
+        text-decoration: none;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 8px 11px;
+        font-size: 12px;
+        background: var(--panel);
+        backdrop-filter: blur(14px);
+      }
+
+      @media (max-width: 720px) {
+        .hud {
+          top: 14px;
+          bottom: auto;
+          flex-direction: column;
+          align-items: start;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="scene"></canvas>
+    <div class="hud">
+      <div class="title">
+        <h1>#008 Reactive Fault Atlas</h1>
+        <p>
+          Move through the crimson field to shear the printed fault open:
+          stipple density, void squares, and calibration traces react locally
+          instead of orbiting a central object.
+        </p>
+      </div>
+      <a class="back" href="../../index.html">Index</a>
+    </div>
+    <script src="../../shared/study-notes.js"></script>
+
+    <script>
+      const canvas = document.getElementById("scene");
+      const ctx = canvas.getContext("2d", { alpha: false });
+
+      const TAU = Math.PI * 2;
+      const voids = [];
+      const markers = [];
+      const curves = [];
+      const dust = [];
+
+      let width = 0;
+      let height = 0;
+      let dpr = 1;
+      let start = performance.now();
+      let step = 6;
+
+      const pointer = {
+        x: 0,
+        y: 0,
+        tx: 0,
+        ty: 0,
+        active: false,
+        strength: 0,
+      };
+
+      const rand = (min, max) => min + Math.random() * (max - min);
+      const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+      const lerp = (a, b, t) => a + (b - a) * t;
+
+      function hash(x, y) {
+        const n = Math.sin(x * 127.1 + y * 311.7) * 43758.5453123;
+        return n - Math.floor(n);
+      }
+
+      function noise(x, y) {
+        const ix = Math.floor(x);
+        const iy = Math.floor(y);
+        const fx = x - ix;
+        const fy = y - iy;
+        const a = hash(ix, iy);
+        const b = hash(ix + 1, iy);
+        const c = hash(ix, iy + 1);
+        const d = hash(ix + 1, iy + 1);
+        const ux = fx * fx * (3 - 2 * fx);
+        const uy = fy * fy * (3 - 2 * fy);
+        return (
+          a * (1 - ux) * (1 - uy) +
+          b * ux * (1 - uy) +
+          c * (1 - ux) * uy +
+          d * ux * uy
+        );
+      }
+
+      function fbm(x, y) {
+        let value = 0;
+        let amp = 0.5;
+        let freq = 1;
+        for (let i = 0; i < 4; i++) {
+          value += noise(x * freq, y * freq) * amp;
+          freq *= 2.03;
+          amp *= 0.5;
+        }
+        return value;
+      }
+
+      function faultInfo(nx, ny, t) {
+        const base = (ny - 0.82) + nx * 0.72;
+        const wave =
+          Math.sin(nx * 7.2 + t * 0.26) * 0.06 +
+          Math.cos(ny * 6.4 - t * 0.22) * 0.05 +
+          (fbm(nx * 2.4 + t * 0.03, ny * 2.7 - t * 0.04) - 0.5) * 0.22;
+
+        const px = pointer.x / Math.max(width, 1);
+        const py = pointer.y / Math.max(height, 1);
+        const dx = nx - px;
+        const dy = ny - py;
+        const dist = Math.hypot(dx * 1.05, dy * 0.9);
+        const pull = pointer.strength * Math.exp(-Math.pow(dist / 0.18, 2));
+        const side = Math.sign(base + wave || 1);
+        const shear = pull * side * 0.11;
+        const center = base + wave + shear;
+        const widthBias = 0.108 + pull * 0.12;
+        const density = Math.exp(-Math.pow(center / widthBias, 2));
+        const grain = fbm(nx * 11.0 + t * 0.18, ny * 11.0 - t * 0.16);
+        const spark = fbm(nx * 26.0 - t * 0.35, ny * 26.0 + t * 0.32);
+        const angle =
+          -0.88 +
+          Math.sin((nx + ny) * 8.0 + t * 0.3) * 0.22 +
+          (fbm(nx * 5.0 - t * 0.08, ny * 5.0 + t * 0.07) - 0.5) * 1.2 +
+          shear * 5.0;
+
+        return {
+          center,
+          density,
+          pull,
+          grain,
+          spark,
+          vx: Math.cos(angle),
+          vy: Math.sin(angle),
+        };
+      }
+
+      function seed() {
+        voids.length = 0;
+        markers.length = 0;
+        curves.length = 0;
+        dust.length = 0;
+        step = width < 720 ? 7 : 6;
+
+        const voidCount = width < 720 ? 8 : 11;
+        for (let i = 0; i < voidCount; i++) {
+          const p = (i + 0.9) / (voidCount + 0.9);
+          voids.push({
+            x: width * (0.1 + p * 0.78) + rand(-80, 80),
+            y: height * (0.9 - p * 0.76) + rand(-90, 90),
+            size: rand(width < 720 ? 22 : 28, width < 720 ? 74 : 108),
+            phase: rand(0, TAU),
+            drift: rand(-0.18, 0.18),
+          });
+        }
+
+        for (let i = 0; i < 34; i++) {
+          markers.push({
+            x: rand(0.04, 0.96),
+            y: rand(0.04, 0.96),
+            kind: Math.random() > 0.55 ? "cross" : "ticks",
+            scale: rand(0.45, 1.25),
+            phase: rand(0, TAU),
+            alpha: rand(0.1, 0.8),
+          });
+        }
+
+        for (let i = 0; i < 10; i++) {
+          curves.push({
+            offset: rand(-0.24, 0.24),
+            bend: rand(-0.2, 0.2),
+            alpha: rand(0.08, 0.24),
+            phase: rand(0, TAU),
+          });
+        }
+
+        const dustCount = clamp(Math.floor((width * height) / 16000), 50, 140);
+        for (let i = 0; i < dustCount; i++) {
+          dust.push({
+            x: rand(0, width),
+            y: rand(0, height),
+            size: rand(0.7, 2.8),
+            phase: rand(0, TAU),
+            speed: rand(0.2, 0.8),
+          });
+        }
+      }
+
+      function resize() {
+        dpr = Math.min(window.devicePixelRatio || 1, 2);
+        width = Math.floor(window.innerWidth);
+        height = Math.floor(window.innerHeight);
+        canvas.width = Math.floor(width * dpr);
+        canvas.height = Math.floor(height * dpr);
+        canvas.style.width = width + "px";
+        canvas.style.height = height + "px";
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        pointer.x = width * 0.5;
+        pointer.y = height * 0.5;
+        pointer.tx = pointer.x;
+        pointer.ty = pointer.y;
+        seed();
+      }
+
+      function drawBackground(t) {
+        ctx.fillStyle = "#020202";
+        ctx.fillRect(0, 0, width, height);
+
+        const glow = ctx.createRadialGradient(
+          width * 0.54,
+          height * 0.48,
+          0,
+          width * 0.54,
+          height * 0.48,
+          Math.max(width, height) * 0.72,
+        );
+        glow.addColorStop(0, "rgba(104, 8, 18, 0.22)");
+        glow.addColorStop(0.52, "rgba(18, 2, 5, 0.16)");
+        glow.addColorStop(1, "rgba(0, 0, 0, 0)");
+        ctx.fillStyle = glow;
+        ctx.fillRect(0, 0, width, height);
+
+        for (let y = 0; y < height; y += 2) {
+          const alpha = 0.008 + (y / height) * 0.006;
+          ctx.fillStyle = `rgba(255, 244, 228, ${alpha})`;
+          ctx.fillRect(0, y, width, 1);
+        }
+
+        for (const mote of dust) {
+          const x = mote.x + Math.sin(t * 0.16 + mote.phase) * 16;
+          const y =
+            (mote.y + t * 8 * mote.speed + Math.cos(t * 0.4 + mote.phase) * 6) %
+            (height + 20);
+          ctx.fillStyle = `rgba(255, 248, 238, ${0.03 + mote.size * 0.015})`;
+          ctx.fillRect(x, y - 10, mote.size, mote.size);
+        }
+      }
+
+      function drawCurves(t) {
+        ctx.save();
+        ctx.lineCap = "round";
+        for (const curve of curves) {
+          const pointerBend =
+            pointer.strength *
+            Math.sin(t * 1.2 + curve.phase) *
+            80;
+          ctx.strokeStyle = `rgba(255, 62, 74, ${curve.alpha})`;
+          ctx.lineWidth = 0.9 + curve.alpha * 2;
+          ctx.beginPath();
+          for (let i = 0; i <= 48; i++) {
+            const p = i / 48;
+            const x = width * (0.06 + p * 0.9);
+            const y =
+              height * (0.92 - p * 0.78) +
+              Math.sin(p * 8 + t * 0.32 + curve.phase) * height * 0.02 +
+              curve.offset * height * 0.24 +
+              curve.bend * Math.sin(p * TAU) * height * 0.12 +
+              pointerBend * Math.exp(-Math.pow((p - 0.52) / 0.24, 2));
+            if (i === 0) {
+              ctx.moveTo(x, y);
+            } else {
+              ctx.lineTo(x, y);
+            }
+          }
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      function drawField(t) {
+        ctx.globalCompositeOperation = "source-over";
+
+        for (let y = 0; y < height; y += step) {
+          for (let x = 0; x < width; x += step) {
+            const nx = x / width;
+            const ny = y / height;
+            const info = faultInfo(nx, ny, t);
+
+            if (info.density < 0.06) {
+              if (Math.random() < 0.00022) {
+                ctx.fillStyle = "rgba(255, 236, 224, 0.14)";
+                ctx.fillRect(x, y, 1, 1);
+              }
+              continue;
+            }
+
+            const threshold = 0.22 + (1 - info.density) * 0.34;
+            if (info.grain < threshold && info.spark < 0.74) {
+              continue;
+            }
+
+            const warp = info.pull * 28;
+            const dx = info.vx * warp;
+            const dy = info.vy * warp;
+            const px = x + dx + (info.grain - 0.5) * step * 1.8;
+            const py = y + dy + (info.spark - 0.5) * step * 1.8;
+
+            const hot = clamp(info.density * 1.15 + info.pull * 0.9, 0, 1.8);
+            const alpha = clamp(0.1 + hot * 0.54 + (info.spark - 0.5) * 0.2, 0.08, 0.9);
+            let fill = `rgba(255, ${Math.round(34 + hot * 40)}, ${Math.round(32 + hot * 26)}, ${alpha})`;
+            let size = info.spark > 0.82 ? step * 0.8 : step * 0.52;
+
+            if (info.spark > 0.94) {
+              fill = `rgba(255, 244, 230, ${0.28 + info.pull * 0.5})`;
+              size = step * 0.94;
+            } else if (info.spark > 0.88) {
+              fill = `rgba(255, 170, 154, ${0.34 + info.pull * 0.32})`;
+            }
+
+            ctx.fillStyle = fill;
+            ctx.fillRect(px, py, size, size);
+          }
+        }
+      }
+
+      function drawVoids(t) {
+        ctx.save();
+        for (const voidBox of voids) {
+          const dx = pointer.x - voidBox.x;
+          const dy = pointer.y - voidBox.y;
+          const dist = Math.hypot(dx, dy);
+          const react = pointer.strength * Math.exp(-Math.pow(dist / 180, 2));
+          const driftX = Math.sin(t * 0.7 + voidBox.phase) * 22 + dx * react * 0.08;
+          const driftY = Math.cos(t * 0.6 + voidBox.phase) * 18 + dy * react * 0.08;
+          const size = voidBox.size * (1 + react * 0.42);
+
+          ctx.fillStyle = "rgba(2, 2, 2, 0.94)";
+          ctx.fillRect(voidBox.x - size * 0.5 + driftX, voidBox.y - size * 0.5 + driftY, size, size);
+
+          ctx.strokeStyle = `rgba(255, 86, 96, ${0.15 + react * 0.3})`;
+          ctx.lineWidth = 1;
+          ctx.strokeRect(
+            voidBox.x - size * 0.5 + driftX - 2,
+            voidBox.y - size * 0.5 + driftY - 2,
+            size + 4,
+            size + 4,
+          );
+
+          if (react > 0.08) {
+            ctx.strokeStyle = `rgba(255, 244, 232, ${react * 0.3})`;
+            ctx.beginPath();
+            ctx.moveTo(voidBox.x + driftX - size * 0.62, voidBox.y + driftY);
+            ctx.lineTo(voidBox.x + driftX + size * 0.62, voidBox.y + driftY);
+            ctx.moveTo(voidBox.x + driftX, voidBox.y + driftY - size * 0.62);
+            ctx.lineTo(voidBox.x + driftX, voidBox.y + driftY + size * 0.62);
+            ctx.stroke();
+          }
+        }
+        ctx.restore();
+      }
+
+      function drawMarkers(t) {
+        ctx.save();
+        ctx.lineWidth = 1;
+        ctx.lineCap = "round";
+        for (const marker of markers) {
+          const x = marker.x * width;
+          const y = marker.y * height;
+          const dist = Math.hypot(pointer.x - x, pointer.y - y);
+          const react = pointer.strength * Math.exp(-Math.pow(dist / 160, 2));
+          const alpha = marker.alpha * 0.5 + react * 0.45;
+          const size = (5 + marker.scale * 12) * (1 + react * 0.3);
+
+          ctx.strokeStyle = react > 0.22
+            ? `rgba(255, 242, 228, ${alpha})`
+            : `rgba(255, 110, 112, ${alpha})`;
+
+          if (marker.kind === "cross") {
+            ctx.beginPath();
+            ctx.moveTo(x - size, y);
+            ctx.lineTo(x + size, y);
+            ctx.moveTo(x, y - size);
+            ctx.lineTo(x, y + size);
+            ctx.stroke();
+          } else {
+            ctx.beginPath();
+            ctx.moveTo(x - size, y - size);
+            ctx.lineTo(x - size * 0.2, y - size);
+            ctx.moveTo(x - size, y - size);
+            ctx.lineTo(x - size, y - size * 0.2);
+            ctx.moveTo(x + size, y + size);
+            ctx.lineTo(x + size * 0.2, y + size);
+            ctx.moveTo(x + size, y + size);
+            ctx.lineTo(x + size, y + size * 0.2);
+            ctx.stroke();
+          }
+        }
+        ctx.restore();
+      }
+
+      function drawPointerEcho() {
+        if (pointer.strength < 0.02) {
+          return;
+        }
+
+        const radius = 84 + pointer.strength * 120;
+        ctx.save();
+        ctx.strokeStyle = `rgba(255, 74, 88, ${0.08 + pointer.strength * 0.12})`;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(pointer.x, pointer.y, radius, 0, TAU);
+        ctx.stroke();
+
+        ctx.strokeStyle = `rgba(255, 244, 230, ${pointer.strength * 0.16})`;
+        ctx.beginPath();
+        ctx.arc(pointer.x, pointer.y, radius * 0.62, 0, TAU);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      function updatePointer() {
+        pointer.x = lerp(pointer.x, pointer.tx, 0.14);
+        pointer.y = lerp(pointer.y, pointer.ty, 0.14);
+        pointer.strength = lerp(pointer.strength, pointer.active ? 1 : 0, 0.06);
+      }
+
+      function frame(now) {
+        const t = (now - start) * 0.001;
+        updatePointer();
+        drawBackground(t);
+        drawCurves(t);
+        drawField(t);
+        drawVoids(t);
+        drawMarkers(t);
+        drawPointerEcho();
+        requestAnimationFrame(frame);
+      }
+
+      function setPointer(clientX, clientY) {
+        pointer.tx = clientX;
+        pointer.ty = clientY;
+        pointer.active = true;
+      }
+
+      window.addEventListener("pointermove", (event) => {
+        setPointer(event.clientX, event.clientY);
+      });
+
+      window.addEventListener("pointerdown", (event) => {
+        setPointer(event.clientX, event.clientY);
+        pointer.strength = 1;
+      });
+
+      window.addEventListener("pointerleave", () => {
+        pointer.active = false;
+      });
+
+      window.addEventListener("touchstart", (event) => {
+        const touch = event.touches[0];
+        if (touch) {
+          setPointer(touch.clientX, touch.clientY);
+        }
+      }, { passive: true });
+
+      window.addEventListener("touchmove", (event) => {
+        const touch = event.touches[0];
+        if (touch) {
+          setPointer(touch.clientX, touch.clientY);
+        }
+      }, { passive: true });
+
+      window.addEventListener("touchend", () => {
+        pointer.active = false;
+      });
+
+      window.addEventListener("resize", resize);
+
+      resize();
+      requestAnimationFrame(frame);
+    </script>
+  </body>
+</html>

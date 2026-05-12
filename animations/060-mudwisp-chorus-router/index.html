@@ -1,0 +1,1795 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>#060 Mudwisp Chorus Router</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --paper: #f4ede0;
+        --paper-warm: #efe2cf;
+        --ink: #191816;
+        --line: rgba(25, 24, 22, 0.18);
+        --line-strong: rgba(25, 24, 22, 0.42);
+        --mint: #99cdbf;
+        --mint-deep: #6eab9a;
+        --coral: #f07b54;
+        --sun: #f4c84f;
+        --char: #242424;
+        --fog: rgba(255, 255, 255, 0.55);
+        --panel: rgba(255, 250, 243, 0.8);
+        --shadow: 0 22px 70px rgba(94, 69, 44, 0.12);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        background:
+          radial-gradient(circle at 20% 12%, rgba(255, 255, 255, 0.75), transparent 22%),
+          radial-gradient(circle at 82% 18%, rgba(240, 123, 84, 0.09), transparent 18%),
+          radial-gradient(circle at 76% 78%, rgba(153, 205, 191, 0.16), transparent 22%),
+          linear-gradient(180deg, #fbf7f0 0%, #f2e7d8 100%);
+        color: var(--ink);
+        font-family: "Trebuchet MS", "Avenir Next", sans-serif;
+      }
+
+      body::before,
+      body::after {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+      }
+
+      body::before {
+        opacity: 0.11;
+        background-image:
+          linear-gradient(rgba(31, 26, 19, 0.08) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(31, 26, 19, 0.08) 1px, transparent 1px);
+        background-size: 46px 46px;
+        mask-image: radial-gradient(circle at 50% 44%, black 38%, transparent 90%);
+      }
+
+      body::after {
+        opacity: 0.05;
+        background-image:
+          linear-gradient(rgba(255, 255, 255, 0.95) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.95) 1px, transparent 1px);
+        background-size: 4px 4px;
+        mix-blend-mode: overlay;
+      }
+
+      a {
+        color: inherit;
+      }
+
+      .shell {
+        width: min(1500px, calc(100% - 26px));
+        margin: 0 auto;
+        padding: 20px 0 26px;
+      }
+
+      .mono,
+      .back,
+      .small,
+      .meta,
+      .route-label,
+      .macro-value,
+      .footer-label,
+      .seq-index,
+      .species-bio {
+        font-family: "Azeret Mono", "IBM Plex Mono", monospace;
+      }
+
+      .topline {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 14px;
+        align-items: start;
+        margin-bottom: 14px;
+      }
+
+      .brand {
+        display: grid;
+        gap: 4px;
+        padding: 8px 6px 0;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+
+      .brand h1 {
+        font-size: clamp(2.8rem, 6vw, 4.7rem);
+        line-height: 0.9;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .brand h1 span {
+        color: var(--coral);
+      }
+
+      .brand p {
+        font-size: 1.05rem;
+      }
+
+      .statusline {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: center;
+        justify-content: flex-end;
+        padding-top: 14px;
+      }
+
+      .pill,
+      .back,
+      .module,
+      .note,
+      .route,
+      .macro,
+      .output,
+      .sequence,
+      .board {
+        border: 1px solid var(--line);
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0.22)),
+          var(--panel);
+        box-shadow: var(--shadow);
+      }
+
+      .pill,
+      .back {
+        border-radius: 999px;
+        padding: 10px 14px;
+      }
+
+      .back {
+        text-decoration: none;
+        font-size: 0.72rem;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .dot {
+        width: 13px;
+        height: 13px;
+        border-radius: 999px;
+        background: var(--sun);
+        box-shadow: 0 0 0 5px rgba(244, 200, 79, 0.18);
+      }
+
+      .board {
+        border-radius: 34px;
+        overflow: hidden;
+      }
+
+      .board-grid {
+        display: grid;
+        grid-template-columns: 288px minmax(0, 1fr) 332px;
+        min-height: 70vh;
+      }
+
+      .module {
+        position: relative;
+        border-radius: 0;
+        border-left: none;
+        border-top: none;
+        box-shadow: none;
+      }
+
+      .module::after,
+      .board::after,
+      .note::after,
+      .sequence::after,
+      .output::after {
+        content: "";
+        position: absolute;
+        inset: 1px;
+        border: 1px solid rgba(255, 255, 255, 0.4);
+        pointer-events: none;
+      }
+
+      .module::after,
+      .board::after {
+        border-radius: inherit;
+      }
+
+      .left-rail,
+      .right-rail {
+        display: grid;
+        align-content: start;
+      }
+
+      .left-rail {
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.16)),
+          rgba(244, 238, 229, 0.82);
+      }
+
+      .species-head,
+      .right-head,
+      .composer-head,
+      .output-head {
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .species-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: center;
+      }
+
+      .small {
+        font-size: 0.74rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: rgba(25, 24, 22, 0.62);
+      }
+
+      .species-list {
+        display: grid;
+      }
+
+      .species-card {
+        position: relative;
+        display: grid;
+        grid-template-columns: 88px minmax(0, 1fr);
+        gap: 12px;
+        padding: 14px 16px;
+        border-bottom: 1px solid var(--line);
+        cursor: grab;
+        user-select: none;
+        transition: background 180ms ease, transform 180ms ease;
+      }
+
+      .species-card:hover,
+      .species-card.active {
+        background: rgba(255, 255, 255, 0.38);
+      }
+
+      .species-card:active {
+        cursor: grabbing;
+        transform: scale(0.99);
+      }
+
+      .species-preview {
+        width: 88px;
+        height: 116px;
+      }
+
+      .species-copy {
+        display: grid;
+        align-content: start;
+        gap: 8px;
+      }
+
+      .species-name {
+        font-size: 1.15rem;
+        line-height: 1;
+      }
+
+      .species-bio {
+        font-size: 0.78rem;
+        letter-spacing: 0.04em;
+        color: rgba(25, 24, 22, 0.78);
+      }
+
+      .meter-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        font-size: 0.95rem;
+      }
+
+      .meter {
+        position: relative;
+        width: 10px;
+        height: 58px;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        background: linear-gradient(180deg, rgba(240, 123, 84, 0.26), rgba(153, 205, 191, 0.26));
+        overflow: hidden;
+      }
+
+      .meter-fill {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        border-radius: inherit;
+        background: linear-gradient(180deg, var(--coral), var(--mint));
+      }
+
+      .ghost-drop {
+        padding: 18px 16px 16px;
+        display: grid;
+        gap: 10px;
+      }
+
+      .ghost-box {
+        min-height: 84px;
+        border-radius: 24px;
+        border: 1px dashed var(--line-strong);
+        display: grid;
+        place-items: center;
+        text-align: center;
+        padding: 14px;
+        color: rgba(25, 24, 22, 0.72);
+        background: rgba(255, 255, 255, 0.34);
+      }
+
+      .field-shell {
+        position: relative;
+        min-height: 70vh;
+        overflow: hidden;
+        background:
+          radial-gradient(circle at 50% 48%, rgba(255, 255, 255, 0.68), transparent 34%),
+          radial-gradient(circle at 36% 70%, rgba(153, 205, 191, 0.18), transparent 20%),
+          radial-gradient(circle at 68% 68%, rgba(240, 123, 84, 0.14), transparent 18%),
+          linear-gradient(180deg, rgba(252, 246, 238, 0.96), rgba(245, 235, 223, 0.96));
+      }
+
+      #field {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        display: block;
+      }
+
+      .field-head {
+        position: absolute;
+        inset: 0 0 auto 0;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 12px;
+        padding: 18px 20px 0;
+        pointer-events: none;
+      }
+
+      .field-title {
+        max-width: 520px;
+      }
+
+      .field-title h2 {
+        font-size: clamp(1.45rem, 2.6vw, 2.3rem);
+        line-height: 0.95;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      .field-title p,
+      .signal-note,
+      .footer-copy,
+      .output-copy {
+        line-height: 1.45;
+      }
+
+      .signal-note {
+        padding-top: 3px;
+        max-width: 250px;
+        text-align: right;
+        color: rgba(25, 24, 22, 0.68);
+        font-size: 0.92rem;
+      }
+
+      .field-chip {
+        position: absolute;
+        z-index: 3;
+        padding: 10px 14px;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.72);
+        box-shadow: 0 10px 20px rgba(97, 79, 51, 0.08);
+        font-size: 0.78rem;
+        display: inline-flex;
+        gap: 8px;
+        align-items: center;
+        backdrop-filter: blur(12px);
+      }
+
+      .field-chip svg {
+        width: 18px;
+        height: 18px;
+      }
+
+      .chip-a {
+        left: 12%;
+        top: 34%;
+      }
+
+      .chip-b {
+        right: 12%;
+        top: 42%;
+      }
+
+      .chip-c {
+        left: 44%;
+        bottom: 12%;
+      }
+
+      .right-head {
+        display: grid;
+        gap: 10px;
+      }
+
+      .route-group,
+      .macro-grid {
+        padding: 14px 18px 18px;
+      }
+
+      .route-group {
+        display: grid;
+        gap: 16px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .route {
+        position: relative;
+        border-radius: 20px;
+        padding: 14px 14px 12px;
+      }
+
+      .route-top,
+      .macro-top,
+      .output-meter {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .route-top {
+        margin-bottom: 8px;
+      }
+
+      .route-label {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        font-size: 0.78rem;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+      }
+
+      .route-icon {
+        width: 26px;
+        height: 26px;
+        border-radius: 999px;
+        display: grid;
+        place-items: center;
+        color: white;
+        font-size: 0.85rem;
+      }
+
+      .route input,
+      .macro input,
+      .swing input,
+      .output input {
+        width: 100%;
+        accent-color: var(--coral);
+      }
+
+      .macro-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .macro {
+        position: relative;
+        border-radius: 22px;
+        padding: 12px 12px 14px;
+      }
+
+      .macro-value {
+        font-size: 0.82rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .macro-dial {
+        width: 82px;
+        height: 82px;
+        margin: 8px auto 10px;
+        display: block;
+      }
+
+      .breath {
+        margin: 16px 18px 18px;
+        width: calc(100% - 36px);
+        border: 1px solid var(--line-strong);
+        border-radius: 20px;
+        padding: 16px;
+        background: linear-gradient(180deg, rgba(153, 205, 191, 0.36), rgba(255, 255, 255, 0.44));
+        color: var(--ink);
+        font: inherit;
+        cursor: pointer;
+        transition: transform 180ms ease, box-shadow 180ms ease;
+      }
+
+      .breath:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 12px 26px rgba(110, 171, 154, 0.2);
+      }
+
+      .bottom-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.15fr) 300px;
+        gap: 0;
+        border-top: 1px solid var(--line);
+      }
+
+      .sequence,
+      .output {
+        position: relative;
+        border-radius: 0;
+        min-height: 206px;
+        box-shadow: none;
+        border-left: none;
+        border-bottom: none;
+      }
+
+      .sequence {
+        padding: 14px 18px 18px;
+      }
+
+      .composer-head,
+      .output-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        padding: 0 0 12px;
+      }
+
+      .composer-grid {
+        display: grid;
+        grid-template-columns: 170px minmax(0, 1fr);
+        gap: 16px;
+        align-items: start;
+      }
+
+      .composer-panel {
+        display: grid;
+        gap: 14px;
+        padding-right: 12px;
+        border-right: 1px solid var(--line);
+      }
+
+      .tempo {
+        display: grid;
+        gap: 8px;
+      }
+
+      .tempo label,
+      .swing label {
+        font-size: 0.82rem;
+      }
+
+      .tempo select {
+        width: 100%;
+        padding: 8px 10px;
+        border-radius: 12px;
+        border: 1px solid var(--line-strong);
+        background: rgba(255, 255, 255, 0.72);
+        font: inherit;
+      }
+
+      .seq-grid {
+        display: grid;
+        grid-template-columns: 34px repeat(16, minmax(0, 1fr));
+        gap: 4px;
+        align-items: center;
+      }
+
+      .seq-index,
+      .seq-label {
+        font-size: 0.72rem;
+        color: rgba(25, 24, 22, 0.68);
+      }
+
+      .seq-label {
+        text-align: center;
+      }
+
+      .cell {
+        height: 30px;
+        border-radius: 8px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.34);
+        cursor: pointer;
+        transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
+      }
+
+      .cell:hover {
+        transform: translateY(-1px);
+      }
+
+      .cell.on-heart {
+        background: rgba(240, 123, 84, 0.48);
+      }
+
+      .cell.on-curiosity {
+        background: rgba(244, 200, 79, 0.58);
+      }
+
+      .cell.on-group {
+        background: rgba(32, 32, 32, 0.82);
+      }
+
+      .cell.on-drift {
+        background: rgba(153, 205, 191, 0.55);
+      }
+
+      .cell.active-step {
+        border-color: var(--coral);
+        box-shadow: inset 0 0 0 1px rgba(240, 123, 84, 0.75);
+      }
+
+      .footer-notes {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 14px;
+      }
+
+      .note {
+        position: relative;
+        border-radius: 22px;
+        padding: 14px 16px 16px;
+      }
+
+      .footer-label {
+        display: inline-block;
+        margin-bottom: 8px;
+        font-size: 0.72rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: rgba(25, 24, 22, 0.62);
+      }
+
+      .output {
+        padding: 14px 18px 18px;
+      }
+
+      .wave {
+        width: 100%;
+        height: 78px;
+        display: block;
+      }
+
+      .output-copy {
+        margin-top: 10px;
+        font-size: 0.95rem;
+      }
+
+      .output-meter {
+        margin-top: 18px;
+      }
+
+      .drag-ghost {
+        position: fixed;
+        width: 82px;
+        height: 104px;
+        border-radius: 22px;
+        border: 1px solid var(--line-strong);
+        background: rgba(255, 255, 255, 0.72);
+        box-shadow: 0 14px 34px rgba(92, 69, 42, 0.18);
+        pointer-events: none;
+        display: none;
+        place-items: center;
+        z-index: 20;
+        transform: translate(-50%, -50%);
+      }
+
+      @media (max-width: 1180px) {
+        .board-grid,
+        .bottom-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .module,
+        .sequence,
+        .output {
+          border-left: none;
+        }
+
+        .composer-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .composer-panel {
+          border-right: none;
+          border-bottom: 1px solid var(--line);
+          padding-right: 0;
+          padding-bottom: 12px;
+        }
+      }
+
+      @media (max-width: 760px) {
+        .shell {
+          width: min(100%, calc(100% - 16px));
+          padding-top: 12px;
+        }
+
+        .topline {
+          grid-template-columns: 1fr;
+        }
+
+        .statusline {
+          justify-content: flex-start;
+          padding-top: 0;
+        }
+
+        .board-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .field-shell {
+          min-height: 480px;
+        }
+
+        .footer-notes {
+          grid-template-columns: 1fr;
+        }
+
+        .seq-grid {
+          grid-template-columns: 28px repeat(16, minmax(18px, 1fr));
+        }
+
+        .cell {
+          height: 24px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <section class="topline">
+        <div class="brand">
+          <h1>Mudwisp <span>*</span></h1>
+          <p>Soft systems for strange beings</p>
+        </div>
+        <div class="statusline">
+          <a class="back mono" href="../../index.html">Back to index</a>
+          <div class="pill mono"><span class="dot"></span><span id="onlineLabel">Online</span></div>
+          <div class="pill mono"><span id="bpmLabel">108.0 BPM</span></div>
+          <div class="pill mono">Prefs settled</div>
+        </div>
+      </section>
+
+      <section class="board">
+        <div class="board-grid">
+          <aside class="module left-rail">
+            <div class="species-head">
+              <div>
+                <div class="small">Beings</div>
+                <h2>Roster</h2>
+              </div>
+              <div class="small">+</div>
+            </div>
+            <div class="species-list" id="speciesList"></div>
+            <div class="ghost-drop">
+              <div class="ghost-box">
+                Drag a being into the field or click a card to send one into the
+                chorus.
+              </div>
+            </div>
+          </aside>
+
+          <section class="module field-shell" id="fieldShell">
+            <canvas id="field"></canvas>
+            <div class="field-head">
+              <div class="field-title">
+                <div class="small">System mood</div>
+                <h2>Tender routing for shared feelings</h2>
+                <p>
+                  The chorus stays browser-native and procedural: a soft relay
+                  map, hand-drawn beings, live routes, and a sequencer that
+                  pushes comfort, curiosity, and static drift through the same
+                  habitat.
+                </p>
+              </div>
+              <p class="signal-note">
+                Hover the field to bend nearby currents. Click a creature to
+                focus it. Drop a new being into the room and the network
+                rewires around it.
+              </p>
+            </div>
+            <div class="field-chip chip-a">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                <path d="M12 3v10"></path>
+                <circle cx="12" cy="16" r="1.8"></circle>
+                <path d="M5 10c1.8-1.2 3.4-2 7-2s5.2.8 7 2"></path>
+              </svg>
+              Warm weather pocket
+            </div>
+            <div class="field-chip chip-b">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                <circle cx="8" cy="12" r="3"></circle>
+                <circle cx="16" cy="12" r="3"></circle>
+                <path d="M11 12h2"></path>
+              </svg>
+              Shared comfort lane
+            </div>
+            <div class="field-chip chip-c">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                <path d="M4 16c2.5-4 5-4 7.5 0s5 4 8.5 0"></path>
+                <path d="M4 8c2.5 4 5 4 7.5 0s5-4 8.5 0"></path>
+              </svg>
+              Drift kept gentle
+            </div>
+          </section>
+
+          <aside class="module right-rail">
+            <div class="right-head">
+              <div class="small">Signal routes</div>
+              <h2>Live controls</h2>
+              <p>
+                Route weights change the exact bonds on the board instead of
+                acting like detached chrome.
+              </p>
+            </div>
+            <div class="route-group" id="routeGroup"></div>
+            <div class="right-head">
+              <div class="small">Global macros</div>
+              <h2>Field temper</h2>
+            </div>
+            <div class="macro-grid" id="macroGrid"></div>
+            <button class="breath mono" id="breathButton">Breath - settle the system</button>
+          </aside>
+        </div>
+
+        <div class="bottom-grid">
+          <section class="sequence">
+            <div class="composer-head">
+              <div>
+                <div class="small">Sequence</div>
+                <h2>Chorus steps</h2>
+              </div>
+              <div class="small" id="stepReadout">Step 01 / 16</div>
+            </div>
+            <div class="composer-grid">
+              <div class="composer-panel">
+                <div class="tempo">
+                  <label for="stepCount">Steps</label>
+                  <select id="stepCount">
+                    <option value="12">12</option>
+                    <option value="16" selected>16</option>
+                    <option value="20">20</option>
+                  </select>
+                </div>
+                <div class="swing">
+                  <label for="swing">Swing</label>
+                  <input id="swing" type="range" min="0" max="40" value="17" />
+                </div>
+                <div class="small" id="swingLabel">17% swing</div>
+              </div>
+              <div class="seq-grid" id="seqGrid"></div>
+            </div>
+
+            <div class="footer-notes">
+              <article class="note">
+                <span class="footer-label">Idea</span>
+                <p class="footer-copy">
+                  A warm live-interface branch derived from today’s Mudwisp
+                  image signal: tender creatures, routing logic, and pale
+                  product-like clarity all live in one browser-native room.
+                </p>
+              </article>
+              <article class="note">
+                <span class="footer-label">Interaction</span>
+                <p class="footer-copy">
+                  Drag or click a roster card to add a being, retune the route
+                  sliders, toggle sequencer cells, and use the pointer as a
+                  local social pressure that bends the current field.
+                </p>
+              </article>
+              <article class="note">
+                <span class="footer-label">Next</span>
+                <p class="footer-copy">
+                  A stronger follow-up could let typed phrases or Telegram
+                  events arrive as chorus instructions so the beings grow a real
+                  memory of what just happened.
+                </p>
+              </article>
+            </div>
+          </section>
+
+          <section class="output">
+            <div class="output-head">
+              <div>
+                <div class="small">Output</div>
+                <h2>Resonance trace</h2>
+              </div>
+              <div class="small" id="dbLabel">-6.2 dB</div>
+            </div>
+            <svg class="wave" viewBox="0 0 280 78" preserveAspectRatio="none" aria-hidden="true">
+              <path
+                id="wavePath"
+                d=""
+                fill="none"
+                stroke="#1f1d1a"
+                stroke-width="2.2"
+                stroke-linecap="round"
+              ></path>
+            </svg>
+            <p class="output-copy" id="focusSummary">
+              Chorus is listening for a gentle pulse. The nearest bonds are
+              leaning toward comfort.
+            </p>
+            <div class="output-meter">
+              <input id="gain" type="range" min="-18" max="6" value="-6.2" step="0.1" />
+            </div>
+          </section>
+        </div>
+      </section>
+    </main>
+
+    <div class="drag-ghost" id="dragGhost"></div>
+
+    <script>
+      const archetypes = [
+        {
+          key: "plim",
+          pronouns: "he / they",
+          hue: "#99cdbf",
+          accent: "#f07b54",
+          bond: 67,
+          energy: 0.72,
+          limbs: 2,
+          ears: true,
+          eyes: 2,
+          body: "oval"
+        },
+        {
+          key: "borkl",
+          pronouns: "it / its",
+          hue: "#f07b54",
+          accent: "#f4c84f",
+          bond: 41,
+          energy: 0.6,
+          limbs: 2,
+          ears: true,
+          eyes: 2,
+          body: "spike"
+        },
+        {
+          key: "vella",
+          pronouns: "she / her",
+          hue: "#242424",
+          accent: "#f2ede6",
+          bond: 83,
+          energy: 0.56,
+          limbs: 2,
+          ears: false,
+          eyes: 2,
+          body: "droop"
+        },
+        {
+          key: "zud",
+          pronouns: "they / it",
+          hue: "#a5d8cb",
+          accent: "#242424",
+          bond: 52,
+          energy: 0.52,
+          limbs: 4,
+          ears: false,
+          eyes: 2,
+          body: "jelly"
+        }
+      ];
+
+      const routeConfig = [
+        { key: "heart", label: "Empathic field", icon: "heart", color: "#f07b54", value: 80 },
+        { key: "curiosity", label: "Curiosity stream", icon: "spiral", color: "#f4c84f", value: 56 },
+        { key: "group", label: "Comfort channel", icon: "group", color: "#242424", value: 70 },
+        { key: "drift", label: "Static drift", icon: "wave", color: "#99cdbf", value: 23 }
+      ];
+
+      const macroConfig = [
+        { key: "resonance", label: "Resonance", value: 72, color: "#f07b54" },
+        { key: "chaos", label: "Chaos", value: 38, color: "#99cdbf" },
+        { key: "softness", label: "Softness", value: 64, color: "#f4c84f" },
+        { key: "timeStretch", label: "Time stretch", value: 91, color: "#242424" }
+      ];
+
+      const sequenceRows = [
+        { key: "heart", symbol: "♥", className: "on-heart" },
+        { key: "curiosity", symbol: "◎", className: "on-curiosity" },
+        { key: "group", symbol: "◉", className: "on-group" },
+        { key: "drift", symbol: "∿", className: "on-drift" }
+      ];
+
+      const state = {
+        creatures: [],
+        pointer: { x: 0, y: 0, active: false },
+        activeIndex: 0,
+        tick: 0,
+        phase: 0,
+        step: 0,
+        stepCount: 16,
+        lastStepTime: 0,
+        dragKey: null,
+        routes: Object.fromEntries(routeConfig.map((route) => [route.key, route.value])),
+        macros: Object.fromEntries(macroConfig.map((macro) => [macro.key, macro.value])),
+        sequence: {},
+        gain: -6.2
+      };
+
+      const fieldShell = document.getElementById("fieldShell");
+      const canvas = document.getElementById("field");
+      const ctx = canvas.getContext("2d");
+      const speciesList = document.getElementById("speciesList");
+      const routeGroup = document.getElementById("routeGroup");
+      const macroGrid = document.getElementById("macroGrid");
+      const seqGrid = document.getElementById("seqGrid");
+      const stepCountSelect = document.getElementById("stepCount");
+      const swingInput = document.getElementById("swing");
+      const swingLabel = document.getElementById("swingLabel");
+      const stepReadout = document.getElementById("stepReadout");
+      const bpmLabel = document.getElementById("bpmLabel");
+      const onlineLabel = document.getElementById("onlineLabel");
+      const gainInput = document.getElementById("gain");
+      const dbLabel = document.getElementById("dbLabel");
+      const focusSummary = document.getElementById("focusSummary");
+      const wavePath = document.getElementById("wavePath");
+      const dragGhost = document.getElementById("dragGhost");
+
+      function iconMarkup(type) {
+        if (type === "heart") {
+          return "♥";
+        }
+        if (type === "spiral") {
+          return "◎";
+        }
+        if (type === "group") {
+          return "◉";
+        }
+        return "∿";
+      }
+
+      function randomSequence(stepCount) {
+        const result = {};
+        sequenceRows.forEach((row, rowIndex) => {
+          result[row.key] = Array.from({ length: stepCount }, (_, step) => {
+            if (row.key === "heart") {
+              return step % 4 === 0 || step === 10;
+            }
+            if (row.key === "curiosity") {
+              return step % 6 === 2 || step === 8;
+            }
+            if (row.key === "group") {
+              return step % 5 === 1 || step === stepCount - 3;
+            }
+            return step % 7 === rowIndex || step === 12;
+          });
+        });
+        return result;
+      }
+
+      function cloneCreatureFromArchetype(archetype, x, y) {
+        return {
+          ...archetype,
+          x,
+          y,
+          vx: (Math.random() - 0.5) * 0.18,
+          vy: (Math.random() - 0.5) * 0.16,
+          bob: Math.random() * Math.PI * 2,
+          pulse: 0.4 + Math.random() * 0.6,
+          focus: Math.random(),
+          id: `${archetype.key}-${Math.random().toString(36).slice(2, 8)}`
+        };
+      }
+
+      function initialCreatures() {
+        state.creatures = [
+          cloneCreatureFromArchetype(archetypes[0], 0.5, 0.23),
+          cloneCreatureFromArchetype(archetypes[1], 0.24, 0.63),
+          cloneCreatureFromArchetype(archetypes[2], 0.57, 0.78),
+          cloneCreatureFromArchetype(archetypes[3], 0.82, 0.67)
+        ];
+      }
+
+      function drawPreview(canvasEl, archetype) {
+        const c = canvasEl.getContext("2d");
+        const w = canvasEl.width;
+        const h = canvasEl.height;
+        c.clearRect(0, 0, w, h);
+        c.save();
+        c.translate(w * 0.5, h * 0.6);
+        c.scale(0.94, 0.94);
+        drawCreatureShape(c, archetype, 0, 0, 0.8, 0.2, 0);
+        c.restore();
+      }
+
+      function renderSpeciesList() {
+        speciesList.innerHTML = "";
+        archetypes.forEach((archetype, index) => {
+          const card = document.createElement("button");
+          card.type = "button";
+          card.className = `species-card ${index === state.activeIndex ? "active" : ""}`;
+          card.dataset.key = archetype.key;
+
+          const preview = document.createElement("canvas");
+          preview.className = "species-preview";
+          preview.width = 88;
+          preview.height = 116;
+          drawPreview(preview, archetype);
+
+          const copy = document.createElement("div");
+          copy.className = "species-copy";
+          copy.innerHTML = `
+            <div>
+              <div class="species-name">${archetype.key}</div>
+              <div class="species-bio">${archetype.pronouns}</div>
+            </div>
+            <div class="meter-row">
+              <span>♥ ${archetype.bond}</span>
+              <div class="meter"><div class="meter-fill" style="height:${Math.round(archetype.energy * 100)}%"></div></div>
+            </div>
+          `;
+
+          card.append(preview, copy);
+          card.addEventListener("click", () => {
+            state.activeIndex = index;
+            renderSpeciesList();
+            spawnCreature(archetype, 0.5 + (Math.random() - 0.5) * 0.08, 0.48 + (Math.random() - 0.5) * 0.08);
+          });
+          card.addEventListener("pointerdown", (event) => startDrag(event, archetype));
+          speciesList.appendChild(card);
+        });
+      }
+
+      function renderRoutes() {
+        routeGroup.innerHTML = "";
+        routeConfig.forEach((route) => {
+          const wrap = document.createElement("label");
+          wrap.className = "route";
+          wrap.innerHTML = `
+            <div class="route-top">
+              <span class="route-label">
+                <span class="route-icon" style="background:${route.color}">${iconMarkup(route.icon)}</span>
+                ${route.label}
+              </span>
+              <strong>${state.routes[route.key]}%</strong>
+            </div>
+            <input type="range" min="0" max="100" value="${state.routes[route.key]}" />
+          `;
+          const input = wrap.querySelector("input");
+          const value = wrap.querySelector("strong");
+          input.addEventListener("input", () => {
+            state.routes[route.key] = Number(input.value);
+            value.textContent = `${input.value}%`;
+          });
+          routeGroup.appendChild(wrap);
+        });
+      }
+
+      function renderMacros() {
+        macroGrid.innerHTML = "";
+        macroConfig.forEach((macro) => {
+          const card = document.createElement("label");
+          card.className = "macro";
+          card.innerHTML = `
+            <div class="macro-top">
+              <span>${macro.label}</span>
+              <span class="macro-value">${state.macros[macro.key]}%</span>
+            </div>
+            <svg class="macro-dial" viewBox="0 0 100 100" aria-hidden="true">
+              <circle cx="50" cy="50" r="33" fill="none" stroke="rgba(25,24,22,0.14)" stroke-width="8"></circle>
+              <path class="dial-arc" fill="none" stroke="${macro.color}" stroke-width="10" stroke-linecap="round"></path>
+              <circle cx="50" cy="50" r="18" fill="${macro.color}" fill-opacity="0.18"></circle>
+              <line class="dial-hand" x1="50" y1="50" x2="50" y2="18" stroke="#1b1a18" stroke-width="4" stroke-linecap="round"></line>
+            </svg>
+            <input type="range" min="0" max="100" value="${state.macros[macro.key]}" />
+          `;
+          const input = card.querySelector("input");
+          const value = card.querySelector(".macro-value");
+          const arc = card.querySelector(".dial-arc");
+          const hand = card.querySelector(".dial-hand");
+
+          function paintDial(v) {
+            const pct = v / 100;
+            const start = polar(50, 50, 33, 140);
+            const end = polar(50, 50, 33, 140 + pct * 260);
+            const large = pct > 0.5 ? 1 : 0;
+            arc.setAttribute(
+              "d",
+              `M ${start.x} ${start.y} A 33 33 0 ${large} 1 ${end.x} ${end.y}`
+            );
+            const handPoint = polar(50, 50, 31, 140 + pct * 260);
+            hand.setAttribute("x2", handPoint.x);
+            hand.setAttribute("y2", handPoint.y);
+          }
+
+          paintDial(state.macros[macro.key]);
+          input.addEventListener("input", () => {
+            state.macros[macro.key] = Number(input.value);
+            value.textContent = `${input.value}%`;
+            paintDial(state.macros[macro.key]);
+          });
+
+          macroGrid.appendChild(card);
+        });
+      }
+
+      function polar(cx, cy, radius, degrees) {
+        const radians = (degrees - 90) * (Math.PI / 180);
+        return {
+          x: cx + Math.cos(radians) * radius,
+          y: cy + Math.sin(radians) * radius
+        };
+      }
+
+      function renderSequence() {
+        seqGrid.innerHTML = "";
+        for (let step = 0; step < state.stepCount; step += 1) {
+          const label = document.createElement("div");
+          label.className = "seq-label mono";
+          label.textContent = step + 1;
+          if (step === 0) {
+            const spacer = document.createElement("div");
+            spacer.className = "seq-index";
+            spacer.textContent = "";
+            seqGrid.appendChild(spacer);
+          }
+          seqGrid.appendChild(label);
+        }
+
+        sequenceRows.forEach((row) => {
+          const icon = document.createElement("div");
+          icon.className = "seq-index mono";
+          icon.textContent = row.symbol;
+          seqGrid.appendChild(icon);
+
+          state.sequence[row.key].forEach((isOn, step) => {
+            const cell = document.createElement("button");
+            cell.type = "button";
+            cell.className = `cell ${isOn ? row.className : ""} ${step === state.step ? "active-step" : ""}`;
+            cell.dataset.row = row.key;
+            cell.dataset.step = step;
+            cell.addEventListener("click", () => {
+              state.sequence[row.key][step] = !state.sequence[row.key][step];
+              renderSequence();
+            });
+            seqGrid.appendChild(cell);
+          });
+        });
+      }
+
+      function startDrag(event, archetype) {
+        state.dragKey = archetype.key;
+        dragGhost.style.display = "grid";
+        dragGhost.innerHTML = "";
+        const preview = document.createElement("canvas");
+        preview.width = 82;
+        preview.height = 104;
+        drawPreview(preview, archetype);
+        dragGhost.appendChild(preview);
+        moveGhost(event.clientX, event.clientY);
+
+        const handleMove = (moveEvent) => moveGhost(moveEvent.clientX, moveEvent.clientY);
+        const handleUp = (upEvent) => {
+          document.removeEventListener("pointermove", handleMove);
+          document.removeEventListener("pointerup", handleUp);
+          dragGhost.style.display = "none";
+          const rect = fieldShell.getBoundingClientRect();
+          if (
+            upEvent.clientX >= rect.left &&
+            upEvent.clientX <= rect.right &&
+            upEvent.clientY >= rect.top &&
+            upEvent.clientY <= rect.bottom
+          ) {
+            const x = (upEvent.clientX - rect.left) / rect.width;
+            const y = (upEvent.clientY - rect.top) / rect.height;
+            spawnCreature(archetype, x, y);
+          }
+          state.dragKey = null;
+        };
+
+        document.addEventListener("pointermove", handleMove);
+        document.addEventListener("pointerup", handleUp, { once: true });
+      }
+
+      function moveGhost(x, y) {
+        dragGhost.style.left = `${x}px`;
+        dragGhost.style.top = `${y}px`;
+      }
+
+      function spawnCreature(archetype, x, y) {
+        state.creatures.push(cloneCreatureFromArchetype(archetype, clamp(x, 0.12, 0.88), clamp(y, 0.18, 0.84)));
+        if (state.creatures.length > 7) {
+          state.creatures.shift();
+        }
+        state.activeIndex = archetypes.findIndex((item) => item.key === archetype.key);
+        renderSpeciesList();
+      }
+
+      function clamp(value, min, max) {
+        return Math.max(min, Math.min(max, value));
+      }
+
+      function resizeCanvas() {
+        const rect = fieldShell.getBoundingClientRect();
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        canvas.width = rect.width * dpr;
+        canvas.height = rect.height * dpr;
+        canvas.style.width = `${rect.width}px`;
+        canvas.style.height = `${rect.height}px`;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+
+      function drawCreatureShape(context, creature, x, y, scale, pulse, moodShift) {
+        const width = 42 * scale;
+        const height = 54 * scale;
+        const soften = 1 + pulse * 0.18 + state.macros.softness / 380;
+        context.save();
+        context.translate(x, y);
+
+        context.fillStyle = creature.hue;
+        context.strokeStyle = "rgba(25,24,22,0.85)";
+        context.lineWidth = 2.1 * scale;
+        context.lineJoin = "round";
+        context.lineCap = "round";
+
+        context.beginPath();
+        if (creature.body === "oval") {
+          context.ellipse(0, 0, width * 0.82, height * 0.9 * soften, 0, 0, Math.PI * 2);
+        } else if (creature.body === "spike") {
+          context.moveTo(0, -height);
+          context.bezierCurveTo(width * 0.95, -height * 0.6, width * 0.9, height * 0.72, 0, height);
+          context.bezierCurveTo(-width * 0.9, height * 0.72, -width * 0.95, -height * 0.6, 0, -height);
+        } else if (creature.body === "droop") {
+          context.moveTo(-width * 0.72, -height * 0.7);
+          context.quadraticCurveTo(0, -height * 1.1, width * 0.68, -height * 0.66);
+          context.bezierCurveTo(width * 0.88, -height * 0.2, width * 0.75, height * 0.94, width * 0.34, height);
+          context.quadraticCurveTo(0, height * 1.18, -width * 0.34, height);
+          context.bezierCurveTo(-width * 0.75, height * 0.94, -width * 0.88, -height * 0.2, -width * 0.72, -height * 0.7);
+        } else {
+          context.moveTo(-width * 0.88, -height * 0.2);
+          context.bezierCurveTo(-width * 0.8, -height * 0.9, width * 0.8, -height * 0.9, width * 0.88, -height * 0.18);
+          context.bezierCurveTo(width * 1.02, height * 0.52, width * 0.66, height * 0.92, 0, height);
+          context.bezierCurveTo(-width * 0.66, height * 0.92, -width * 1.02, height * 0.52, -width * 0.88, -height * 0.2);
+        }
+        context.closePath();
+        context.fill();
+        context.stroke();
+
+        context.fillStyle = "rgba(255,255,255,0.26)";
+        context.beginPath();
+        context.ellipse(-width * 0.18, -height * 0.2, width * 0.42, height * 0.34, -0.48, 0, Math.PI * 2);
+        context.fill();
+
+        if (creature.ears) {
+          context.beginPath();
+          context.moveTo(-width * 0.34, -height * 0.9);
+          context.lineTo(-width * 0.22, -height * 1.32);
+          context.lineTo(-width * 0.02, -height * 0.92);
+          context.moveTo(width * 0.34, -height * 0.9);
+          context.lineTo(width * 0.22, -height * 1.32);
+          context.lineTo(width * 0.02, -height * 0.92);
+          context.stroke();
+        }
+
+        if (creature.body === "jelly") {
+          for (let i = 0; i < 4; i += 1) {
+            const offset = -width * 0.55 + i * width * 0.36;
+            context.beginPath();
+            context.moveTo(offset, height * 0.86);
+            context.quadraticCurveTo(offset - 4, height * 1.2 + Math.sin(state.phase * 0.04 + i) * 6, offset, height * 1.46);
+            context.stroke();
+          }
+        } else {
+          for (let i = 0; i < creature.limbs; i += 1) {
+            const spread = creature.limbs === 2 ? 0.44 : 0.62;
+            const offset = creature.limbs === 2 ? (i === 0 ? -1 : 1) * width * 0.32 : -width * spread + i * (width * 0.42);
+            context.beginPath();
+            context.moveTo(offset, height * 0.92);
+            context.lineTo(offset + Math.sin(state.phase * 0.06 + i + moodShift) * 3, height * 1.46 + pulse * 4);
+            context.stroke();
+          }
+        }
+
+        const eyeLift = -height * 0.28 + moodShift * 2;
+        const eyeGap = width * 0.26;
+        context.fillStyle = "#ffffff";
+        context.beginPath();
+        context.ellipse(-eyeGap, eyeLift, width * 0.14, height * 0.12, 0, 0, Math.PI * 2);
+        context.ellipse(eyeGap, eyeLift, width * 0.14, height * 0.12, 0, 0, Math.PI * 2);
+        context.fill();
+
+        context.fillStyle = "#1f1d1a";
+        context.beginPath();
+        context.arc(-eyeGap + moodShift * 1.2, eyeLift + pulse * 0.8, width * 0.055, 0, Math.PI * 2);
+        context.arc(eyeGap + moodShift * 1.2, eyeLift + pulse * 0.8, width * 0.055, 0, Math.PI * 2);
+        context.fill();
+
+        context.beginPath();
+        context.moveTo(-width * 0.18, height * 0.1);
+        context.quadraticCurveTo(0, height * (0.26 + pulse * 0.07), width * 0.18, height * 0.1);
+        context.stroke();
+
+        context.restore();
+      }
+
+      function drawField() {
+        const rect = fieldShell.getBoundingClientRect();
+        const width = rect.width;
+        const height = rect.height;
+        ctx.clearRect(0, 0, width, height);
+
+        drawBackground(width, height);
+        drawRoutes(width, height);
+
+        state.creatures.forEach((creature, index) => {
+          const px = creature.x * width;
+          const py = creature.y * height + Math.sin(state.phase * 0.04 + creature.bob) * 4;
+          const isFocused = index === state.activeIndex;
+          drawCreatureShadow(px, py, isFocused ? 0.9 : 0.56);
+          drawCreatureShape(
+            ctx,
+            creature,
+            px,
+            py - 6,
+            isFocused ? 0.98 : 0.84,
+            creature.pulse,
+            creature.focus - 0.5
+          );
+        });
+
+        drawFloatingMarks(width, height);
+      }
+
+      function drawBackground(width, height) {
+        const gradient = ctx.createLinearGradient(0, 0, 0, height);
+        gradient.addColorStop(0, "rgba(255,255,255,0.52)");
+        gradient.addColorStop(1, "rgba(240,228,211,0.52)");
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, width, height);
+
+        for (let x = 28; x < width; x += 42) {
+          ctx.strokeStyle = "rgba(25,24,22,0.03)";
+          ctx.beginPath();
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, height);
+          ctx.stroke();
+        }
+        for (let y = 24; y < height; y += 42) {
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(width, y);
+          ctx.stroke();
+        }
+      }
+
+      function drawRoutes(width, height) {
+        const activeSignals = sequenceRows.reduce((acc, row) => {
+          acc[row.key] = state.sequence[row.key][state.step] ? 1 : 0;
+          return acc;
+        }, {});
+
+        const focused = state.creatures[state.activeIndex];
+        state.creatures.forEach((creature, index) => {
+          if (index === state.activeIndex) {
+            return;
+          }
+          const a = focused;
+          const b = creature;
+          const ax = a.x * width;
+          const ay = a.y * height;
+          const bx = b.x * width;
+          const by = b.y * height;
+          const bend = (state.pointer.active ? (state.pointer.x - width * 0.5) * 0.08 : 0) + Math.sin(state.phase * 0.04 + index) * 12;
+          const bendY = (state.pointer.active ? (state.pointer.y - height * 0.5) * 0.02 : 0) - Math.cos(state.phase * 0.03 + index) * 8;
+
+          const mixes = [
+            { key: "heart", alpha: 0.16 + state.routes.heart / 130, color: "#f07b54", dash: [10, 12], active: activeSignals.heart },
+            { key: "curiosity", alpha: 0.11 + state.routes.curiosity / 160, color: "#f4c84f", dash: [5, 14], active: activeSignals.curiosity },
+            { key: "group", alpha: 0.12 + state.routes.group / 150, color: "#242424", dash: [18, 10], active: activeSignals.group },
+            { key: "drift", alpha: 0.08 + state.routes.drift / 200, color: "#7eb7ab", dash: [4, 10], active: activeSignals.drift }
+          ];
+
+          mixes.forEach((mix, mixIndex) => {
+            ctx.save();
+            const extra = mix.active ? 0.3 : 0;
+            ctx.strokeStyle = applyAlpha(mix.color, mix.alpha + extra);
+            ctx.lineWidth = mix.active ? 2.8 : 2.1;
+            ctx.setLineDash(mix.dash);
+            ctx.beginPath();
+            ctx.moveTo(ax, ay);
+            ctx.bezierCurveTo(
+              ax + (bx - ax) * 0.35 + bend + mixIndex * 3,
+              ay + bendY - 20 + mixIndex * 8,
+              ax + (bx - ax) * 0.68 - bend - mixIndex * 3,
+              by - bendY + 20 - mixIndex * 4,
+              bx,
+              by
+            );
+            ctx.stroke();
+            ctx.restore();
+          });
+        });
+
+        state.creatures.forEach((creature, index) => {
+          const x = creature.x * width;
+          const y = creature.y * height;
+          const ringPulse = 6 + Math.sin(state.phase * 0.08 + index) * 2 + (state.sequence.group[state.step] ? 4 : 0);
+          ctx.strokeStyle = "rgba(25,24,22,0.14)";
+          ctx.lineWidth = 1.4;
+          ctx.beginPath();
+          ctx.arc(x, y, 18 + ringPulse, 0, Math.PI * 2);
+          ctx.stroke();
+        });
+      }
+
+      function applyAlpha(hex, alpha) {
+        const value = hex.replace("#", "");
+        const size = value.length === 3 ? 1 : 2;
+        const colors = [];
+        for (let i = 0; i < value.length; i += size) {
+          const slice = value.slice(i, i + size);
+          colors.push(parseInt(size === 1 ? `${slice}${slice}` : slice, 16));
+        }
+        return `rgba(${colors[0]}, ${colors[1]}, ${colors[2]}, ${alpha})`;
+      }
+
+      function drawCreatureShadow(x, y, strength) {
+        ctx.fillStyle = `rgba(95, 82, 68, ${0.1 + strength * 0.12})`;
+        ctx.beginPath();
+        ctx.ellipse(x, y + 48, 42 * strength, 12 * strength, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      function drawFloatingMarks(width, height) {
+        const marks = [
+          { x: width * 0.16, y: height * 0.38, glyph: "☼" },
+          { x: width * 0.82, y: height * 0.44, glyph: "◎" },
+          { x: width * 0.58, y: height * 0.18, glyph: "◌" },
+          { x: width * 0.42, y: height * 0.74, glyph: "♥" }
+        ];
+
+        marks.forEach((mark, index) => {
+          const pulse = 4 + Math.sin(state.phase * 0.05 + index) * 2;
+          ctx.save();
+          ctx.translate(mark.x, mark.y);
+          ctx.beginPath();
+          ctx.arc(0, 0, 26 + pulse, 0, Math.PI * 2);
+          ctx.fillStyle = "rgba(255,255,255,0.46)";
+          ctx.fill();
+          ctx.strokeStyle = "rgba(25,24,22,0.35)";
+          ctx.lineWidth = 1.6;
+          ctx.stroke();
+          ctx.fillStyle = "rgba(25,24,22,0.9)";
+          ctx.font = "22px 'Azeret Mono', monospace";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(mark.glyph, 0, 1);
+          ctx.restore();
+        });
+      }
+
+      function updateCreatures(delta) {
+        const rect = fieldShell.getBoundingClientRect();
+        const width = rect.width;
+        const height = rect.height;
+        const heartStep = state.sequence.heart[state.step] ? 1 : 0;
+        const curiosityStep = state.sequence.curiosity[state.step] ? 1 : 0;
+        const groupStep = state.sequence.group[state.step] ? 1 : 0;
+        const driftStep = state.sequence.drift[state.step] ? 1 : 0;
+
+        state.creatures.forEach((creature, index) => {
+          const attractX = 0.5 + Math.sin(state.phase * 0.003 + index) * 0.16;
+          const attractY = 0.52 + Math.cos(state.phase * 0.002 + index * 0.8) * 0.14;
+          const chaos = state.macros.chaos / 100;
+          const softness = state.macros.softness / 100;
+          const timeStretch = state.macros.timeStretch / 100;
+          const pointerForce = state.pointer.active
+            ? Math.max(0, 1 - distance(state.pointer.x / width, state.pointer.y / height, creature.x, creature.y) * 2.4)
+            : 0;
+
+          creature.vx += (attractX - creature.x) * (0.00034 + groupStep * 0.00024 + state.routes.group / 500000) * delta;
+          creature.vy += (attractY - creature.y) * (0.00032 + heartStep * 0.00022) * delta;
+          creature.vx += Math.sin(state.phase * 0.01 + creature.bob) * (0.00018 + curiosityStep * 0.00016 + chaos * 0.00012) * delta;
+          creature.vy += Math.cos(state.phase * 0.008 + creature.bob) * (0.00014 + driftStep * 0.00014 + chaos * 0.00011) * delta;
+
+          if (pointerForce > 0) {
+            const dx = creature.x - state.pointer.x / width;
+            const dy = creature.y - state.pointer.y / height;
+            creature.vx += dx * pointerForce * (state.routes.curiosity / 140000) * delta;
+            creature.vy += dy * pointerForce * (state.routes.heart / 170000) * delta;
+            creature.focus = clamp(creature.focus + pointerForce * 0.02, 0, 1);
+          } else {
+            creature.focus += (0.45 - creature.focus) * 0.02;
+          }
+
+          const damping = 0.94 - softness * 0.08 + timeStretch * 0.02;
+          creature.vx *= damping;
+          creature.vy *= damping;
+          creature.x = clamp(creature.x + creature.vx, 0.13, 0.87);
+          creature.y = clamp(creature.y + creature.vy, 0.18, 0.84);
+          creature.pulse += ((0.4 + heartStep * 0.4 + curiosityStep * 0.18) - creature.pulse) * 0.12;
+        });
+      }
+
+      function distance(ax, ay, bx, by) {
+        return Math.hypot(ax - bx, ay - by);
+      }
+
+      function maybeAdvanceStep(now) {
+        const bpm = 88 + state.macros.resonance * 0.45;
+        const baseMs = 60000 / bpm / 2;
+        const swing = Number(swingInput.value) / 100;
+        const isOdd = state.step % 2 === 1;
+        const interval = baseMs * (isOdd ? 1 + swing : 1 - swing * 0.6);
+        if (now - state.lastStepTime >= interval) {
+          state.lastStepTime = now;
+          state.step = (state.step + 1) % state.stepCount;
+          stepReadout.textContent = `Step ${String(state.step + 1).padStart(2, "0")} / ${state.stepCount}`;
+          bpmLabel.textContent = `${bpm.toFixed(1)} BPM`;
+          onlineLabel.textContent = state.sequence.group[state.step] ? "Crowding" : "Online";
+          renderSequence();
+          updateSummary();
+        }
+      }
+
+      function updateSummary() {
+        const focused = state.creatures[state.activeIndex];
+        const dominantRoute = routeConfig
+          .slice()
+          .sort((a, b) => state.routes[b.key] - state.routes[a.key])[0]
+          .label.toLowerCase();
+        focusSummary.textContent = `${focused.key} is carrying the loudest signal. The room is leaning toward ${dominantRoute} while step ${String(state.step + 1).padStart(2, "0")} passes through the chorus.`;
+      }
+
+      function animate(now) {
+        if (!state.lastStepTime) {
+          state.lastStepTime = now;
+        }
+        const delta = Math.min(32, now - (state.tick || now));
+        state.tick = now;
+        state.phase += delta;
+        maybeAdvanceStep(now);
+        updateCreatures(delta);
+        drawField();
+        paintWave();
+        requestAnimationFrame(animate);
+      }
+
+      function paintWave() {
+        const width = 280;
+        const height = 78;
+        const points = [];
+        const resonance = state.macros.resonance / 100;
+        const chaos = state.macros.chaos / 100;
+        const heart = state.routes.heart / 100;
+        const curiosity = state.routes.curiosity / 100;
+
+        for (let i = 0; i <= 28; i += 1) {
+          const x = (i / 28) * width;
+          const y =
+            height * 0.5 +
+            Math.sin(i * 0.45 + state.phase * 0.018) * (12 + heart * 10) +
+            Math.sin(i * 1.12 + state.phase * 0.028) * (chaos * 9) +
+            Math.cos(i * 0.22 + state.phase * 0.015) * (curiosity * 8);
+          points.push([x, y]);
+        }
+
+        let d = `M ${points[0][0]} ${points[0][1]}`;
+        for (let i = 1; i < points.length; i += 1) {
+          const [prevX, prevY] = points[i - 1];
+          const [x, y] = points[i];
+          const midX = (prevX + x) / 2;
+          d += ` Q ${midX} ${prevY} ${x} ${y}`;
+        }
+        wavePath.setAttribute("d", d);
+
+        const level =
+          -12 +
+          resonance * 8 +
+          heart * 3 -
+          (state.macros.timeStretch / 100) * 2 +
+          Number(gainInput.value) * 0.4;
+        dbLabel.textContent = `${level.toFixed(1)} dB`;
+      }
+
+      function handleFieldPointer(event) {
+        const rect = fieldShell.getBoundingClientRect();
+        state.pointer.x = event.clientX - rect.left;
+        state.pointer.y = event.clientY - rect.top;
+        state.pointer.active = true;
+      }
+
+      fieldShell.addEventListener("pointermove", handleFieldPointer);
+      fieldShell.addEventListener("pointerenter", handleFieldPointer);
+      fieldShell.addEventListener("pointerleave", () => {
+        state.pointer.active = false;
+      });
+
+      fieldShell.addEventListener("click", (event) => {
+        const rect = fieldShell.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        const y = event.clientY - rect.top;
+        const width = rect.width;
+        const height = rect.height;
+        let found = -1;
+        state.creatures.forEach((creature, index) => {
+          const dx = creature.x * width - x;
+          const dy = creature.y * height - y;
+          if (Math.hypot(dx, dy) < 52) {
+            found = index;
+          }
+        });
+        if (found >= 0) {
+          state.activeIndex = found;
+          renderSpeciesList();
+          updateSummary();
+        }
+      });
+
+      stepCountSelect.addEventListener("change", () => {
+        state.stepCount = Number(stepCountSelect.value);
+        state.sequence = randomSequence(state.stepCount);
+        state.step = 0;
+        renderSequence();
+      });
+
+      swingInput.addEventListener("input", () => {
+        swingLabel.textContent = `${swingInput.value}% swing`;
+      });
+
+      gainInput.addEventListener("input", () => {
+        state.gain = Number(gainInput.value);
+      });
+
+      document.getElementById("breathButton").addEventListener("click", () => {
+        state.macros.chaos = Math.max(12, Math.round(state.macros.chaos * 0.72));
+        state.macros.resonance = Math.min(96, Math.round(state.macros.resonance + 8));
+        state.routes.drift = Math.max(8, Math.round(state.routes.drift * 0.68));
+        state.routes.group = Math.min(96, Math.round(state.routes.group + 6));
+        renderRoutes();
+        renderMacros();
+        state.creatures.forEach((creature) => {
+          creature.vx *= 0.24;
+          creature.vy *= 0.24;
+        });
+        updateSummary();
+      });
+
+      window.addEventListener("resize", resizeCanvas);
+
+      state.stepCount = 16;
+      state.sequence = randomSequence(state.stepCount);
+      initialCreatures();
+      renderSpeciesList();
+      renderRoutes();
+      renderMacros();
+      renderSequence();
+      resizeCanvas();
+      updateSummary();
+      requestAnimationFrame(animate);
+    </script>
+  </body>
+</html>

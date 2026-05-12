@@ -1,0 +1,786 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>#063 Process Delta Ledger</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --paper: #f2e7d8;
+        --paper-deep: #dbc2a5;
+        --wash: #fbf5ee;
+        --ink: #22333d;
+        --muted: rgba(34, 51, 61, 0.62);
+        --line: rgba(34, 51, 61, 0.14);
+        --line-strong: rgba(34, 51, 61, 0.3);
+        --teal: #83bcc9;
+        --mint: #9cb9a6;
+        --coral: #de937b;
+        --amber: #d4a258;
+        --plum: #866d87;
+        --shadow: 0 24px 80px rgba(92, 68, 43, 0.14);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        overflow: hidden;
+        background:
+          radial-gradient(circle at 14% 12%, rgba(255, 255, 255, 0.95), transparent 18%),
+          radial-gradient(circle at 82% 18%, rgba(131, 188, 201, 0.16), transparent 20%),
+          radial-gradient(circle at 18% 84%, rgba(222, 147, 123, 0.12), transparent 24%),
+          linear-gradient(180deg, #faf3ea 0%, var(--paper) 58%, #ddc8ad 100%);
+        color: var(--ink);
+        font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", serif;
+      }
+
+      body::before,
+      body::after {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+      }
+
+      body::before {
+        opacity: 0.09;
+        background-image:
+          linear-gradient(rgba(34, 51, 61, 0.12) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(34, 51, 61, 0.12) 1px, transparent 1px);
+        background-size: 88px 88px;
+        mask-image: radial-gradient(circle at 50% 46%, black 36%, transparent 88%);
+      }
+
+      body::after {
+        opacity: 0.11;
+        mix-blend-mode: soft-light;
+        background-image:
+          linear-gradient(rgba(255, 255, 255, 0.88) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.88) 1px, transparent 1px);
+        background-size: 4px 4px;
+      }
+
+      canvas {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        display: block;
+      }
+
+      a {
+        color: inherit;
+      }
+
+      .hud {
+        position: fixed;
+        inset: 16px;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(220px, 280px);
+        grid-template-rows: auto 1fr auto;
+        gap: 14px;
+        pointer-events: none;
+      }
+
+      .banner,
+      .legend,
+      .notes,
+      .back,
+      .chip,
+      .stamp-card {
+        position: relative;
+        border: 1px solid var(--line);
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.8), rgba(251, 245, 238, 0.5)),
+          rgba(255, 249, 244, 0.58);
+        backdrop-filter: blur(14px);
+        box-shadow: var(--shadow);
+      }
+
+      .banner,
+      .legend,
+      .notes {
+        border-radius: 28px;
+        overflow: hidden;
+        pointer-events: auto;
+      }
+
+      .banner::after,
+      .legend::after,
+      .notes::after,
+      .stamp-card::after {
+        content: "";
+        position: absolute;
+        inset: 1px;
+        border-radius: inherit;
+        border: 1px solid rgba(255, 255, 255, 0.4);
+        pointer-events: none;
+      }
+
+      .banner {
+        grid-column: 1 / -1;
+        padding: 18px 20px;
+        display: grid;
+        grid-template-columns: minmax(0, 1.25fr) minmax(240px, 0.75fr);
+        gap: 14px;
+        align-items: start;
+      }
+
+      .title-block {
+        display: grid;
+        gap: 8px;
+      }
+
+      h1,
+      h2,
+      p {
+        margin: 0;
+      }
+
+      h1 {
+        font-size: clamp(2.9rem, 6vw, 5.4rem);
+        line-height: 0.88;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+      }
+
+      h1 span {
+        color: var(--coral);
+      }
+
+      .lede {
+        max-width: 780px;
+        color: var(--muted);
+        font-size: 1rem;
+        line-height: 1.45;
+      }
+
+      .mini-ledger {
+        display: grid;
+        gap: 10px;
+        align-content: start;
+      }
+
+      .mono,
+      .meta,
+      .label,
+      .chip,
+      .stamp-tag,
+      .back {
+        font-family: "Azeret Mono", "IBM Plex Mono", monospace;
+      }
+
+      .meta {
+        color: var(--muted);
+        font-size: 0.76rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+
+      .chip-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .chip,
+      .back {
+        border-radius: 999px;
+        padding: 9px 12px;
+        font-size: 0.7rem;
+        letter-spacing: 0.13em;
+        text-transform: uppercase;
+      }
+
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .chip-dot {
+        width: 11px;
+        height: 11px;
+        border-radius: 999px;
+        background: var(--amber);
+        box-shadow: 0 0 0 5px rgba(212, 162, 88, 0.16);
+      }
+
+      .legend {
+        grid-column: 2;
+        grid-row: 2;
+        align-self: end;
+        padding: 16px;
+        display: grid;
+        gap: 12px;
+        max-width: 280px;
+        justify-self: end;
+      }
+
+      .legend-copy {
+        color: var(--muted);
+        font-size: 0.95rem;
+        line-height: 1.45;
+      }
+
+      .stamp-list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .stamp-card {
+        border-radius: 18px;
+        padding: 12px 13px;
+      }
+
+      .stamp-tag {
+        display: inline-flex;
+        margin-bottom: 6px;
+        color: var(--muted);
+        font-size: 0.68rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+
+      .stamp-card p {
+        color: var(--ink);
+        font-size: 0.9rem;
+        line-height: 1.35;
+      }
+
+      .notes {
+        grid-column: 1 / -1;
+        grid-row: 3;
+        padding: 12px;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .note-block {
+        position: relative;
+        border: 1px solid rgba(34, 51, 61, 0.1);
+        border-radius: 20px;
+        padding: 14px 14px 15px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.42), rgba(255, 249, 242, 0.18)),
+          rgba(255, 255, 255, 0.14);
+      }
+
+      .label {
+        display: inline-block;
+        margin-bottom: 8px;
+        color: var(--muted);
+        font-size: 0.68rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+
+      .note-block p {
+        color: var(--ink);
+        font-size: 0.95rem;
+        line-height: 1.4;
+      }
+
+      .back {
+        position: fixed;
+        right: 16px;
+        bottom: 16px;
+        pointer-events: auto;
+        text-decoration: none;
+      }
+
+      @media (max-width: 980px) {
+        .hud {
+          grid-template-columns: 1fr;
+          grid-template-rows: auto 1fr auto auto;
+        }
+
+        .banner {
+          grid-template-columns: 1fr;
+        }
+
+        .legend {
+          grid-column: 1;
+          grid-row: 3;
+          justify-self: stretch;
+          max-width: none;
+        }
+
+        .notes {
+          grid-row: 4;
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="scene"></canvas>
+
+    <div class="hud">
+      <section class="banner">
+        <div class="title-block">
+          <div class="meta">Code Animation Study #063</div>
+          <h1>Process <span>Delta</span> Ledger</h1>
+          <p class="lede">
+            A flatter living paper diagram that breaks the recent cutaway and
+            console shell: drifting slips, connector currents, and warm stamp
+            bursts keep the page design-native while the motion stays fully
+            procedural.
+          </p>
+        </div>
+
+        <div class="mini-ledger">
+          <div class="meta">Current law</div>
+          <div class="chip-row">
+            <div class="chip"><span class="chip-dot"></span><span id="modeLabel">intake drift</span></div>
+            <div class="chip">pointer wake</div>
+            <div class="chip">click plants stamp</div>
+          </div>
+          <p class="lede">
+            The field rotates through intake, braid, and release states on its
+            own. Pointer proximity locally bends threads and warms nearby paper
+            islands without turning the page into a dashboard.
+          </p>
+        </div>
+      </section>
+
+      <aside class="legend">
+        <div>
+          <div class="meta">Stamp register</div>
+          <p class="legend-copy">
+            Click anywhere to plant a temporary marker. Each stamp nudges the
+            nearest slips into a new alignment wave and leaves a fading paper
+            seal in the field.
+          </p>
+        </div>
+        <div class="stamp-list" id="stampList"></div>
+      </aside>
+
+      <section class="notes">
+        <div class="note-block">
+          <div class="label">Idea</div>
+          <p>
+            Use the recent process-paper social-diagram cue as a full-page
+            motion system instead of another helper mascot sheet or interface
+            chassis.
+          </p>
+        </div>
+        <div class="note-block">
+          <div class="label">Interaction</div>
+          <p>
+            Pointer movement shears nearby connectors and lifts paper warmth;
+            click plants a seal that briefly reorganizes the local route law.
+          </p>
+        </div>
+        <div class="note-block">
+          <div class="label">Next</div>
+          <p>
+            A stronger sequel could let typed fragments become new slips so the
+            ledger grows into a larger social map without losing the print-like
+            clarity.
+          </p>
+        </div>
+      </section>
+    </div>
+
+    <a class="back" href="../../index.html">Back to index</a>
+
+    <script>
+      const canvas = document.getElementById("scene");
+      const ctx = canvas.getContext("2d");
+      const modeLabel = document.getElementById("modeLabel");
+      const stampList = document.getElementById("stampList");
+
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const pointer = { x: 0, y: 0, active: false };
+      const modes = [
+        { key: "intake drift", curve: 0.34, speed: 0.6, hue: "#83bcc9" },
+        { key: "braid pressure", curve: -0.26, speed: 0.88, hue: "#de937b" },
+        { key: "release fan", curve: 0.1, speed: 0.48, hue: "#9cb9a6" }
+      ];
+      let modeIndex = 0;
+      let modeStarted = performance.now();
+
+      const labels = [
+        "route hush",
+        "civic fold",
+        "soft proof",
+        "print relay",
+        "margin bloom",
+        "side current",
+        "social splice",
+        "quiet hatch"
+      ];
+
+      const palette = ["#83bcc9", "#9cb9a6", "#de937b", "#d4a258", "#866d87"];
+      const slips = [];
+      const filaments = [];
+      const stamps = [];
+
+      function randomBetween(min, max) {
+        return min + Math.random() * (max - min);
+      }
+
+      function resize() {
+        canvas.width = Math.floor(window.innerWidth * dpr);
+        canvas.height = Math.floor(window.innerHeight * dpr);
+        canvas.style.width = `${window.innerWidth}px`;
+        canvas.style.height = `${window.innerHeight}px`;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        buildField();
+      }
+
+      function buildField() {
+        slips.length = 0;
+        filaments.length = 0;
+
+        const columns = window.innerWidth < 900 ? 3 : 5;
+        const rows = window.innerWidth < 900 ? 4 : 3;
+        const xGap = window.innerWidth / (columns + 1);
+        const yGap = window.innerHeight / (rows + 1.6);
+        let labelIndex = 0;
+
+        for (let row = 0; row < rows; row += 1) {
+          for (let col = 0; col < columns; col += 1) {
+            const baseX = xGap * (col + 1);
+            const baseY = yGap * (row + 1) + (col % 2 === 0 ? 30 : -24);
+            slips.push({
+              x: baseX + randomBetween(-56, 56),
+              y: baseY + randomBetween(-44, 44),
+              baseX,
+              baseY,
+              w: randomBetween(118, 168),
+              h: randomBetween(56, 90),
+              tilt: randomBetween(-0.12, 0.12),
+              color: palette[(row * columns + col) % palette.length],
+              phase: randomBetween(0, Math.PI * 2),
+              label: labels[labelIndex % labels.length],
+              accent: randomBetween(0.3, 1),
+              rank: 1 + ((row + col) % 3)
+            });
+            labelIndex += 1;
+          }
+        }
+
+        for (let i = 0; i < slips.length; i += 1) {
+          const a = slips[i];
+          const neighbor = slips[(i + 1) % slips.length];
+          const jump = slips[(i + columns) % slips.length];
+          filaments.push({ from: a, to: neighbor, phase: randomBetween(0, Math.PI * 2), strength: 0.8 });
+          if (jump && jump !== a) {
+            filaments.push({ from: a, to: jump, phase: randomBetween(0, Math.PI * 2), strength: 0.55 });
+          }
+        }
+      }
+
+      function plantStamp(x, y) {
+        const stamp = {
+          x,
+          y,
+          age: 0,
+          life: 8,
+          radius: randomBetween(48, 88),
+          color: palette[Math.floor(Math.random() * palette.length)],
+          label: labels[Math.floor(Math.random() * labels.length)]
+        };
+
+        stamps.unshift(stamp);
+        if (stamps.length > 5) {
+          stamps.pop();
+        }
+
+        renderStampList();
+      }
+
+      function renderStampList() {
+        stampList.innerHTML = "";
+        stamps.forEach((stamp, index) => {
+          const card = document.createElement("div");
+          card.className = "stamp-card";
+          card.innerHTML = `
+            <div class="stamp-tag">seal ${String(index + 1).padStart(2, "0")}</div>
+            <p>${stamp.label}</p>
+          `;
+          stampList.appendChild(card);
+        });
+
+        if (!stamps.length) {
+          const card = document.createElement("div");
+          card.className = "stamp-card";
+          card.innerHTML = `
+            <div class="stamp-tag">seal 00</div>
+            <p>waiting for the first local marker</p>
+          `;
+          stampList.appendChild(card);
+        }
+      }
+
+      function drawPaperWash(time) {
+        ctx.save();
+        ctx.globalAlpha = 0.22;
+        for (let i = 0; i < 6; i += 1) {
+          const x = window.innerWidth * (0.12 + i * 0.16);
+          const y = window.innerHeight * (0.22 + Math.sin(time * 0.00014 + i) * 0.12);
+          const r = 180 + i * 24;
+          const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+          g.addColorStop(0, "rgba(255,255,255,0.6)");
+          g.addColorStop(1, "rgba(255,255,255,0)");
+          ctx.fillStyle = g;
+          ctx.beginPath();
+          ctx.arc(x, y, r, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+
+      function drawFibers() {
+        ctx.save();
+        ctx.globalAlpha = 0.18;
+        ctx.strokeStyle = "rgba(34, 51, 61, 0.14)";
+        ctx.lineWidth = 0.7;
+        for (let x = 24; x < window.innerWidth; x += 32) {
+          ctx.beginPath();
+          ctx.moveTo(x, 0);
+          for (let y = 0; y <= window.innerHeight; y += 34) {
+            ctx.lineTo(x + Math.sin((x + y) * 0.02) * 2.6, y);
+          }
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      function drawFilament(filament, time) {
+        const mode = modes[modeIndex];
+        const from = filament.from;
+        const to = filament.to;
+        const dx = to.x - from.x;
+        const dy = to.y - from.y;
+        const midX = (from.x + to.x) * 0.5 + dy * mode.curve;
+        const midY = (from.y + to.y) * 0.5 - dx * mode.curve * 0.45;
+        const pulse = (Math.sin(time * 0.0012 * mode.speed + filament.phase) + 1) * 0.5;
+
+        let pointerLift = 0;
+        if (pointer.active) {
+          const dist = distanceToCurve(pointer.x, pointer.y, from.x, from.y, midX, midY, to.x, to.y);
+          pointerLift = Math.max(0, 1 - dist / 140);
+        }
+
+        ctx.save();
+        ctx.lineCap = "round";
+        ctx.strokeStyle = `rgba(34, 51, 61, ${0.09 + pulse * 0.12 + pointerLift * 0.18})`;
+        ctx.lineWidth = 1.1 + filament.strength * 1.2 + pointerLift * 1.8;
+        ctx.setLineDash([8, 14]);
+        ctx.lineDashOffset = -(time * 0.018 * mode.speed + filament.phase * 18);
+        ctx.beginPath();
+        ctx.moveTo(from.x, from.y);
+        ctx.quadraticCurveTo(midX, midY, to.x, to.y);
+        ctx.stroke();
+
+        ctx.strokeStyle = `rgba(255, 255, 255, ${0.08 + pointerLift * 0.12})`;
+        ctx.lineWidth *= 0.36;
+        ctx.setLineDash([]);
+        ctx.beginPath();
+        ctx.moveTo(from.x, from.y);
+        ctx.quadraticCurveTo(midX, midY, to.x, to.y);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      function drawSlip(slip, time) {
+        const mode = modes[modeIndex];
+        const driftX = Math.sin(time * 0.0008 * mode.speed + slip.phase) * 14;
+        const driftY = Math.cos(time * 0.001 * mode.speed + slip.phase * 1.1) * 10;
+        let shiftX = driftX;
+        let shiftY = driftY;
+        let heat = 0;
+
+        if (pointer.active) {
+          const dx = pointer.x - slip.x;
+          const dy = pointer.y - slip.y;
+          const dist = Math.hypot(dx, dy);
+          const influence = Math.max(0, 1 - dist / 220);
+          shiftX -= dx * influence * 0.08;
+          shiftY -= dy * influence * 0.05;
+          heat = influence;
+        }
+
+        stamps.forEach((stamp) => {
+          const dx = stamp.x - slip.x;
+          const dy = stamp.y - slip.y;
+          const dist = Math.hypot(dx, dy);
+          const influence = Math.max(0, 1 - dist / (stamp.radius + 60));
+          shiftX += dx * influence * 0.01;
+          shiftY += dy * influence * 0.01;
+          heat = Math.max(heat, influence * 0.8);
+        });
+
+        slip.x += (slip.baseX + shiftX - slip.x) * 0.08;
+        slip.y += (slip.baseY + shiftY - slip.y) * 0.08;
+
+        const x = slip.x;
+        const y = slip.y;
+
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(slip.tilt + Math.sin(time * 0.0007 + slip.phase) * 0.03);
+
+        const shadow = ctx.createLinearGradient(-slip.w * 0.5, -slip.h * 0.5, slip.w * 0.5, slip.h * 0.5);
+        shadow.addColorStop(0, "rgba(255,255,255,0.72)");
+        shadow.addColorStop(1, "rgba(248,235,220,0.88)");
+        ctx.fillStyle = shadow;
+        ctx.strokeStyle = "rgba(34, 51, 61, 0.12)";
+        ctx.lineWidth = 1.2;
+        roundRect(ctx, -slip.w * 0.5, -slip.h * 0.5, slip.w, slip.h, 16);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = `${slip.color}22`;
+        roundRect(ctx, -slip.w * 0.42, -slip.h * 0.35, slip.w * 0.3, slip.h * 0.18, 10);
+        ctx.fill();
+
+        ctx.strokeStyle = `rgba(34, 51, 61, ${0.12 + heat * 0.3})`;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(-slip.w * 0.36, -slip.h * 0.06);
+        ctx.lineTo(slip.w * 0.34, -slip.h * 0.06);
+        ctx.moveTo(-slip.w * 0.36, slip.h * 0.14);
+        ctx.lineTo(slip.w * 0.22, slip.h * 0.14);
+        ctx.stroke();
+
+        ctx.fillStyle = "rgba(34, 51, 61, 0.84)";
+        ctx.font = "12px \"Azeret Mono\", monospace";
+        ctx.textBaseline = "middle";
+        ctx.fillText(slip.label.toUpperCase(), -slip.w * 0.35, -slip.h * 0.26);
+
+        ctx.fillStyle = "rgba(34, 51, 61, 0.62)";
+        ctx.font = "11px \"Azeret Mono\", monospace";
+        ctx.fillText(`rank 0${slip.rank}`, -slip.w * 0.35, slip.h * 0.28);
+
+        ctx.fillStyle = slip.color;
+        ctx.globalAlpha = 0.6 + heat * 0.35;
+        ctx.beginPath();
+        ctx.arc(slip.w * 0.33, slip.h * 0.23, 6 + heat * 4, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+      }
+
+      function drawStamps(time) {
+        for (let i = stamps.length - 1; i >= 0; i -= 1) {
+          const stamp = stamps[i];
+          stamp.age += 1 / 60;
+          if (stamp.age > stamp.life) {
+            stamps.splice(i, 1);
+            renderStampList();
+            continue;
+          }
+
+          const t = stamp.age / stamp.life;
+          const alpha = 1 - t;
+          ctx.save();
+          ctx.translate(stamp.x, stamp.y);
+          ctx.rotate(Math.sin(time * 0.001 + i) * 0.08);
+          ctx.strokeStyle = hexToRgba(stamp.color, 0.22 * alpha);
+          ctx.lineWidth = 2;
+          ctx.setLineDash([4, 10]);
+          ctx.beginPath();
+          ctx.arc(0, 0, stamp.radius * (0.7 + t * 0.5), 0, Math.PI * 2);
+          ctx.stroke();
+
+          ctx.strokeStyle = hexToRgba("#22333d", 0.16 * alpha);
+          ctx.setLineDash([]);
+          roundRect(ctx, -44, -22, 88, 44, 14);
+          ctx.stroke();
+
+          ctx.fillStyle = hexToRgba("#22333d", 0.46 * alpha);
+          ctx.font = "11px \"Azeret Mono\", monospace";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(stamp.label.toUpperCase(), 0, 0);
+          ctx.restore();
+        }
+      }
+
+      function roundRect(context, x, y, w, h, r) {
+        context.beginPath();
+        context.moveTo(x + r, y);
+        context.arcTo(x + w, y, x + w, y + h, r);
+        context.arcTo(x + w, y + h, x, y + h, r);
+        context.arcTo(x, y + h, x, y, r);
+        context.arcTo(x, y, x + w, y, r);
+        context.closePath();
+      }
+
+      function hexToRgba(hex, alpha) {
+        const value = hex.replace("#", "");
+        const bigint = Number.parseInt(value, 16);
+        const r = (bigint >> 16) & 255;
+        const g = (bigint >> 8) & 255;
+        const b = bigint & 255;
+        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+      }
+
+      function distanceToCurve(px, py, x1, y1, cx, cy, x2, y2) {
+        let min = Infinity;
+        for (let step = 0; step <= 20; step += 1) {
+          const t = step / 20;
+          const x =
+            (1 - t) * (1 - t) * x1 +
+            2 * (1 - t) * t * cx +
+            t * t * x2;
+          const y =
+            (1 - t) * (1 - t) * y1 +
+            2 * (1 - t) * t * cy +
+            t * t * y2;
+          min = Math.min(min, Math.hypot(px - x, py - y));
+        }
+        return min;
+      }
+
+      function tick(time) {
+        if (time - modeStarted > 9000) {
+          modeIndex = (modeIndex + 1) % modes.length;
+          modeStarted = time;
+          modeLabel.textContent = modes[modeIndex].key;
+        }
+
+        ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+        drawPaperWash(time);
+        drawFibers();
+
+        filaments.forEach((filament) => drawFilament(filament, time));
+        slips.forEach((slip) => drawSlip(slip, time));
+        drawStamps(time);
+
+        requestAnimationFrame(tick);
+      }
+
+      window.addEventListener("pointermove", (event) => {
+        pointer.x = event.clientX;
+        pointer.y = event.clientY;
+        pointer.active = true;
+      });
+
+      window.addEventListener("pointerleave", () => {
+        pointer.active = false;
+      });
+
+      window.addEventListener("click", (event) => {
+        plantStamp(event.clientX, event.clientY);
+      });
+
+      window.addEventListener("resize", resize);
+
+      renderStampList();
+      resize();
+      requestAnimationFrame(tick);
+    </script>
+  </body>
+</html>

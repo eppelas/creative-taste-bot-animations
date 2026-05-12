@@ -1,0 +1,638 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>#014 Lumen Weir Garden</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #05060a;
+        --panel: rgba(10, 12, 18, 0.74);
+        --line: rgba(243, 234, 224, 0.13);
+        --text: #f3eae0;
+        --muted: rgba(243, 234, 224, 0.68);
+        --pearl: #f7dfcb;
+        --amber: #efb069;
+        --rose: #f47eb6;
+        --violet: #8e84ff;
+        --cyan: #72dde6;
+        --mint: #c2f1bf;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        background:
+          radial-gradient(circle at 50% 10%, rgba(142, 132, 255, 0.16), transparent 28%),
+          radial-gradient(circle at 22% 72%, rgba(244, 126, 182, 0.08), transparent 24%),
+          radial-gradient(circle at 82% 64%, rgba(114, 221, 230, 0.08), transparent 24%),
+          linear-gradient(180deg, rgba(255, 247, 240, 0.03), transparent 24%),
+          var(--bg);
+        color: var(--text);
+        font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+      }
+
+      canvas {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        display: block;
+      }
+
+      .hud {
+        position: fixed;
+        inset: 18px;
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+        gap: 18px;
+        pointer-events: none;
+      }
+
+      .panel,
+      .chip {
+        border: 1px solid var(--line);
+        border-radius: 22px;
+        background: var(--panel);
+        backdrop-filter: blur(18px);
+        box-shadow: 0 24px 80px rgba(0, 0, 0, 0.34);
+        pointer-events: auto;
+      }
+
+      .panel {
+        width: min(430px, calc(100vw - 36px));
+        display: grid;
+        gap: 10px;
+        padding: 16px;
+      }
+
+      .chip {
+        min-width: 210px;
+        display: grid;
+        gap: 10px;
+        padding: 14px;
+      }
+
+      .eyebrow,
+      .hint,
+      .meta,
+      .label,
+      .value {
+        margin: 0;
+      }
+
+      .eyebrow {
+        font-size: 11px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: rgba(243, 234, 224, 0.5);
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 600;
+      }
+
+      .hint,
+      .meta,
+      .label {
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.45;
+      }
+
+      .back {
+        width: fit-content;
+        padding: 8px 12px;
+        border: 1px solid rgba(243, 234, 224, 0.14);
+        border-radius: 999px;
+        color: var(--text);
+        text-decoration: none;
+      }
+
+      .row {
+        display: grid;
+        gap: 4px;
+      }
+
+      .value {
+        font-size: 14px;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+      }
+
+      @media (max-width: 920px) {
+        .hud {
+          flex-direction: column;
+        }
+
+        .chip {
+          min-width: 0;
+          width: min(260px, calc(100vw - 36px));
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="scene"></canvas>
+    <div class="hud">
+      <section class="panel">
+        <p class="eyebrow">Code Animation Study #014</p>
+        <h1>Lumen Weir Garden</h1>
+        <p class="hint">
+          A vertical translucent estuary where soft membranes hang like wet
+          specimen organs inside one shared chamber. The visible channels read
+          as anatomy and habitat plumbing, not a dashboard.
+        </p>
+        <p class="meta">
+          Move through the chamber to send a slow pressure wake. Nearby sacs
+          open, hanging filaments lean, and the central weir brightens where
+          the field is touched.
+        </p>
+        <a class="back" href="../../index.html">Index</a>
+      </section>
+
+      <section class="chip">
+        <div class="row">
+          <p class="label">Weir pressure</p>
+          <p class="value" id="pressureValue">settled</p>
+        </div>
+        <div class="row">
+          <p class="label">Lumen drift</p>
+          <p class="value" id="driftValue">0.38</p>
+        </div>
+        <div class="row">
+          <p class="label">Valve chorus</p>
+          <p class="value" id="chorusValue">soft open</p>
+        </div>
+      </section>
+    </div>
+    <script src="../../shared/study-notes.js"></script>
+
+    <script>
+      const canvas = document.getElementById("scene");
+      const ctx = canvas.getContext("2d");
+      const pressureValue = document.getElementById("pressureValue");
+      const driftValue = document.getElementById("driftValue");
+      const chorusValue = document.getElementById("chorusValue");
+
+      const TAU = Math.PI * 2;
+      const columns = [];
+      const valves = [];
+      const spores = [];
+      const ladders = [];
+      const threads = [];
+
+      let width = 0;
+      let height = 0;
+      let dpr = 1;
+      let frame = 0;
+
+      const pointer = {
+        x: 0.5,
+        y: 0.56,
+        tx: 0.5,
+        ty: 0.56,
+        active: false,
+        energy: 0,
+      };
+
+      function rand(min, max) {
+        return min + Math.random() * (max - min);
+      }
+
+      function clamp(value, min, max) {
+        return Math.max(min, Math.min(max, value));
+      }
+
+      function ease(a, b, t) {
+        return a + (b - a) * t;
+      }
+
+      function resize() {
+        dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+        width = window.innerWidth;
+        height = window.innerHeight;
+        canvas.width = width * dpr;
+        canvas.height = height * dpr;
+        canvas.style.width = `${width}px`;
+        canvas.style.height = `${height}px`;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        buildScene();
+      }
+
+      function buildScene() {
+        columns.length = 0;
+        valves.length = 0;
+        spores.length = 0;
+        ladders.length = 0;
+        threads.length = 0;
+
+        const columnCount = width < 780 ? 4 : 6;
+        for (let i = 0; i < columnCount; i += 1) {
+          columns.push({
+            x: (i + 0.5) / columnCount,
+            top: rand(0.1, 0.28),
+            bottom: rand(0.74, 0.96),
+            width: rand(0.08, 0.14),
+            phase: rand(0, TAU),
+            hue: i % 2 === 0 ? "violet" : "rose",
+          });
+        }
+
+        const valveCount = width < 780 ? 18 : 28;
+        for (let i = 0; i < valveCount; i += 1) {
+          const band = columns[i % columns.length];
+          valves.push({
+            anchor: band.x + rand(-band.width * 0.28, band.width * 0.28),
+            y: rand(band.top + 0.04, band.bottom - 0.06),
+            rx: rand(20, 58),
+            ry: rand(30, 90),
+            phase: rand(0, TAU),
+            tint: i % 4,
+            offset: rand(-0.03, 0.03),
+          });
+        }
+
+        const sporeCount = width < 780 ? 80 : 150;
+        for (let i = 0; i < sporeCount; i += 1) {
+          spores.push({
+            x: Math.random(),
+            y: Math.random(),
+            size: rand(1.2, 4.4),
+            drift: rand(0.0002, 0.0012),
+            phase: rand(0, TAU),
+            alpha: rand(0.08, 0.45),
+          });
+        }
+
+        const ladderCount = width < 780 ? 6 : 10;
+        for (let i = 0; i < ladderCount; i += 1) {
+          ladders.push({
+            x: rand(0.1, 0.9),
+            y: rand(0.14, 0.88),
+            h: rand(80, 200),
+            phase: rand(0, TAU),
+            alpha: rand(0.12, 0.32),
+          });
+        }
+
+        const threadCount = width < 780 ? 22 : 34;
+        for (let i = 0; i < threadCount; i += 1) {
+          threads.push({
+            x: rand(0.08, 0.92),
+            y: rand(0.14, 0.82),
+            length: rand(70, 180),
+            sway: rand(10, 32),
+            phase: rand(0, TAU),
+          });
+        }
+      }
+
+      function onPointerMove(event) {
+        const rect = canvas.getBoundingClientRect();
+        pointer.tx = clamp((event.clientX - rect.left) / rect.width, 0, 1);
+        pointer.ty = clamp((event.clientY - rect.top) / rect.height, 0, 1);
+        pointer.active = true;
+      }
+
+      function drawBackdrop(t) {
+        const sky = ctx.createLinearGradient(0, 0, 0, height);
+        sky.addColorStop(0, "#090a12");
+        sky.addColorStop(0.36, "#070910");
+        sky.addColorStop(1, "#040509");
+        ctx.fillStyle = sky;
+        ctx.fillRect(0, 0, width, height);
+
+        ctx.save();
+        ctx.globalCompositeOperation = "screen";
+        const bloom = ctx.createRadialGradient(
+          width * 0.5,
+          height * 0.16,
+          0,
+          width * 0.5,
+          height * 0.16,
+          width * 0.34
+        );
+        bloom.addColorStop(0, "rgba(164, 140, 255, 0.22)");
+        bloom.addColorStop(0.45, "rgba(111, 220, 228, 0.08)");
+        bloom.addColorStop(1, "rgba(0, 0, 0, 0)");
+        ctx.fillStyle = bloom;
+        ctx.fillRect(0, 0, width, height);
+
+        const wake = ctx.createRadialGradient(
+          pointer.x * width,
+          pointer.y * height,
+          0,
+          pointer.x * width,
+          pointer.y * height,
+          Math.max(width, height) * 0.2
+        );
+        wake.addColorStop(0, `rgba(247, 223, 203, ${0.12 + pointer.energy * 0.12})`);
+        wake.addColorStop(0.35, `rgba(114, 221, 230, ${0.08 + pointer.energy * 0.08})`);
+        wake.addColorStop(1, "rgba(0, 0, 0, 0)");
+        ctx.fillStyle = wake;
+        ctx.fillRect(0, 0, width, height);
+        ctx.restore();
+
+        ctx.save();
+        ctx.strokeStyle = "rgba(243, 234, 224, 0.035)";
+        ctx.lineWidth = 1;
+        for (let y = 0; y < height; y += 28) {
+          const drift = Math.sin(t * 0.3 + y * 0.02) * 10;
+          ctx.beginPath();
+          ctx.moveTo(0, y + drift);
+          ctx.lineTo(width, y - drift * 0.4);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      function drawColumns(t) {
+        columns.forEach((column, index) => {
+          const x = column.x * width;
+          const top = column.top * height;
+          const bottom = column.bottom * height;
+          const half = column.width * width * 0.5;
+          const sway = Math.sin(t * 0.7 + column.phase) * 8;
+          const wake = Math.exp(-Math.abs(pointer.x * width - x) / 190) * pointer.energy;
+
+          ctx.save();
+          ctx.translate(sway * (0.3 + wake), 0);
+
+          const tube = ctx.createLinearGradient(x - half, top, x + half, bottom);
+          tube.addColorStop(0, "rgba(244, 126, 182, 0.08)");
+          tube.addColorStop(0.32, "rgba(142, 132, 255, 0.16)");
+          tube.addColorStop(0.68, "rgba(114, 221, 230, 0.14)");
+          tube.addColorStop(1, "rgba(194, 241, 191, 0.08)");
+          ctx.fillStyle = tube;
+          ctx.beginPath();
+          ctx.moveTo(x, top);
+          ctx.bezierCurveTo(
+            x + half,
+            top + height * 0.08,
+            x + half * 0.9,
+            bottom - height * 0.1,
+            x,
+            bottom
+          );
+          ctx.bezierCurveTo(
+            x - half * 0.8,
+            bottom - height * 0.08,
+            x - half,
+            top + height * 0.12,
+            x,
+            top
+          );
+          ctx.closePath();
+          ctx.fill();
+
+          ctx.strokeStyle = `rgba(243, 234, 224, ${0.08 + wake * 0.12})`;
+          ctx.lineWidth = 1.1 + wake * 0.6;
+          ctx.stroke();
+
+          ctx.globalCompositeOperation = "lighter";
+          for (let i = 0; i < 3; i += 1) {
+            const shift = (i - 1) * half * 0.24;
+            ctx.strokeStyle =
+              i === 1
+                ? `rgba(247, 223, 203, ${0.1 + wake * 0.1})`
+                : `rgba(114, 221, 230, ${0.07 + wake * 0.08})`;
+            ctx.beginPath();
+            for (let step = 0; step <= 24; step += 1) {
+              const p = step / 24;
+              const y = ease(top, bottom, p);
+              const bend =
+                Math.sin(p * 7 + t * 1.5 + column.phase + i) * half * 0.16 +
+                Math.sin(p * 13 + column.phase) * half * 0.06;
+              const px = x + shift + bend;
+              if (step === 0) {
+                ctx.moveTo(px, y);
+              } else {
+                ctx.lineTo(px, y);
+              }
+            }
+            ctx.stroke();
+          }
+          ctx.restore();
+
+          if (index < columns.length - 1) {
+            const next = columns[index + 1];
+            const nx = next.x * width;
+            const ny = ease(top, bottom, 0.38 + Math.sin(t + index) * 0.06);
+            ctx.save();
+            ctx.strokeStyle = `rgba(247, 223, 203, ${0.05 + wake * 0.08})`;
+            ctx.lineWidth = 1.2;
+            ctx.beginPath();
+            ctx.moveTo(x + half * 0.3, ny);
+            ctx.bezierCurveTo(
+              x + (nx - x) * 0.25,
+              ny - 26,
+              x + (nx - x) * 0.75,
+              ny + 26,
+              nx - half * 0.3,
+              ny + Math.sin(t + index) * 12
+            );
+            ctx.stroke();
+            ctx.restore();
+          }
+        });
+      }
+
+      function drawValves(t) {
+        valves.forEach((valve, index) => {
+          const x = valve.anchor * width + Math.sin(t * 0.8 + valve.phase) * 10;
+          const y = valve.y * height + Math.cos(t * 0.6 + valve.phase) * 9;
+          const dx = pointer.x * width - x;
+          const dy = pointer.y * height - y;
+          const dist = Math.hypot(dx, dy);
+          const influence = Math.max(0, 1 - dist / 220) * pointer.energy;
+          const rx = valve.rx * (1 + influence * 0.18);
+          const ry = valve.ry * (1 - influence * 0.16);
+          const aperture = 0.26 + Math.sin(t * 1.1 + valve.phase) * 0.08 + influence * 0.36;
+
+          ctx.save();
+          ctx.translate(x, y);
+          ctx.rotate(Math.sin(t * 0.25 + valve.phase) * 0.18 + valve.offset * 4);
+          ctx.globalCompositeOperation = "screen";
+
+          const shell = ctx.createRadialGradient(0, 0, 0, 0, 0, ry);
+          if (valve.tint === 0) {
+            shell.addColorStop(0, `rgba(247, 223, 203, ${0.14 + influence * 0.16})`);
+            shell.addColorStop(0.55, `rgba(244, 126, 182, ${0.12 + influence * 0.12})`);
+            shell.addColorStop(1, "rgba(244, 126, 182, 0)");
+          } else if (valve.tint === 1) {
+            shell.addColorStop(0, `rgba(194, 241, 191, ${0.12 + influence * 0.16})`);
+            shell.addColorStop(0.55, `rgba(114, 221, 230, ${0.12 + influence * 0.12})`);
+            shell.addColorStop(1, "rgba(114, 221, 230, 0)");
+          } else if (valve.tint === 2) {
+            shell.addColorStop(0, `rgba(142, 132, 255, ${0.13 + influence * 0.16})`);
+            shell.addColorStop(0.52, `rgba(247, 223, 203, ${0.1 + influence * 0.1})`);
+            shell.addColorStop(1, "rgba(142, 132, 255, 0)");
+          } else {
+            shell.addColorStop(0, `rgba(239, 176, 105, ${0.13 + influence * 0.16})`);
+            shell.addColorStop(0.56, `rgba(244, 126, 182, ${0.1 + influence * 0.1})`);
+            shell.addColorStop(1, "rgba(239, 176, 105, 0)");
+          }
+
+          ctx.fillStyle = shell;
+          ctx.beginPath();
+          ctx.ellipse(0, 0, rx, ry, 0, 0, TAU);
+          ctx.fill();
+
+          ctx.strokeStyle = `rgba(243, 234, 224, ${0.1 + influence * 0.16})`;
+          ctx.lineWidth = 1.2;
+          ctx.stroke();
+
+          ctx.strokeStyle = `rgba(243, 234, 224, ${0.12 + influence * 0.14})`;
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(0, -ry * aperture);
+          ctx.bezierCurveTo(rx * 0.12, -ry * 0.24, rx * 0.12, ry * 0.24, 0, ry * aperture);
+          ctx.moveTo(0, -ry * aperture);
+          ctx.bezierCurveTo(-rx * 0.12, -ry * 0.24, -rx * 0.12, ry * 0.24, 0, ry * aperture);
+          ctx.stroke();
+
+          ctx.beginPath();
+          ctx.ellipse(0, 0, rx * 0.24, ry * 0.36, 0, 0, TAU);
+          ctx.strokeStyle = `rgba(247, 223, 203, ${0.08 + influence * 0.18})`;
+          ctx.stroke();
+
+          ctx.restore();
+        });
+      }
+
+      function drawThreads(t) {
+        ctx.save();
+        ctx.globalCompositeOperation = "screen";
+        threads.forEach((thread) => {
+          const x = thread.x * width;
+          const y = thread.y * height;
+          const dx = pointer.x * width - x;
+          const dy = pointer.y * height - y;
+          const dist = Math.hypot(dx, dy);
+          const influence = Math.max(0, 1 - dist / 180) * pointer.energy;
+
+          ctx.strokeStyle = `rgba(194, 241, 191, ${0.06 + influence * 0.09})`;
+          ctx.lineWidth = 0.9 + influence * 0.8;
+          ctx.beginPath();
+          for (let step = 0; step <= 22; step += 1) {
+            const p = step / 22;
+            const sway =
+              Math.sin(t * 1.2 + thread.phase + p * 4) * thread.sway * (1 + influence * 1.6);
+            const px = x + sway;
+            const py = y + p * thread.length;
+            if (step === 0) {
+              ctx.moveTo(px, py);
+            } else {
+              ctx.lineTo(px, py);
+            }
+          }
+          ctx.stroke();
+        });
+        ctx.restore();
+      }
+
+      function drawLadders(t) {
+        ctx.save();
+        ctx.strokeStyle = "rgba(243, 234, 224, 0.1)";
+        ctx.lineWidth = 1;
+        ladders.forEach((ladder, index) => {
+          const x = ladder.x * width;
+          const y = ladder.y * height;
+          const h = ladder.h;
+          const wake = Math.exp(-Math.abs(pointer.x * width - x) / 200) * pointer.energy;
+
+          ctx.strokeStyle = `rgba(243, 234, 224, ${ladder.alpha + wake * 0.12})`;
+          ctx.beginPath();
+          ctx.moveTo(x - 10, y);
+          ctx.lineTo(x - 10, y + h);
+          ctx.moveTo(x + 10, y);
+          ctx.lineTo(x + 10, y + h);
+          for (let rung = 0; rung <= 8; rung += 1) {
+            const yy = y + (h * rung) / 8;
+            ctx.moveTo(x - 10, yy);
+            ctx.lineTo(x + 10, yy + Math.sin(t * 1.5 + ladder.phase + rung) * 2.4);
+          }
+          ctx.stroke();
+
+          const markerY = y + h * (0.2 + ((index * 0.17 + Math.sin(t + ladder.phase) * 0.08 + 1) * 0.22));
+          ctx.fillStyle = `rgba(114, 221, 230, ${0.08 + wake * 0.1})`;
+          ctx.fillRect(x - 17, markerY, 34, 2);
+        });
+        ctx.restore();
+      }
+
+      function drawSpores(t) {
+        ctx.save();
+        ctx.globalCompositeOperation = "screen";
+        spores.forEach((spore) => {
+          const x = (spore.x + Math.sin(t * spore.drift * 60 + spore.phase) * 0.01) * width;
+          const y = ((spore.y + t * spore.drift) % 1) * height;
+          const dx = pointer.x * width - x;
+          const dy = pointer.y * height - y;
+          const dist = Math.hypot(dx, dy);
+          const influence = Math.max(0, 1 - dist / 120) * pointer.energy;
+
+          ctx.fillStyle = `rgba(247, 223, 203, ${spore.alpha + influence * 0.2})`;
+          ctx.beginPath();
+          ctx.arc(x - dx * influence * 0.06, y - dy * influence * 0.06, spore.size + influence * 1.2, 0, TAU);
+          ctx.fill();
+        });
+        ctx.restore();
+      }
+
+      function render() {
+        frame += 1;
+        const t = frame / 60;
+
+        pointer.x = ease(pointer.x, pointer.tx, 0.08);
+        pointer.y = ease(pointer.y, pointer.ty, 0.08);
+        pointer.energy = ease(pointer.energy, pointer.active ? 1 : 0.18, 0.05);
+        pointer.active = false;
+
+        drawBackdrop(t);
+        drawColumns(t);
+        drawThreads(t);
+        drawValves(t);
+        drawLadders(t);
+        drawSpores(t);
+
+        const pressure = pointer.energy * 0.54 + 0.24 + Math.sin(t * 0.8) * 0.04;
+        const drift = 0.32 + Math.sin(t * 0.45) * 0.09 + pointer.energy * 0.12;
+        const chorus = pointer.energy > 0.62 ? "wide open" : pointer.energy > 0.36 ? "responsive" : "soft open";
+
+        pressureValue.textContent = pressure > 0.68 ? "lifted" : pressure > 0.44 ? "stirred" : "settled";
+        driftValue.textContent = drift.toFixed(2);
+        chorusValue.textContent = chorus;
+
+        requestAnimationFrame(render);
+      }
+
+      window.addEventListener("resize", resize);
+      window.addEventListener("pointermove", onPointerMove, { passive: true });
+      window.addEventListener(
+        "pointerleave",
+        () => {
+          pointer.active = false;
+          pointer.tx = 0.5;
+          pointer.ty = 0.56;
+        },
+        { passive: true }
+      );
+
+      resize();
+      render();
+    </script>
+  </body>
+</html>

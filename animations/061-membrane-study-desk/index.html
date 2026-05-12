@@ -1,0 +1,1171 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>#061 Membrane Study Desk</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --paper: #efe4d5;
+        --paper-bright: #fcf6ef;
+        --paper-deep: #dbc5ad;
+        --ink: #30404d;
+        --muted: rgba(48, 64, 77, 0.62);
+        --line: rgba(48, 64, 77, 0.14);
+        --line-strong: rgba(48, 64, 77, 0.28);
+        --cyan: #84c0cf;
+        --sage: #95b29d;
+        --rose: #de9a90;
+        --amber: #d2a15e;
+        --plum: #81748f;
+        --fog: rgba(255, 255, 255, 0.58);
+        --glass: rgba(255, 250, 244, 0.56);
+        --shadow: 0 28px 88px rgba(104, 81, 61, 0.15);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        background:
+          radial-gradient(circle at 14% 12%, rgba(255, 255, 255, 0.94), transparent 18%),
+          radial-gradient(circle at 84% 14%, rgba(132, 192, 207, 0.14), transparent 20%),
+          radial-gradient(circle at 18% 86%, rgba(222, 154, 144, 0.12), transparent 22%),
+          radial-gradient(circle at 78% 82%, rgba(149, 178, 157, 0.14), transparent 24%),
+          linear-gradient(180deg, #f7efe5 0%, var(--paper) 56%, var(--paper-deep) 100%);
+        color: var(--ink);
+        font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", serif;
+      }
+
+      body {
+        overflow: hidden;
+      }
+
+      body::before,
+      body::after {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+      }
+
+      body::before {
+        opacity: 0.08;
+        background-image:
+          linear-gradient(rgba(48, 64, 77, 0.12) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(48, 64, 77, 0.12) 1px, transparent 1px);
+        background-size: 96px 96px;
+        mask-image: radial-gradient(circle at 50% 45%, black 38%, transparent 92%);
+      }
+
+      body::after {
+        opacity: 0.14;
+        background-image:
+          linear-gradient(rgba(255, 255, 255, 0.86) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.86) 1px, transparent 1px);
+        background-size: 4px 4px;
+        mix-blend-mode: soft-light;
+      }
+
+      canvas {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        display: block;
+      }
+
+      a {
+        color: inherit;
+      }
+
+      .hud {
+        position: fixed;
+        inset: 16px;
+        display: grid;
+        grid-template-columns: minmax(280px, 340px) minmax(0, 1fr) minmax(260px, 320px);
+        grid-template-rows: auto minmax(0, 1fr) auto;
+        gap: 14px;
+        pointer-events: none;
+      }
+
+      .panel,
+      .desk,
+      .notes,
+      .back,
+      .chip,
+      .metric,
+      .card {
+        border: 1px solid var(--line);
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.76), rgba(252, 246, 239, 0.58)),
+          rgba(255, 250, 243, 0.64);
+        backdrop-filter: blur(18px);
+        box-shadow: var(--shadow);
+      }
+
+      .panel,
+      .desk,
+      .notes {
+        pointer-events: auto;
+        border-radius: 30px;
+        overflow: hidden;
+      }
+
+      .panel::after,
+      .desk::after,
+      .notes::after,
+      .card::after {
+        content: "";
+        position: absolute;
+        inset: 1px;
+        border: 1px solid rgba(255, 255, 255, 0.42);
+        border-radius: inherit;
+        pointer-events: none;
+      }
+
+      .panel {
+        position: relative;
+        padding: 16px 17px 18px;
+        display: grid;
+        gap: 12px;
+        align-content: start;
+      }
+
+      .intro {
+        grid-column: 1;
+        grid-row: 1 / span 2;
+      }
+
+      .controls {
+        grid-column: 3;
+        grid-row: 1 / span 2;
+      }
+
+      .desk {
+        position: relative;
+        grid-column: 2;
+        grid-row: 1 / span 2;
+        min-height: min(78vh, 920px);
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.44), rgba(255, 248, 241, 0.16)),
+          rgba(255, 248, 241, 0.22);
+      }
+
+      .desk::before {
+        content: "";
+        position: absolute;
+        inset: 22px;
+        border-radius: 28px;
+        border: 1px solid rgba(48, 64, 77, 0.08);
+        background:
+          radial-gradient(circle at 16% 18%, rgba(132, 192, 207, 0.1), transparent 24%),
+          radial-gradient(circle at 78% 26%, rgba(222, 154, 144, 0.12), transparent 24%),
+          radial-gradient(circle at 52% 82%, rgba(149, 178, 157, 0.12), transparent 26%);
+        pointer-events: none;
+      }
+
+      .notes {
+        position: relative;
+        grid-column: 1 / -1;
+        grid-row: 3;
+        padding: 13px;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .desk-overlay {
+        position: relative;
+        z-index: 1;
+        min-height: 100%;
+        padding: 18px;
+        display: grid;
+        grid-template-columns: 1.2fr 0.95fr;
+        grid-template-rows: auto 1fr auto;
+        gap: 12px;
+      }
+
+      .header-strip,
+      .tray,
+      .ledger,
+      .desk-footer {
+        position: relative;
+        border: 1px solid rgba(48, 64, 77, 0.1);
+        border-radius: 24px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.42), rgba(255, 249, 243, 0.2)),
+          rgba(255, 255, 255, 0.18);
+        overflow: hidden;
+      }
+
+      .header-strip {
+        grid-column: 1 / -1;
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: center;
+        padding: 14px 16px;
+      }
+
+      .tray {
+        min-height: 520px;
+      }
+
+      .ledger {
+        display: grid;
+        grid-template-rows: auto auto 1fr;
+        gap: 12px;
+        padding: 14px;
+      }
+
+      .desk-footer {
+        grid-column: 1 / -1;
+        padding: 12px 14px;
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .back {
+        position: fixed;
+        right: 16px;
+        bottom: 16px;
+        pointer-events: auto;
+        border-radius: 999px;
+        padding: 11px 14px;
+        text-decoration: none;
+        font-family: "Azeret Mono", "IBM Plex Mono", "SFMono-Regular", monospace;
+        font-size: 0.74rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+
+      .mono,
+      .eyebrow,
+      .small,
+      .chip,
+      .metric-label,
+      .tab,
+      .stamp,
+      .note-label,
+      .back {
+        font-family: "Azeret Mono", "IBM Plex Mono", "SFMono-Regular", monospace;
+      }
+
+      .eyebrow,
+      .small,
+      .metric-label,
+      .note-label,
+      .tab,
+      .stamp {
+        font-size: 11px;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      h1 {
+        font-size: clamp(2.3rem, 5vw, 4.7rem);
+        line-height: 0.9;
+        letter-spacing: -0.07em;
+        max-width: 8ch;
+      }
+
+      .body,
+      .metric-value,
+      .note-card p,
+      .ledger-copy,
+      .header-copy {
+        line-height: 1.55;
+        color: rgba(48, 64, 77, 0.78);
+      }
+
+      .metric-grid,
+      .library,
+      .queue,
+      .footer-grid {
+        display: grid;
+        gap: 10px;
+      }
+
+      .metric-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .metric,
+      .note-card,
+      .mini-card {
+        position: relative;
+        border-radius: 22px;
+        background: rgba(255, 255, 255, 0.34);
+        padding: 12px 13px;
+      }
+
+      .metric strong,
+      .stamp {
+        display: block;
+        margin-top: 0.34rem;
+      }
+
+      .metric strong {
+        font-size: 1rem;
+        letter-spacing: -0.05em;
+        color: var(--ink);
+      }
+
+      .chip-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .chip {
+        appearance: none;
+        border-radius: 999px;
+        padding: 9px 12px;
+        background: rgba(255, 255, 255, 0.44);
+        color: var(--ink);
+        cursor: pointer;
+        transition:
+          transform 180ms ease,
+          border-color 180ms ease,
+          background 180ms ease,
+          color 180ms ease;
+      }
+
+      .chip.active {
+        border-color: rgba(48, 64, 77, 0.24);
+        background: rgba(48, 64, 77, 0.08);
+        color: var(--ink);
+        transform: translateY(-1px);
+      }
+
+      .header-copy {
+        max-width: 42ch;
+      }
+
+      .tab-row {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .tab {
+        padding: 7px 10px;
+        border-radius: 999px;
+        border: 1px solid rgba(48, 64, 77, 0.12);
+        background: rgba(255, 255, 255, 0.38);
+      }
+
+      .tray-inner {
+        position: absolute;
+        inset: 16px;
+        border-radius: 22px;
+        overflow: hidden;
+      }
+
+      .scanline {
+        position: absolute;
+        left: 0;
+        right: 0;
+        height: 24%;
+        border-radius: 999px;
+        background:
+          linear-gradient(
+            180deg,
+            rgba(255, 255, 255, 0),
+            rgba(255, 255, 255, 0.42),
+            rgba(132, 192, 207, 0.16),
+            rgba(255, 255, 255, 0)
+          );
+        filter: blur(6px);
+        opacity: 0.7;
+        mix-blend-mode: screen;
+        animation: scan 7.6s linear infinite;
+      }
+
+      .specimen {
+        position: absolute;
+        width: min(34%, 250px);
+        min-width: 174px;
+        aspect-ratio: 0.82;
+        border-radius: 28px;
+        padding: 14px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.5), rgba(255, 247, 240, 0.18)),
+          rgba(255, 255, 255, 0.18);
+        border: 1px solid rgba(48, 64, 77, 0.12);
+        box-shadow: 0 18px 46px rgba(104, 81, 61, 0.14);
+        cursor: grab;
+        user-select: none;
+        touch-action: none;
+        transform: translate3d(var(--dx, 0px), var(--dy, 0px), 0) rotate(var(--tilt, 0deg));
+        transition:
+          box-shadow 180ms ease,
+          border-color 180ms ease;
+      }
+
+      .specimen.dragging {
+        cursor: grabbing;
+        border-color: rgba(48, 64, 77, 0.22);
+        box-shadow: 0 26px 60px rgba(104, 81, 61, 0.2);
+      }
+
+      .specimen::after {
+        content: "";
+        position: absolute;
+        inset: 10px;
+        border-radius: 22px;
+        border: 1px solid rgba(255, 255, 255, 0.34);
+        pointer-events: none;
+      }
+
+      .specimen svg {
+        width: 100%;
+        height: 74%;
+        display: block;
+        overflow: visible;
+      }
+
+      .specimen-header,
+      .specimen-footer {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        align-items: center;
+      }
+
+      .specimen-title {
+        font-size: 1.05rem;
+        letter-spacing: -0.04em;
+      }
+
+      .specimen-copy {
+        margin-top: 6px;
+        font-size: 0.9rem;
+        line-height: 1.45;
+        color: rgba(48, 64, 77, 0.72);
+      }
+
+      .orb {
+        fill: rgba(255, 255, 255, 0.7);
+        stroke: rgba(48, 64, 77, 0.12);
+        stroke-width: 1.1;
+      }
+
+      .filament {
+        fill: none;
+        stroke-width: 2.4;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      .pulse {
+        transform-box: fill-box;
+        transform-origin: center;
+        animation: breathe 4.8s ease-in-out infinite;
+      }
+
+      .pulse.alt {
+        animation-duration: 5.8s;
+      }
+
+      .ledger-copy {
+        font-size: 0.96rem;
+      }
+
+      .library {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .mini-card {
+        border: 1px solid rgba(48, 64, 77, 0.1);
+        border-radius: 18px;
+      }
+
+      .mini-swatch {
+        margin-top: 9px;
+        height: 54px;
+        border-radius: 14px;
+        border: 1px solid rgba(48, 64, 77, 0.08);
+      }
+
+      .queue {
+        align-content: start;
+      }
+
+      .queue-row {
+        display: grid;
+        grid-template-columns: 72px 1fr;
+        gap: 12px;
+        align-items: start;
+      }
+
+      .queue-row + .queue-row {
+        padding-top: 10px;
+        border-top: 1px solid rgba(48, 64, 77, 0.1);
+      }
+
+      .desk-footer .mini-card {
+        padding: 10px 11px;
+      }
+
+      .note-card {
+        border: 1px solid rgba(48, 64, 77, 0.1);
+        border-radius: 22px;
+      }
+
+      .note-card p {
+        margin-top: 0.42rem;
+        font-size: 0.92rem;
+      }
+
+      .status {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: center;
+      }
+
+      .meter {
+        position: relative;
+        height: 8px;
+        border-radius: 999px;
+        overflow: hidden;
+        background: rgba(48, 64, 77, 0.08);
+      }
+
+      .meter > span {
+        position: absolute;
+        inset: 0;
+        width: var(--fill, 50%);
+        border-radius: inherit;
+        background: linear-gradient(90deg, var(--cyan), var(--amber), var(--rose));
+      }
+
+      @keyframes breathe {
+        0%,
+        100% {
+          transform: scale(0.96);
+        }
+        50% {
+          transform: scale(1.04);
+        }
+      }
+
+      @keyframes scan {
+        0% {
+          top: -10%;
+        }
+        100% {
+          top: 88%;
+        }
+      }
+
+      @media (max-width: 1100px) {
+        body {
+          overflow: auto;
+        }
+
+        .hud {
+          position: relative;
+          inset: auto;
+          min-height: 100vh;
+          padding: 14px;
+          grid-template-columns: minmax(0, 1fr);
+          grid-template-rows: auto;
+        }
+
+        .intro,
+        .controls,
+        .desk,
+        .notes {
+          grid-column: auto;
+          grid-row: auto;
+        }
+
+        .desk {
+          min-height: 780px;
+        }
+
+        .notes,
+        .desk-footer,
+        .library {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .desk-overlay {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .back {
+          position: static;
+          width: fit-content;
+          margin: 0 14px 18px auto;
+          display: inline-flex;
+        }
+      }
+
+      @media (max-width: 720px) {
+        .hud {
+          padding: 12px;
+          gap: 12px;
+        }
+
+        .panel,
+        .desk,
+        .notes {
+          border-radius: 24px;
+        }
+
+        .panel,
+        .notes {
+          padding: 14px 15px 15px;
+        }
+
+        .desk-overlay {
+          padding: 14px;
+        }
+
+        .header-strip,
+        .ledger,
+        .desk-footer {
+          border-radius: 20px;
+        }
+
+        .specimen {
+          width: min(46%, 220px);
+          min-width: 152px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="field"></canvas>
+
+    <main class="hud">
+      <section class="panel intro">
+        <p class="eyebrow">Code Animation Study #061</p>
+        <h1>Membrane Study Desk</h1>
+        <p class="body">
+          A browser-native research surface built from the current calm
+          botanical-interface branch: translucent panes, drifting scan sweeps,
+          and soft procedural cells sit on one operable desk instead of another
+          creature habitat, portrait sheet, or detached dashboard.
+        </p>
+
+        <div class="metric-grid">
+          <div class="metric">
+            <span class="metric-label">Surface law</span>
+            <strong id="surfaceLaw">Dew lattice</strong>
+          </div>
+          <div class="metric">
+            <span class="metric-label">Heat drift</span>
+            <strong id="heatDrift">36%</strong>
+          </div>
+          <div class="metric">
+            <span class="metric-label">Specimen count</span>
+            <strong>03 panes</strong>
+          </div>
+          <div class="metric">
+            <span class="metric-label">Desk state</span>
+            <strong id="deskState">Warm scan</strong>
+          </div>
+        </div>
+
+        <div>
+          <p class="small">Mode chips</p>
+          <div class="chip-row" id="modeChips">
+            <button class="chip active" type="button" data-mode="dew">Dew</button>
+            <button class="chip" type="button" data-mode="lattice">Lattice</button>
+            <button class="chip" type="button" data-mode="bloom">Bloom</button>
+          </div>
+        </div>
+
+        <div class="queue">
+          <div class="queue-row">
+            <span class="stamp">Drag</span>
+            <p class="ledger-copy">Move the glass panes around the tray. Their position retunes local current density and scan timing.</p>
+          </div>
+          <div class="queue-row">
+            <span class="stamp">Hover</span>
+            <p class="ledger-copy">Pointer warmth bends the nearest membrane and raises local fog without turning the piece into fake software chrome.</p>
+          </div>
+          <div class="queue-row">
+            <span class="stamp">Click</span>
+            <p class="ledger-copy">Switch the surface law between dew, lattice, and bloom to recompose the same desk instead of swapping to another scene.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="desk">
+        <div class="desk-overlay">
+          <div class="header-strip">
+            <div>
+              <p class="eyebrow">Specimen Desk / Local Atlas</p>
+              <p class="header-copy">
+                A quiet HTML animation for the liked translucent-technical lane:
+                more like an operable editorial desk than a poster, creature,
+                or UI mockup.
+              </p>
+            </div>
+            <div class="tab-row">
+              <span class="tab">Fog pockets</span>
+              <span class="tab">Root notes</span>
+              <span class="tab">Soft diagnostics</span>
+            </div>
+          </div>
+
+          <div class="tray" id="tray">
+            <div class="tray-inner">
+              <div class="scanline" id="scanline"></div>
+
+              <article class="specimen" data-index="0" style="left: 8%; top: 11%; --tilt: -6deg;">
+                <div class="specimen-header">
+                  <span class="stamp">A1</span>
+                  <span class="small">Wet chamber</span>
+                </div>
+                <svg viewBox="0 0 220 240" aria-hidden="true">
+                  <defs>
+                    <linearGradient id="gA" x1="0%" x2="100%" y1="0%" y2="100%">
+                      <stop offset="0%" stop-color="rgba(132,192,207,0.78)" />
+                      <stop offset="100%" stop-color="rgba(222,154,144,0.44)" />
+                    </linearGradient>
+                  </defs>
+                  <path class="filament" stroke="url(#gA)" d="M22 148C58 90 116 58 190 54" />
+                  <path class="filament" stroke="rgba(149,178,157,0.72)" d="M34 170C96 120 136 120 190 154" />
+                  <ellipse class="pulse" cx="104" cy="128" rx="60" ry="70" fill="rgba(132,192,207,0.18)" />
+                  <ellipse class="pulse alt" cx="128" cy="116" rx="42" ry="54" fill="rgba(222,154,144,0.14)" />
+                  <circle class="orb" cx="84" cy="106" r="18" />
+                  <circle class="orb" cx="136" cy="132" r="11" />
+                  <circle class="orb" cx="126" cy="84" r="9" />
+                </svg>
+                <p class="specimen-title">Condensation fold</p>
+                <p class="specimen-copy">Dense edges, slower inner pulse, and more visible drift when warmed.</p>
+              </article>
+
+              <article class="specimen" data-index="1" style="left: 38%; top: 23%; --tilt: 4deg;">
+                <div class="specimen-header">
+                  <span class="stamp">B7</span>
+                  <span class="small">Trace membrane</span>
+                </div>
+                <svg viewBox="0 0 220 240" aria-hidden="true">
+                  <defs>
+                    <linearGradient id="gB" x1="0%" x2="100%" y1="0%" y2="100%">
+                      <stop offset="0%" stop-color="rgba(149,178,157,0.82)" />
+                      <stop offset="100%" stop-color="rgba(132,192,207,0.4)" />
+                    </linearGradient>
+                  </defs>
+                  <path class="filament" stroke="url(#gB)" d="M34 70C80 44 124 52 184 102" />
+                  <path class="filament" stroke="rgba(210,161,94,0.76)" d="M28 148C94 100 136 98 188 158" />
+                  <path class="filament" stroke="rgba(129,116,143,0.7)" d="M44 190C74 142 118 124 178 134" />
+                  <ellipse class="pulse" cx="116" cy="122" rx="66" ry="56" fill="rgba(149,178,157,0.14)" />
+                  <ellipse class="pulse alt" cx="94" cy="130" rx="38" ry="72" fill="rgba(132,192,207,0.12)" />
+                  <circle class="orb" cx="82" cy="124" r="14" />
+                  <circle class="orb" cx="140" cy="98" r="9" />
+                  <circle class="orb" cx="128" cy="152" r="13" />
+                </svg>
+                <p class="specimen-title">Needle lattice</p>
+                <p class="specimen-copy">Tighter crossing filaments keep the page sharper without collapsing into a grid-only interface.</p>
+              </article>
+
+              <article class="specimen" data-index="2" style="left: 60%; top: 44%; --tilt: -3deg;">
+                <div class="specimen-header">
+                  <span class="stamp">C2</span>
+                  <span class="small">Bloom pocket</span>
+                </div>
+                <svg viewBox="0 0 220 240" aria-hidden="true">
+                  <defs>
+                    <linearGradient id="gC" x1="0%" x2="100%" y1="0%" y2="100%">
+                      <stop offset="0%" stop-color="rgba(222,154,144,0.72)" />
+                      <stop offset="50%" stop-color="rgba(210,161,94,0.54)" />
+                      <stop offset="100%" stop-color="rgba(132,192,207,0.46)" />
+                    </linearGradient>
+                  </defs>
+                  <path class="filament" stroke="url(#gC)" d="M32 92C84 62 146 66 186 132" />
+                  <path class="filament" stroke="rgba(132,192,207,0.68)" d="M26 168C70 138 120 118 186 178" />
+                  <ellipse class="pulse" cx="110" cy="130" rx="72" ry="58" fill="rgba(222,154,144,0.12)" />
+                  <ellipse class="pulse alt" cx="106" cy="128" rx="48" ry="78" fill="rgba(132,192,207,0.12)" />
+                  <circle class="orb" cx="92" cy="116" r="12" />
+                  <circle class="orb" cx="132" cy="146" r="16" />
+                  <circle class="orb" cx="148" cy="102" r="8" />
+                </svg>
+                <p class="specimen-title">Soft flare basin</p>
+                <p class="specimen-copy">A warmer register with more fog bloom and slower scan residue.</p>
+              </article>
+            </div>
+          </div>
+
+          <div class="ledger">
+            <div class="status">
+              <div>
+                <p class="eyebrow">Current desk note</p>
+                <p class="ledger-copy" id="statusCopy">Dew mode keeps the desk soft and slightly aquatic, with calmer scan passes and slower drift.</p>
+              </div>
+              <span class="stamp" id="statusStamp">Mode / Dew</span>
+            </div>
+            <div>
+              <p class="small">Warmth meter</p>
+              <div class="meter"><span id="warmFill" style="--fill: 38%;"></span></div>
+            </div>
+            <div class="library">
+              <div class="mini-card">
+                <p class="note-label">Swatch / fog</p>
+                <div class="mini-swatch" id="swatchA"></div>
+              </div>
+              <div class="mini-card">
+                <p class="note-label">Swatch / trace</p>
+                <div class="mini-swatch" id="swatchB"></div>
+              </div>
+              <div class="mini-card">
+                <p class="note-label">Behavior</p>
+                <p class="ledger-copy">Distributed motion, no mascot, no hard app chrome, no static poster stillness.</p>
+              </div>
+              <div class="mini-card">
+                <p class="note-label">Potential</p>
+                <p class="ledger-copy">Could expand into a family of research pages, specimen drawers, and translucent editorial tools.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="desk-footer">
+            <div class="mini-card">
+              <p class="note-label">Shelf A</p>
+              <p class="ledger-copy">Field slides retain pointer warmth for a few seconds.</p>
+            </div>
+            <div class="mini-card">
+              <p class="note-label">Shelf B</p>
+              <p class="ledger-copy">Drag order subtly changes current turbulence beneath each pane.</p>
+            </div>
+            <div class="mini-card">
+              <p class="note-label">Shelf C</p>
+              <p class="ledger-copy">The scanline is ornamental but still tied to the active surface law.</p>
+            </div>
+            <div class="mini-card">
+              <p class="note-label">Shelf D</p>
+              <p class="ledger-copy">Best viewed as a moving design surface, not a fake productivity app.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel controls">
+        <p class="eyebrow">Desk ledger</p>
+        <div class="queue">
+          <div class="queue-row">
+            <span class="stamp">Idea</span>
+            <p class="ledger-copy">Translate the liked translucent-botanical intelligence into a lighter operable desk with cards, panes, and living scan weather.</p>
+          </div>
+          <div class="queue-row">
+            <span class="stamp">Avoid</span>
+            <p class="ledger-copy">No creature mascot, no portrait, no detached dark HUD, and no generic decorative glass blobs with no page logic.</p>
+          </div>
+        </div>
+
+        <div>
+          <p class="small">Live notes</p>
+          <div class="footer-grid">
+            <div class="mini-card">
+              <p class="note-label">Current mode</p>
+              <p class="ledger-copy" id="modeSummary">Dew balances pale fog, low turbulence, and soft horizontal scan residue.</p>
+            </div>
+            <div class="mini-card">
+              <p class="note-label">Pointer response</p>
+              <p class="ledger-copy">The field bends toward the cursor, warming nearby lines instead of opening a menu system.</p>
+            </div>
+            <div class="mini-card">
+              <p class="note-label">Card logic</p>
+              <p class="ledger-copy">Dragging the panes gives the desk a tactile feeling without turning the study into a game.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="notes">
+        <article class="note-card">
+          <p class="note-label">Idea</p>
+          <p>A calm botanical-interface desk where all motion stays embedded in translucent research material rather than another dashboard shell.</p>
+        </article>
+        <article class="note-card">
+          <p class="note-label">Interaction</p>
+          <p>Pointer warmth bends currents, mode chips retune the surface law, and each specimen pane can be dragged to disturb the desk locally.</p>
+        </article>
+        <article class="note-card">
+          <p class="note-label">Next</p>
+          <p>Grow this branch into a family of linked desk pages with drawers, annotations, and deeper specimen behavior without losing the quiet editorial feel.</p>
+        </article>
+      </section>
+    </main>
+
+    <a class="back" href="../../index.html">Back to index</a>
+
+    <script>
+      const canvas = document.getElementById("field");
+      const ctx = canvas.getContext("2d");
+      const tray = document.getElementById("tray");
+      const scanline = document.getElementById("scanline");
+      const modeChips = [...document.querySelectorAll("#modeChips .chip")];
+      const specimens = [...document.querySelectorAll(".specimen")];
+
+      const surfaceLaw = document.getElementById("surfaceLaw");
+      const heatDrift = document.getElementById("heatDrift");
+      const deskState = document.getElementById("deskState");
+      const statusCopy = document.getElementById("statusCopy");
+      const statusStamp = document.getElementById("statusStamp");
+      const modeSummary = document.getElementById("modeSummary");
+      const warmFill = document.getElementById("warmFill");
+      const swatchA = document.getElementById("swatchA");
+      const swatchB = document.getElementById("swatchB");
+
+      const pointer = { x: window.innerWidth * 0.5, y: window.innerHeight * 0.45, tx: 0, ty: 0, active: false, warmth: 0.38 };
+
+      const modes = {
+        dew: {
+          title: "Dew lattice",
+          state: "Warm scan",
+          drift: 0.36,
+          speed: 0.55,
+          text: "Dew mode keeps the desk soft and slightly aquatic, with calmer scan passes and slower drift.",
+          summary: "Dew balances pale fog, low turbulence, and soft horizontal scan residue.",
+          scanDuration: 7.6,
+          swatchA: "linear-gradient(135deg, rgba(132,192,207,0.32), rgba(255,255,255,0.78), rgba(149,178,157,0.28))",
+          swatchB: "linear-gradient(135deg, rgba(210,161,94,0.22), rgba(255,255,255,0.76), rgba(222,154,144,0.24))",
+          palette: ["132,192,207", "149,178,157", "255,255,255"],
+        },
+        lattice: {
+          title: "Needle lattice",
+          state: "Cross-current",
+          drift: 0.58,
+          speed: 0.82,
+          text: "Lattice mode sharpens crossings and raises directional tension, so the same desk feels more diagrammatic without becoming a hard grid.",
+          summary: "Lattice increases crossing pressure, directional pull, and firmer scan seams.",
+          scanDuration: 6.1,
+          swatchA: "linear-gradient(135deg, rgba(149,178,157,0.34), rgba(255,255,255,0.74), rgba(129,116,143,0.24))",
+          swatchB: "linear-gradient(135deg, rgba(132,192,207,0.28), rgba(255,255,255,0.72), rgba(210,161,94,0.28))",
+          palette: ["149,178,157", "129,116,143", "132,192,207"],
+        },
+        bloom: {
+          title: "Soft flare basin",
+          state: "Fog bloom",
+          drift: 0.71,
+          speed: 1.04,
+          text: "Bloom mode warms the desk and leaves longer flare residue, pushing the page toward a gentler atmospheric specimen world.",
+          summary: "Bloom lifts fog density, warmer flares, and longer afterimage trails across the desk.",
+          scanDuration: 5.3,
+          swatchA: "linear-gradient(135deg, rgba(222,154,144,0.34), rgba(255,255,255,0.72), rgba(210,161,94,0.28))",
+          swatchB: "linear-gradient(135deg, rgba(132,192,207,0.22), rgba(255,255,255,0.7), rgba(222,154,144,0.28))",
+          palette: ["222,154,144", "210,161,94", "132,192,207"],
+        },
+      };
+
+      let activeMode = "dew";
+      let particles = [];
+      let rafId = 0;
+
+      function setCanvasSize() {
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = Math.round(window.innerWidth * dpr);
+        canvas.height = Math.round(window.innerHeight * dpr);
+        canvas.style.width = `${window.innerWidth}px`;
+        canvas.style.height = `${window.innerHeight}px`;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        buildParticles();
+      }
+
+      function buildParticles() {
+        const count = Math.max(44, Math.floor((window.innerWidth + window.innerHeight) / 18));
+        particles = Array.from({ length: count }, (_, index) => ({
+          seed: Math.random() * Math.PI * 2,
+          x: Math.random() * window.innerWidth,
+          y: Math.random() * window.innerHeight,
+          radius: 1.5 + Math.random() * 3.8,
+          speed: 0.22 + Math.random() * 0.58,
+          drift: 0.3 + Math.random() * 0.8,
+          band: index % 3,
+        }));
+      }
+
+      function setMode(mode) {
+        activeMode = mode;
+        const config = modes[mode];
+        modeChips.forEach((chip) => chip.classList.toggle("active", chip.dataset.mode === mode));
+        surfaceLaw.textContent = config.title;
+        deskState.textContent = config.state;
+        heatDrift.textContent = `${Math.round(config.drift * 100)}%`;
+        statusCopy.textContent = config.text;
+        statusStamp.textContent = `Mode / ${mode[0].toUpperCase()}${mode.slice(1)}`;
+        modeSummary.textContent = config.summary;
+        warmFill.style.setProperty("--fill", `${Math.round(config.drift * 100)}%`);
+        scanline.style.animationDuration = `${config.scanDuration}s`;
+        swatchA.style.background = config.swatchA;
+        swatchB.style.background = config.swatchB;
+      }
+
+      modeChips.forEach((chip) => {
+        chip.addEventListener("click", () => setMode(chip.dataset.mode));
+      });
+
+      function updatePointer(clientX, clientY) {
+        pointer.x = clientX;
+        pointer.y = clientY;
+        pointer.tx = clientX / window.innerWidth;
+        pointer.ty = clientY / window.innerHeight;
+      }
+
+      window.addEventListener("pointermove", (event) => {
+        pointer.active = true;
+        updatePointer(event.clientX, event.clientY);
+      });
+
+      window.addEventListener("pointerleave", () => {
+        pointer.active = false;
+      });
+
+      const dragState = new Map();
+
+      specimens.forEach((card, index) => {
+        const base = {
+          x: parseFloat(card.style.left),
+          y: parseFloat(card.style.top),
+          dx: 0,
+          dy: 0,
+        };
+        dragState.set(card, { ...base, pointerId: null, offsetX: 0, offsetY: 0, z: index + 2 });
+        card.style.zIndex = String(index + 2);
+
+        card.addEventListener("pointerdown", (event) => {
+          const state = dragState.get(card);
+          const rect = card.getBoundingClientRect();
+          state.pointerId = event.pointerId;
+          state.offsetX = event.clientX - rect.left;
+          state.offsetY = event.clientY - rect.top;
+          state.z = specimens.reduce((max, current) => Math.max(max, Number(current.style.zIndex || 0)), 1) + 1;
+          card.style.zIndex = String(state.z);
+          card.classList.add("dragging");
+          card.setPointerCapture(event.pointerId);
+        });
+
+        card.addEventListener("pointermove", (event) => {
+          const state = dragState.get(card);
+          if (state.pointerId !== event.pointerId) return;
+          const trayRect = tray.getBoundingClientRect();
+          const maxLeft = trayRect.width - card.offsetWidth;
+          const maxTop = trayRect.height - card.offsetHeight;
+          const nextLeft = Math.min(maxLeft, Math.max(0, event.clientX - trayRect.left - state.offsetX));
+          const nextTop = Math.min(maxTop, Math.max(0, event.clientY - trayRect.top - state.offsetY));
+          state.x = (nextLeft / trayRect.width) * 100;
+          state.y = (nextTop / trayRect.height) * 100;
+          card.style.left = `${state.x}%`;
+          card.style.top = `${state.y}%`;
+        });
+
+        const release = (event) => {
+          const state = dragState.get(card);
+          if (state.pointerId !== event.pointerId) return;
+          state.pointerId = null;
+          card.classList.remove("dragging");
+          if (card.hasPointerCapture(event.pointerId)) {
+            card.releasePointerCapture(event.pointerId);
+          }
+        };
+
+        card.addEventListener("pointerup", release);
+        card.addEventListener("pointercancel", release);
+      });
+
+      function animate(now) {
+        const t = now * 0.001;
+        const config = modes[activeMode];
+        ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+
+        const trayRect = tray.getBoundingClientRect();
+        const gradient = ctx.createLinearGradient(0, 0, window.innerWidth, window.innerHeight);
+        gradient.addColorStop(0, "rgba(255,255,255,0.34)");
+        gradient.addColorStop(0.5, "rgba(132,192,207,0.05)");
+        gradient.addColorStop(1, "rgba(210,161,94,0.04)");
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
+
+        particles.forEach((particle, index) => {
+          const color = config.palette[particle.band % config.palette.length];
+          const angle = particle.seed + t * particle.speed * config.speed;
+          const waveX = Math.cos(angle * (1.1 + particle.drift * 0.16)) * 18;
+          const waveY = Math.sin(angle * (0.9 + particle.drift * 0.12)) * 26;
+
+          let x = particle.x + waveX;
+          let y = particle.y + waveY + Math.sin(angle * 0.7 + index) * 10;
+
+          const dx = x - pointer.x;
+          const dy = y - pointer.y;
+          const dist = Math.hypot(dx, dy);
+          const warmth = Math.max(0, 1 - dist / 220);
+          x += dx / (dist || 1) * warmth * -14;
+          y += dy / (dist || 1) * warmth * -14;
+
+          const inTray = x > trayRect.left && x < trayRect.right && y > trayRect.top && y < trayRect.bottom;
+          const alpha = inTray ? 0.2 + warmth * 0.22 : 0.08 + warmth * 0.1;
+
+          ctx.beginPath();
+          ctx.fillStyle = `rgba(${color}, ${alpha})`;
+          ctx.arc(x, y, particle.radius + warmth * 1.8, 0, Math.PI * 2);
+          ctx.fill();
+
+          if (index % 3 === 0) {
+            ctx.beginPath();
+            ctx.strokeStyle = `rgba(${color}, ${0.08 + warmth * 0.12})`;
+            ctx.lineWidth = 1.2;
+            ctx.moveTo(x - 16 - warmth * 10, y + Math.sin(angle) * 8);
+            ctx.quadraticCurveTo(
+              x + Math.cos(angle) * 24,
+              y + Math.sin(angle * 1.4) * 18,
+              x + 18 + warmth * 8,
+              y - Math.cos(angle) * 6
+            );
+            ctx.stroke();
+          }
+        });
+
+        specimens.forEach((card, index) => {
+          const state = dragState.get(card);
+          const rect = card.getBoundingClientRect();
+          const centerX = rect.left + rect.width * 0.5;
+          const centerY = rect.top + rect.height * 0.5;
+          const dx = pointer.x - centerX;
+          const dy = pointer.y - centerY;
+          const dist = Math.max(80, Math.hypot(dx, dy));
+          const influence = Math.max(0, 1 - dist / 360);
+          const wobble = Math.sin(t * (1.5 + index * 0.18) + index) * (2 + config.drift * 6);
+          state.dx += ((dx / dist) * influence * 16 + wobble - state.dx) * 0.06;
+          state.dy += ((dy / dist) * influence * 14 + Math.cos(t * 1.2 + index) * 4 - state.dy) * 0.06;
+          card.style.setProperty("--dx", `${state.dx.toFixed(2)}px`);
+          card.style.setProperty("--dy", `${state.dy.toFixed(2)}px`);
+        });
+
+        pointer.warmth += ((pointer.active ? 0.82 : config.drift) - pointer.warmth) * 0.04;
+        rafId = requestAnimationFrame(animate);
+      }
+
+      window.addEventListener("resize", setCanvasSize);
+
+      setCanvasSize();
+      setMode(activeMode);
+      updatePointer(window.innerWidth * 0.5, window.innerHeight * 0.45);
+      rafId = requestAnimationFrame(animate);
+
+      window.addEventListener("beforeunload", () => cancelAnimationFrame(rafId));
+    </script>
+  </body>
+</html>

@@ -1,0 +1,1096 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>#050 Route Sample Workbench</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #efe6d7;
+        --paper: rgba(255, 250, 243, 0.76);
+        --paper-strong: rgba(250, 244, 235, 0.94);
+        --line: rgba(96, 83, 58, 0.18);
+        --line-soft: rgba(96, 83, 58, 0.1);
+        --ink: #413729;
+        --muted: rgba(65, 55, 41, 0.65);
+        --blue: #7ca7bc;
+        --green: #93b087;
+        --amber: #d5a46f;
+        --rose: #cc8f88;
+        --moss: #7c8262;
+        --cream: #fff9f1;
+        --shadow: 0 26px 70px rgba(115, 95, 61, 0.14);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        background:
+          radial-gradient(circle at 12% 10%, rgba(255, 255, 255, 0.95), transparent 18%),
+          radial-gradient(circle at 84% 18%, rgba(124, 167, 188, 0.1), transparent 24%),
+          radial-gradient(circle at 18% 88%, rgba(147, 176, 135, 0.14), transparent 24%),
+          radial-gradient(circle at 78% 84%, rgba(204, 143, 136, 0.12), transparent 22%),
+          linear-gradient(180deg, #f4ede2 0%, #e7dbc9 100%);
+        color: var(--ink);
+        font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", serif;
+      }
+
+      body::before,
+      body::after {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+      }
+
+      body::before {
+        opacity: 0.08;
+        background-image:
+          linear-gradient(rgba(74, 64, 44, 0.12) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(74, 64, 44, 0.12) 1px, transparent 1px);
+        background-size: 88px 88px;
+        mask-image: radial-gradient(circle at 54% 52%, black 40%, transparent 90%);
+      }
+
+      body::after {
+        opacity: 0.2;
+        background-image:
+          linear-gradient(rgba(255, 255, 255, 0.88) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.88) 1px, transparent 1px);
+        background-size: 4px 4px;
+        mix-blend-mode: soft-light;
+      }
+
+      .shell {
+        position: relative;
+        min-height: 100vh;
+        padding: 18px;
+        display: grid;
+        grid-template-columns: 286px minmax(0, 1fr) 298px;
+        grid-template-rows: auto minmax(0, 1fr) auto;
+        gap: 14px;
+      }
+
+      .panel {
+        position: relative;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 30px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.48), transparent 18%),
+          var(--paper);
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(14px);
+      }
+
+      .panel::after {
+        content: "";
+        position: absolute;
+        inset: 1px;
+        border: 1px solid rgba(255, 255, 255, 0.42);
+        border-radius: inherit;
+        pointer-events: none;
+      }
+
+      .header {
+        grid-column: 1 / -1;
+        display: grid;
+        grid-template-columns: minmax(0, 1.3fr) minmax(360px, 0.7fr);
+        gap: 14px;
+      }
+
+      .hero,
+      .overview,
+      .left-stack,
+      .stage-wrap,
+      .right-stack,
+      .footer {
+        padding: 16px 18px 18px;
+      }
+
+      .left-stack,
+      .right-stack {
+        display: grid;
+        gap: 14px;
+        align-content: start;
+      }
+
+      .left-stack {
+        grid-column: 1;
+        grid-row: 2;
+      }
+
+      .stage-wrap {
+        grid-column: 2;
+        grid-row: 2;
+        min-height: 780px;
+      }
+
+      .right-stack {
+        grid-column: 3;
+        grid-row: 2;
+      }
+
+      .footer {
+        grid-column: 1 / -1;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+
+      .eyebrow,
+      .tiny,
+      .label,
+      .chip,
+      .sample-tag,
+      .sample-metric,
+      .badge {
+        font-family: "Azeret Mono", "IBM Plex Mono", "SFMono-Regular", monospace;
+      }
+
+      .eyebrow,
+      .tiny,
+      .label,
+      .sample-tag {
+        font-size: 11px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      h1 {
+        margin-top: 0.56rem;
+        max-width: 9ch;
+        font-size: clamp(2.5rem, 5vw, 4.9rem);
+        line-height: 0.92;
+        letter-spacing: -0.06em;
+      }
+
+      .body,
+      .meta-copy {
+        margin-top: 0.86rem;
+        color: rgba(65, 55, 41, 0.78);
+        line-height: 1.55;
+      }
+
+      .readouts,
+      .legend-list,
+      .tray-list,
+      .task-list,
+      .footer-grid,
+      .feed-list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .readouts {
+        margin-top: 1rem;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .metric,
+      .card,
+      .footer-card,
+      .sample-note,
+      .task,
+      .feed-row {
+        border: 1px solid var(--line-soft);
+        border-radius: 20px;
+        background: rgba(255, 255, 255, 0.36);
+        padding: 12px 13px;
+      }
+
+      .metric strong,
+      .badge {
+        display: block;
+        margin-top: 0.34rem;
+        font-size: 1rem;
+        font-weight: 600;
+        letter-spacing: -0.05em;
+        color: var(--ink);
+      }
+
+      .overview {
+        display: grid;
+        align-content: start;
+      }
+
+      .chip-row {
+        margin-top: 1rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .chip {
+        appearance: none;
+        border: 1px solid rgba(96, 83, 58, 0.14);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.56);
+        color: var(--ink);
+        padding: 0.52rem 0.78rem;
+        font-size: 0.72rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .left-stack .card h2,
+      .right-stack .card h2 {
+        font-size: 0.88rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .card p {
+        margin-top: 0.72rem;
+        color: rgba(65, 55, 41, 0.78);
+        line-height: 1.5;
+      }
+
+      .stage {
+        position: relative;
+        height: 100%;
+        min-height: 744px;
+        border: 1px solid var(--line-soft);
+        border-radius: 26px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.52), transparent 22%),
+          linear-gradient(180deg, rgba(225, 214, 195, 0.36), rgba(255, 252, 246, 0.56));
+        overflow: hidden;
+      }
+
+      #routeCanvas {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+      }
+
+      .stage-copy {
+        position: absolute;
+        inset: 18px 18px auto 18px;
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        pointer-events: none;
+      }
+
+      .stage-copy p {
+        max-width: 20rem;
+        text-align: right;
+        color: rgba(65, 55, 41, 0.66);
+        font-size: 0.92rem;
+        line-height: 1.45;
+      }
+
+      .sample {
+        position: absolute;
+        width: 160px;
+        min-height: 102px;
+        padding: 12px 12px 14px;
+        border-radius: 22px;
+        border: 1px solid rgba(96, 83, 58, 0.14);
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(248, 243, 236, 0.8));
+        box-shadow:
+          0 14px 36px rgba(115, 95, 61, 0.12),
+          inset 0 0 0 1px rgba(255, 255, 255, 0.55);
+        cursor: grab;
+        touch-action: none;
+        user-select: none;
+      }
+
+      .sample.dragging {
+        cursor: grabbing;
+        box-shadow:
+          0 18px 48px rgba(115, 95, 61, 0.18),
+          inset 0 0 0 1px rgba(255, 255, 255, 0.7);
+      }
+
+      .sample h3 {
+        margin-top: 0.42rem;
+        font-size: 1.06rem;
+        line-height: 1.04;
+      }
+
+      .sample p {
+        margin-top: 0.56rem;
+        font-size: 0.86rem;
+        line-height: 1.45;
+        color: rgba(65, 55, 41, 0.72);
+      }
+
+      .sample-meta {
+        margin-top: 0.68rem;
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        align-items: center;
+      }
+
+      .sample-metric {
+        font-size: 0.76rem;
+        color: rgba(65, 55, 41, 0.66);
+      }
+
+      .sample[data-tone="blue"] {
+        background:
+          linear-gradient(180deg, rgba(244, 249, 251, 0.95), rgba(239, 246, 248, 0.82));
+      }
+
+      .sample[data-tone="green"] {
+        background:
+          linear-gradient(180deg, rgba(246, 250, 244, 0.95), rgba(239, 247, 236, 0.82));
+      }
+
+      .sample[data-tone="amber"] {
+        background:
+          linear-gradient(180deg, rgba(251, 246, 240, 0.95), rgba(248, 238, 228, 0.82));
+      }
+
+      .sample[data-tone="rose"] {
+        background:
+          linear-gradient(180deg, rgba(252, 244, 243, 0.95), rgba(249, 237, 236, 0.82));
+      }
+
+      .dock {
+        position: absolute;
+        left: 18px;
+        right: 18px;
+        bottom: 18px;
+        display: grid;
+        grid-template-columns: 1.1fr 0.9fr;
+        gap: 12px;
+      }
+
+      .dock-card {
+        border: 1px solid var(--line-soft);
+        border-radius: 22px;
+        background: rgba(255, 255, 255, 0.48);
+        padding: 12px 13px;
+        backdrop-filter: blur(8px);
+      }
+
+      .dock-card .bar {
+        margin-top: 0.65rem;
+        height: 8px;
+        border-radius: 999px;
+        background: rgba(96, 83, 58, 0.08);
+        overflow: hidden;
+      }
+
+      .dock-card .bar span {
+        display: block;
+        height: 100%;
+        border-radius: inherit;
+      }
+
+      .legend-list .row,
+      .feed-row,
+      .task {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        align-items: center;
+      }
+
+      .task {
+        align-items: start;
+      }
+
+      .task-copy {
+        flex: 1;
+      }
+
+      .task-copy strong {
+        display: block;
+        font-size: 0.96rem;
+        letter-spacing: -0.03em;
+      }
+
+      .task-copy p {
+        margin-top: 0.38rem;
+        font-size: 0.84rem;
+        line-height: 1.45;
+      }
+
+      .badge {
+        min-width: 52px;
+        text-align: right;
+        font-size: 0.86rem;
+      }
+
+      .footer-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .back {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        margin-top: 1rem;
+        color: var(--ink);
+        text-decoration: none;
+        font-size: 0.84rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      @media (max-width: 1180px) {
+        .shell {
+          grid-template-columns: minmax(0, 1fr);
+          grid-template-rows: auto;
+        }
+
+        .header,
+        .left-stack,
+        .stage-wrap,
+        .right-stack,
+        .footer {
+          grid-column: auto;
+          grid-row: auto;
+        }
+
+        .header {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .stage-wrap {
+          min-height: auto;
+        }
+
+        .stage {
+          min-height: 720px;
+        }
+
+        .footer-grid {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+
+      @media (max-width: 720px) {
+        .shell {
+          padding: 12px;
+          gap: 12px;
+        }
+
+        .hero,
+        .overview,
+        .left-stack,
+        .stage-wrap,
+        .right-stack,
+        .footer {
+          padding: 14px;
+        }
+
+        .readouts {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .stage {
+          min-height: 880px;
+        }
+
+        .dock {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .sample {
+          width: 144px;
+        }
+
+        .stage-copy {
+          flex-direction: column;
+        }
+
+        .stage-copy p {
+          text-align: left;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <section class="panel header hero">
+        <div>
+          <p class="eyebrow">Generated animation 050</p>
+          <h1>Route Sample Workbench</h1>
+          <p class="body">
+            A pale browser-native work surface where movable specimen slips,
+            lower creeper density, and route pulses behave like one organic
+            operations board instead of another centered atlas or dark control
+            altar.
+          </p>
+          <div class="readouts">
+            <div class="metric">
+              <span class="tiny">Active slips</span>
+              <strong id="slipCount">4</strong>
+            </div>
+            <div class="metric">
+              <span class="tiny">Route tension</span>
+              <strong id="tensionReadout">63%</strong>
+            </div>
+            <div class="metric">
+              <span class="tiny">Garden density</span>
+              <strong id="densityReadout">48%</strong>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel header overview">
+        <p class="eyebrow">Why this branch</p>
+        <p class="meta-copy">
+          Recent notes kept pushing the HTML lane toward a pale operable tool
+          with stacked panes, route cards, sample evidence, and lower-field
+          organic density. This study keeps that direction but breaks the recent
+          atlas/manual/dossier loop by making the main interaction physical:
+          drag the work samples themselves and the page retunes around them.
+        </p>
+        <div class="chip-row">
+          <span class="chip">Drag slips</span>
+          <span class="chip">Click to plant pulse</span>
+          <span class="chip">Lower field thickens</span>
+        </div>
+      </section>
+
+      <aside class="panel left-stack">
+        <section class="card">
+          <h2>Tray logic</h2>
+          <div class="tray-list">
+            <div class="sample-note">
+              <p class="eyebrow">Blue sample</p>
+              <p>Cold route memory. Pull it higher to open calmer overhead lanes.</p>
+            </div>
+            <div class="sample-note">
+              <p class="eyebrow">Green sample</p>
+              <p>Moist creeper logic. It thickens the lower field and softens bends.</p>
+            </div>
+            <div class="sample-note">
+              <p class="eyebrow">Amber sample</p>
+              <p>Dry support pressure. It increases anchoring and steadies crossings.</p>
+            </div>
+            <div class="sample-note">
+              <p class="eyebrow">Rose sample</p>
+              <p>Signal bloom. It opens short-lived side loops and pink wake seams.</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>Route feed</h2>
+          <div class="legend-list" id="routeFeed"></div>
+        </section>
+      </aside>
+
+      <section class="panel stage-wrap">
+        <div class="stage" id="stage">
+          <canvas id="routeCanvas" aria-hidden="true"></canvas>
+          <div class="stage-copy">
+            <div>
+              <p class="eyebrow">Workbench field</p>
+              <p class="tiny" id="stageMode">drag samples to retune the board</p>
+            </div>
+            <p>
+              The upper half stays calmer on purpose. Density accumulates near
+              the floor band, where the route bed can grow creepers, knots, and
+              little diagnostic spores without turning into a hero object.
+            </p>
+          </div>
+
+          <article class="sample" data-tone="blue" data-id="A1" style="left: 10%; top: 16%">
+            <span class="sample-tag">A1 cold braid</span>
+            <h3>Sky rinse vial</h3>
+            <p>Raises cool branch memory and lifts the nearest route curve.</p>
+            <div class="sample-meta">
+              <span class="sample-metric">Lift 0.62</span>
+              <span class="badge">blue</span>
+            </div>
+          </article>
+
+          <article class="sample" data-tone="green" data-id="B3" style="left: 58%; top: 18%">
+            <span class="sample-tag">B3 moss valve</span>
+            <h3>Creeper splice</h3>
+            <p>Feeds the lower field and softens the route into a damp braid.</p>
+            <div class="sample-meta">
+              <span class="sample-metric">Humid 0.71</span>
+              <span class="badge">green</span>
+            </div>
+          </article>
+
+          <article class="sample" data-tone="amber" data-id="C2" style="left: 23%; top: 50%">
+            <span class="sample-tag">C2 root brace</span>
+            <h3>Dry hinge chip</h3>
+            <p>Stabilizes crossings and adds a firmer lower-body support law.</p>
+            <div class="sample-meta">
+              <span class="sample-metric">Brace 0.58</span>
+              <span class="badge">amber</span>
+            </div>
+          </article>
+
+          <article class="sample" data-tone="rose" data-id="D4" style="left: 64%; top: 56%">
+            <span class="sample-tag">D4 bloom seam</span>
+            <h3>Signal blush tile</h3>
+            <p>Opens side eddies and lights short-lived route petals on contact.</p>
+            <div class="sample-meta">
+              <span class="sample-metric">Bloom 0.66</span>
+              <span class="badge">rose</span>
+            </div>
+          </article>
+
+          <div class="dock">
+            <section class="dock-card">
+              <p class="eyebrow">Calibration</p>
+              <div class="feed-list">
+                <div class="feed-row"><span class="label">Current pull</span><span class="badge" id="pullReadout">0.63</span></div>
+                <div class="bar"><span id="pullBar" style="width: 63%; background: var(--blue)"></span></div>
+                <div class="feed-row"><span class="label">Root spread</span><span class="badge" id="spreadReadout">0.48</span></div>
+                <div class="bar"><span id="spreadBar" style="width: 48%; background: var(--green)"></span></div>
+              </div>
+            </section>
+
+            <section class="dock-card">
+              <p class="eyebrow">Pulse log</p>
+              <div class="feed-list" id="pulseLog"></div>
+            </section>
+          </div>
+        </div>
+      </section>
+
+      <aside class="panel right-stack">
+        <section class="card">
+          <h2>Live tasks</h2>
+          <div class="task-list">
+            <div class="task">
+              <div class="task-copy">
+                <strong>Rebalance top lane</strong>
+                <p>Lift one cool or amber slip higher to widen the quiet margin.</p>
+              </div>
+              <span class="badge" id="marginBadge">open</span>
+            </div>
+            <div class="task">
+              <div class="task-copy">
+                <strong>Wake route knots</strong>
+                <p>Click the board to plant a moving pulse through the nearest path.</p>
+              </div>
+              <span class="badge" id="pulseBadge">idle</span>
+            </div>
+            <div class="task">
+              <div class="task-copy">
+                <strong>Feed lower garden</strong>
+                <p>Drop the green slip into the lower band for denser creeper weather.</p>
+              </div>
+              <span class="badge" id="gardenBadge">light</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>Board notes</h2>
+          <p>
+            The workbench is meant to feel usable, but not like software chrome.
+            Every readout is driven by the same moving field: no detached HUD,
+            no centered mascot, and no rigid page screenshot pretending to be
+            alive.
+          </p>
+        </section>
+      </aside>
+
+      <footer class="panel footer">
+        <div class="footer-grid">
+          <div class="footer-card">
+            <p class="eyebrow">Idea</p>
+            <p class="meta-copy">
+              Translate the strongest recent specimen-route ledger direction
+              into a tactile pale workbench where slips, currents, and lower
+              garden density all belong to one organic operations page.
+            </p>
+          </div>
+          <div class="footer-card">
+            <p class="eyebrow">Interaction</p>
+            <p class="meta-copy">
+              Drag any sample slip to physically retune the nearest routes.
+              Click anywhere in the board to plant a pulse that rides the field
+              and briefly wakes local creepers, spores, and side loops.
+            </p>
+          </div>
+          <div class="footer-card">
+            <p class="eyebrow">Next</p>
+            <p class="meta-copy">
+              A later version could accept live text notes or Telegram task
+              events as new slips, then let the board file, cluster, and grow
+              them into fresh route families without changing the visual law.
+            </p>
+          </div>
+        </div>
+        <a class="back" href="../../index.html">Back to index</a>
+      </footer>
+    </main>
+
+    <script>
+      const stage = document.getElementById("stage");
+      const canvas = document.getElementById("routeCanvas");
+      const ctx = canvas.getContext("2d");
+      const samples = [...document.querySelectorAll(".sample")];
+      const routeFeed = document.getElementById("routeFeed");
+      const pulseLog = document.getElementById("pulseLog");
+      const stageMode = document.getElementById("stageMode");
+      const slipCount = document.getElementById("slipCount");
+      const tensionReadout = document.getElementById("tensionReadout");
+      const densityReadout = document.getElementById("densityReadout");
+      const pullReadout = document.getElementById("pullReadout");
+      const spreadReadout = document.getElementById("spreadReadout");
+      const pullBar = document.getElementById("pullBar");
+      const spreadBar = document.getElementById("spreadBar");
+      const marginBadge = document.getElementById("marginBadge");
+      const pulseBadge = document.getElementById("pulseBadge");
+      const gardenBadge = document.getElementById("gardenBadge");
+
+      const sampleData = [
+        { id: "A1", tone: "blue", color: "#7ca7bc", x: 0.18, y: 0.24, weight: 0.62 },
+        { id: "B3", tone: "green", color: "#93b087", x: 0.66, y: 0.26, weight: 0.71 },
+        { id: "C2", tone: "amber", color: "#d5a46f", x: 0.31, y: 0.58, weight: 0.58 },
+        { id: "D4", tone: "rose", color: "#cc8f88", x: 0.72, y: 0.63, weight: 0.66 }
+      ];
+
+      const pulses = [];
+      const fieldDots = Array.from({ length: 56 }, (_, index) => ({
+        seed: index * 1.17,
+        x: (index % 14) / 13,
+        y: 0.62 + Math.floor(index / 14) * 0.085
+      }));
+
+      const pointer = { x: 0.5, y: 0.52, active: false };
+      const state = {
+        dragCount: 0,
+        time: 0
+      };
+
+      function clamp(value, min, max) {
+        return Math.min(max, Math.max(min, value));
+      }
+
+      function resizeCanvas() {
+        const rect = stage.getBoundingClientRect();
+        const ratio = window.devicePixelRatio || 1;
+        canvas.width = Math.max(1, Math.round(rect.width * ratio));
+        canvas.height = Math.max(1, Math.round(rect.height * ratio));
+        canvas.style.width = `${rect.width}px`;
+        canvas.style.height = `${rect.height}px`;
+        ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+      }
+
+      function setSamplePosition(element, data) {
+        const width = stage.clientWidth - element.offsetWidth;
+        const height = stage.clientHeight - element.offsetHeight;
+        element.style.left = `${data.x * width}px`;
+        element.style.top = `${data.y * height}px`;
+      }
+
+      function syncSamplesToDom() {
+        samples.forEach((element) => {
+          const data = sampleData.find((item) => item.id === element.dataset.id);
+          if (data) setSamplePosition(element, data);
+        });
+      }
+
+      function sampleCenter(data, element) {
+        const width = stage.clientWidth - element.offsetWidth;
+        const height = stage.clientHeight - element.offsetHeight;
+        return {
+          x: data.x * width + element.offsetWidth / 2,
+          y: data.y * height + element.offsetHeight / 2
+        };
+      }
+
+      function buildRouteFeed() {
+        routeFeed.innerHTML = sampleData
+          .map(
+            (sample) => `
+            <div class="row">
+              <span class="label" style="color:${sample.color}">${sample.id}</span>
+              <span class="badge" id="route-${sample.id}">${Math.round(sample.weight * 100)}%</span>
+            </div>`
+          )
+          .join("");
+      }
+
+      function updatePulseLog() {
+        const visible = pulses.slice(-3).reverse();
+        pulseLog.innerHTML = visible.length
+          ? visible
+              .map(
+                (pulse, index) => `
+                <div class="feed-row">
+                  <span class="label">pulse ${visible.length - index}</span>
+                  <span class="badge">${pulse.kind}</span>
+                </div>`
+              )
+              .join("")
+          : '<div class="feed-row"><span class="label">status</span><span class="badge">quiet</span></div>';
+      }
+
+      function computeMetrics() {
+        const topAverage = sampleData.reduce((sum, sample) => sum + (1 - sample.y), 0) / sampleData.length;
+        const lowerGreen = sampleData.find((sample) => sample.id === "B3");
+        const density = clamp(0.24 + lowerGreen.y * 0.58, 0, 1);
+        const tension = clamp(
+          0.34 +
+            sampleData.reduce((sum, sample) => sum + sample.weight * (0.4 + sample.x * 0.2), 0) / sampleData.length,
+          0,
+          1
+        );
+        return {
+          margin: topAverage,
+          density,
+          tension
+        };
+      }
+
+      function updateReadouts() {
+        const metrics = computeMetrics();
+        slipCount.textContent = String(samples.length);
+        tensionReadout.textContent = `${Math.round(metrics.tension * 100)}%`;
+        densityReadout.textContent = `${Math.round(metrics.density * 100)}%`;
+        pullReadout.textContent = metrics.tension.toFixed(2);
+        spreadReadout.textContent = metrics.density.toFixed(2);
+        pullBar.style.width = `${Math.round(metrics.tension * 100)}%`;
+        spreadBar.style.width = `${Math.round(metrics.density * 100)}%`;
+        marginBadge.textContent = metrics.margin > 0.6 ? "open" : "tight";
+        gardenBadge.textContent = metrics.density > 0.55 ? "lush" : "light";
+        pulseBadge.textContent = pulses.length ? "live" : "idle";
+
+        sampleData.forEach((sample) => {
+          const node = document.getElementById(`route-${sample.id}`);
+          if (node) {
+            const animated = sample.weight + Math.sin(state.time * 0.0012 + sample.x * 4) * 0.04;
+            node.textContent = `${Math.round(clamp(animated, 0, 1) * 100)}%`;
+          }
+        });
+      }
+
+      function drawBackground(width, height) {
+        const gradient = ctx.createLinearGradient(0, 0, 0, height);
+        gradient.addColorStop(0, "rgba(255, 252, 246, 0.7)");
+        gradient.addColorStop(1, "rgba(234, 224, 208, 0.82)");
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, width, height);
+
+        ctx.strokeStyle = "rgba(96, 83, 58, 0.08)";
+        ctx.lineWidth = 1;
+        for (let x = 28; x < width; x += 92) {
+          ctx.beginPath();
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, height);
+          ctx.stroke();
+        }
+        for (let y = 28; y < height; y += 92) {
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(width, y);
+          ctx.stroke();
+        }
+      }
+
+      function drawRoutes(width, height) {
+        const points = sampleData.map((sample, index) => {
+          const element = samples[index];
+          const center = sampleCenter(sample, element);
+          return { ...center, color: sample.color, tone: sample.tone };
+        });
+
+        for (let i = 0; i < points.length - 1; i += 1) {
+          const a = points[i];
+          const b = points[i + 1];
+          const mx = (a.x + b.x) / 2;
+          const my = (a.y + b.y) / 2;
+          const bend = (pointer.x - 0.5) * 140 + Math.sin(state.time * 0.001 + i) * 24;
+
+          ctx.beginPath();
+          ctx.moveTo(a.x, a.y);
+          ctx.bezierCurveTo(mx - bend * 0.36, a.y - 54, mx + bend * 0.26, b.y + 54, b.x, b.y);
+          ctx.strokeStyle = "rgba(96, 83, 58, 0.1)";
+          ctx.lineWidth = 16;
+          ctx.stroke();
+
+          const gradient = ctx.createLinearGradient(a.x, a.y, b.x, b.y);
+          gradient.addColorStop(0, `${a.color}aa`);
+          gradient.addColorStop(1, `${b.color}aa`);
+          ctx.strokeStyle = gradient;
+          ctx.lineWidth = 3;
+          ctx.stroke();
+
+          for (let t = 0; t <= 1.001; t += 0.125) {
+            const ix = a.x * (1 - t) + b.x * t + Math.sin(t * Math.PI + state.time * 0.002 + i) * 10;
+            const iy = a.y * (1 - t) + b.y * t + Math.cos(t * Math.PI * 1.4 + state.time * 0.002 + i) * 8;
+            ctx.beginPath();
+            ctx.arc(ix, iy, 2 + Math.sin(state.time * 0.003 + t * 8) * 0.8, 0, Math.PI * 2);
+            ctx.fillStyle = t < 0.5 ? a.color : b.color;
+            ctx.globalAlpha = 0.4;
+            ctx.fill();
+            ctx.globalAlpha = 1;
+          }
+        }
+      }
+
+      function drawCreepers(width, height) {
+        const lowerGreen = sampleData.find((sample) => sample.id === "B3");
+        const density = 0.2 + lowerGreen.y * 0.7;
+        fieldDots.forEach((dot, index) => {
+          const x = dot.x * width + Math.sin(state.time * 0.0006 + dot.seed) * 12;
+          const y = dot.y * height + Math.cos(state.time * 0.0008 + dot.seed * 1.3) * 10;
+          const influence = pointer.active ? Math.max(0, 1 - Math.hypot(pointer.x * width - x, pointer.y * height - y) / 180) : 0;
+          const radius = 1.5 + density * 4 + influence * 2.4 + (index % 3) * 0.3;
+
+          ctx.beginPath();
+          ctx.arc(x, y, radius, 0, Math.PI * 2);
+          ctx.fillStyle = index % 3 === 0 ? "rgba(147, 176, 135, 0.42)" : index % 3 === 1 ? "rgba(124, 167, 188, 0.26)" : "rgba(204, 143, 136, 0.22)";
+          ctx.fill();
+
+          if (index % 2 === 0) {
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.quadraticCurveTo(x + Math.sin(dot.seed + state.time * 0.001) * 22, y - 18, x + Math.cos(dot.seed) * 14, y - 34 - density * 12);
+            ctx.strokeStyle = "rgba(124, 130, 98, 0.18)";
+            ctx.lineWidth = 1.2;
+            ctx.stroke();
+          }
+        });
+      }
+
+      function drawPulses(width, height) {
+        for (let i = pulses.length - 1; i >= 0; i -= 1) {
+          const pulse = pulses[i];
+          pulse.life -= 0.012;
+          if (pulse.life <= 0) {
+            pulses.splice(i, 1);
+            continue;
+          }
+
+          const radius = 24 + (1 - pulse.life) * 90;
+          ctx.beginPath();
+          ctx.arc(pulse.x * width, pulse.y * height, radius, 0, Math.PI * 2);
+          ctx.strokeStyle = `rgba(204, 143, 136, ${pulse.life * 0.38})`;
+          ctx.lineWidth = 2;
+          ctx.stroke();
+
+          ctx.beginPath();
+          ctx.arc(pulse.x * width, pulse.y * height, 4 + (1 - pulse.life) * 8, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(124, 167, 188, ${pulse.life * 0.64})`;
+          ctx.fill();
+        }
+      }
+
+      function render() {
+        state.time += 16;
+        const width = stage.clientWidth;
+        const height = stage.clientHeight;
+
+        ctx.clearRect(0, 0, width, height);
+        drawBackground(width, height);
+        drawRoutes(width, height);
+        drawCreepers(width, height);
+        drawPulses(width, height);
+        updateReadouts();
+        stageMode.textContent = state.dragCount ? "drag in progress" : "drag samples to retune the board";
+
+        requestAnimationFrame(render);
+      }
+
+      function onPointerMove(event) {
+        const rect = stage.getBoundingClientRect();
+        pointer.x = clamp((event.clientX - rect.left) / rect.width, 0, 1);
+        pointer.y = clamp((event.clientY - rect.top) / rect.height, 0, 1);
+        pointer.active = true;
+      }
+
+      function onPointerLeave() {
+        pointer.active = false;
+      }
+
+      function createPulse(clientX, clientY) {
+        const rect = stage.getBoundingClientRect();
+        pulses.push({
+          x: clamp((clientX - rect.left) / rect.width, 0, 1),
+          y: clamp((clientY - rect.top) / rect.height, 0, 1),
+          life: 1,
+          kind: `R${pulses.length + 1}`
+        });
+        updatePulseLog();
+      }
+
+      function makeDraggable(element, data) {
+        let drag = null;
+
+        element.addEventListener("pointerdown", (event) => {
+          const rect = element.getBoundingClientRect();
+          drag = {
+            offsetX: event.clientX - rect.left,
+            offsetY: event.clientY - rect.top
+          };
+          state.dragCount += 1;
+          element.classList.add("dragging");
+          element.setPointerCapture(event.pointerId);
+        });
+
+        element.addEventListener("pointermove", (event) => {
+          if (!drag) return;
+          const rect = stage.getBoundingClientRect();
+          const width = rect.width - element.offsetWidth;
+          const height = rect.height - element.offsetHeight;
+          const x = clamp((event.clientX - rect.left - drag.offsetX) / Math.max(1, width), 0, 1);
+          const y = clamp((event.clientY - rect.top - drag.offsetY) / Math.max(1, height), 0, 1);
+          data.x = x;
+          data.y = y;
+          setSamplePosition(element, data);
+        });
+
+        function finishDrag(event) {
+          if (!drag) return;
+          drag = null;
+          state.dragCount = Math.max(0, state.dragCount - 1);
+          element.classList.remove("dragging");
+          if (element.hasPointerCapture(event.pointerId)) {
+            element.releasePointerCapture(event.pointerId);
+          }
+        }
+
+        element.addEventListener("pointerup", finishDrag);
+        element.addEventListener("pointercancel", finishDrag);
+      }
+
+      samples.forEach((element) => {
+        const data = sampleData.find((item) => item.id === element.dataset.id);
+        if (data) makeDraggable(element, data);
+      });
+
+      stage.addEventListener("pointermove", onPointerMove);
+      stage.addEventListener("pointerleave", onPointerLeave);
+      stage.addEventListener("click", (event) => {
+        if (event.target.closest(".sample")) return;
+        createPulse(event.clientX, event.clientY);
+      });
+
+      window.addEventListener("resize", () => {
+        resizeCanvas();
+        syncSamplesToDom();
+      });
+
+      buildRouteFeed();
+      updatePulseLog();
+      resizeCanvas();
+      syncSamplesToDom();
+      render();
+    </script>
+  </body>
+</html>

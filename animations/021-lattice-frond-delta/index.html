@@ -1,0 +1,582 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>#021 Lattice Frond Delta</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --paper: #f2eadc;
+        --sand: #ead7bc;
+        --ink: #4a463f;
+        --muted: rgba(74, 70, 63, 0.66);
+        --line: rgba(120, 102, 87, 0.18);
+        --panel: rgba(250, 246, 238, 0.72);
+        --mint: #a6d8c8;
+        --lilac: #b9adc9;
+        --gold: #f2c540;
+        --coral: #e76e38;
+        --pool: rgba(197, 230, 216, 0.38);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        overflow: hidden;
+        background:
+          radial-gradient(circle at 12% 14%, rgba(255, 255, 255, 0.65), transparent 20%),
+          radial-gradient(circle at 84% 16%, rgba(166, 216, 200, 0.18), transparent 22%),
+          linear-gradient(180deg, #f4ecdf, #e6dbc9 58%, #e4d4bf);
+        color: var(--ink);
+        font-family: "Avenir Next", "Segoe UI", sans-serif;
+      }
+
+      canvas {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        display: block;
+      }
+
+      .overlay {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+      }
+
+      .panel,
+      .back,
+      .footer {
+        position: absolute;
+        border: 1px solid var(--line);
+        background: var(--panel);
+        backdrop-filter: blur(16px);
+        box-shadow: 0 16px 40px rgba(84, 66, 48, 0.08);
+      }
+
+      .panel {
+        top: 18px;
+        left: 18px;
+        width: min(31rem, calc(100vw - 36px));
+        padding: 14px 16px 15px;
+        border-radius: 24px;
+      }
+
+      .back {
+        top: 18px;
+        right: 18px;
+        padding: 10px 14px;
+        border-radius: 999px;
+        color: var(--ink);
+        text-decoration: none;
+        pointer-events: auto;
+      }
+
+      .footer {
+        left: 18px;
+        right: 18px;
+        bottom: 18px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+        padding: 12px 14px;
+        border-radius: 18px;
+      }
+
+      .eyebrow,
+      .hint,
+      .mini,
+      .reading {
+        margin: 0;
+      }
+
+      .eyebrow,
+      .mini {
+        text-transform: uppercase;
+        letter-spacing: 0.16em;
+        font-size: 0.69rem;
+        color: rgba(74, 70, 63, 0.54);
+      }
+
+      h1 {
+        margin: 0.42rem 0 0.5rem;
+        font-size: clamp(2rem, 4vw, 3.45rem);
+        line-height: 0.92;
+      }
+
+      .hint,
+      .reading {
+        color: var(--muted);
+        line-height: 1.46;
+        font-size: 0.95rem;
+        max-width: 46rem;
+      }
+
+      .reading {
+        font-size: 0.9rem;
+      }
+
+      .stats {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.9rem 1.5rem;
+      }
+
+      .stat strong {
+        display: block;
+        margin-bottom: 0.18rem;
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.13em;
+        color: rgba(74, 70, 63, 0.52);
+      }
+
+      .stat span {
+        display: block;
+        font-size: 1rem;
+      }
+
+      @media (max-width: 760px) {
+        .footer {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+
+        .back {
+          top: auto;
+          right: 18px;
+          bottom: 102px;
+        }
+
+        h1 {
+          font-size: clamp(1.9rem, 9vw, 3rem);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="scene"></canvas>
+    <div class="overlay">
+      <section class="panel">
+        <p class="eyebrow">Code Animation Study #021</p>
+        <h1>Lattice Frond Delta</h1>
+        <p class="hint">
+          A pale procedural habitat built from rhombus scaffolds, soft pooled
+          islands, and feathery frond colonies. Drag through the field to bend
+          the current and open brighter channels across the lower delta.
+        </p>
+      </section>
+
+      <a class="back" href="../../index.html">Index</a>
+
+      <section class="footer" aria-label="Delta reading">
+        <div class="stats">
+          <div class="stat">
+            <strong>Current bend</strong>
+            <span id="bendValue">resting</span>
+          </div>
+          <div class="stat">
+            <strong>Pool opening</strong>
+            <span id="poolValue">0.34</span>
+          </div>
+          <div class="stat">
+            <strong>Frond chorus</strong>
+            <span id="frondValue">low tide</span>
+          </div>
+        </div>
+        <p class="reading" id="readingText">
+          Move slowly to comb the scaffold. Drag faster to send a warm current
+          through the lower frond bed and split open brighter pooled islands.
+        </p>
+      </section>
+    </div>
+    <script src="../../shared/study-notes.js"></script>
+
+    <script>
+      const canvas = document.getElementById("scene");
+      const ctx = canvas.getContext("2d");
+      const bendValue = document.getElementById("bendValue");
+      const poolValue = document.getElementById("poolValue");
+      const frondValue = document.getElementById("frondValue");
+      const readingText = document.getElementById("readingText");
+
+      const TAU = Math.PI * 2;
+      const pointer = {
+        x: window.innerWidth * 0.5,
+        y: window.innerHeight * 0.58,
+        tx: window.innerWidth * 0.5,
+        ty: window.innerHeight * 0.58,
+        vx: 0,
+        vy: 0,
+        speed: 0,
+        active: false,
+      };
+
+      let width = window.innerWidth;
+      let height = window.innerHeight;
+      let dpr = Math.min(window.devicePixelRatio || 1, 2);
+      let lattice = [];
+      let pools = [];
+      let fronds = [];
+      let motes = [];
+
+      function mix(a, b, t) {
+        return a + (b - a) * t;
+      }
+
+      function clamp(value, min, max) {
+        return Math.max(min, Math.min(max, value));
+      }
+
+      function resize() {
+        width = window.innerWidth;
+        height = window.innerHeight;
+        dpr = Math.min(window.devicePixelRatio || 1, 2);
+        canvas.width = Math.round(width * dpr);
+        canvas.height = Math.round(height * dpr);
+        canvas.style.width = `${width}px`;
+        canvas.style.height = `${height}px`;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        buildField();
+      }
+
+      function buildField() {
+        lattice = [];
+        pools = [];
+        fronds = [];
+        motes = [];
+
+        const cols = Math.max(9, Math.round(width / 94));
+        const rows = Math.max(7, Math.round(height / 92));
+        const stepX = width / cols;
+        const stepY = height / rows;
+
+        for (let row = -1; row <= rows + 1; row += 1) {
+          for (let col = -1; col <= cols + 1; col += 1) {
+            const offset = row % 2 === 0 ? 0.5 : 0;
+            const x = (col + offset) * stepX;
+            const y = row * stepY;
+            lattice.push({
+              x,
+              y,
+              phase: Math.random() * TAU,
+              drift: 0.3 + Math.random() * 0.9,
+              weight: 0.5 + Math.random() * 0.8,
+            });
+          }
+        }
+
+        const poolCount = Math.max(6, Math.round(width / 180));
+        for (let index = 0; index < poolCount; index += 1) {
+          const yBand = mix(height * 0.18, height * 0.88, index / Math.max(1, poolCount - 1));
+          pools.push({
+            x: Math.random() * width,
+            y: yBand + (Math.random() - 0.5) * height * 0.12,
+            rx: 42 + Math.random() * 110,
+            ry: 24 + Math.random() * 52,
+            phase: Math.random() * TAU,
+            hue: index % 4,
+          });
+        }
+
+        const frondCount = Math.max(18, Math.round(width / 42));
+        for (let index = 0; index < frondCount; index += 1) {
+          const baseY = mix(height * 0.54, height * 0.96, Math.pow(Math.random(), 0.62));
+          fronds.push({
+            x: Math.random() * width,
+            y: baseY,
+            length: 48 + Math.random() * 130,
+            angle: -Math.PI / 2 + (Math.random() - 0.5) * 1.1,
+            spread: 0.4 + Math.random() * 0.55,
+            density: 6 + Math.floor(Math.random() * 8),
+            thickness: 1.1 + Math.random() * 1.7,
+            phase: Math.random() * TAU,
+            tint: Math.floor(Math.random() * 3),
+          });
+        }
+
+        const moteCount = Math.max(80, Math.round((width * height) / 12000));
+        for (let index = 0; index < moteCount; index += 1) {
+          motes.push({
+            x: Math.random() * width,
+            y: Math.random() * height,
+            r: 0.7 + Math.random() * 1.8,
+            speed: 0.08 + Math.random() * 0.24,
+            sway: Math.random() * TAU,
+            drift: 8 + Math.random() * 26,
+          });
+        }
+      }
+
+      function setPointer(clientX, clientY) {
+        pointer.tx = clientX;
+        pointer.ty = clientY;
+      }
+
+      function drawBackground(time) {
+        const gradient = ctx.createLinearGradient(0, 0, 0, height);
+        gradient.addColorStop(0, "#f4ecdf");
+        gradient.addColorStop(0.56, "#eadfcf");
+        gradient.addColorStop(1, "#e4d4bf");
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, width, height);
+
+        ctx.fillStyle = "rgba(255, 255, 255, 0.3)";
+        for (let index = 0; index < 3; index += 1) {
+          const x = width * (0.18 + index * 0.28);
+          const y = height * (0.14 + Math.sin(time * 0.00018 + index) * 0.03);
+          const radius = Math.min(width, height) * (0.16 + index * 0.035);
+          ctx.beginPath();
+          ctx.arc(x, y, radius, 0, TAU);
+          ctx.fill();
+        }
+
+        ctx.save();
+        ctx.globalAlpha = 0.12;
+        ctx.strokeStyle = "rgba(120, 102, 87, 0.28)";
+        ctx.lineWidth = 0.55;
+        for (let index = 0; index < 140; index += 1) {
+          const y = (index / 140) * height;
+          const jitter = Math.sin(time * 0.00012 + index * 1.7) * 6;
+          ctx.beginPath();
+          ctx.moveTo(0, y + jitter);
+          ctx.lineTo(width, y - jitter * 0.6);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      function drawPools(time, energy) {
+        ctx.save();
+        pools.forEach((pool, index) => {
+          const dx = pointer.x - pool.x;
+          const dy = pointer.y - pool.y;
+          const dist = Math.hypot(dx, dy);
+          const influence = Math.max(0, 1 - dist / Math.max(width, height) * 1.3);
+          const pulse = 0.84 + Math.sin(time * 0.0008 + pool.phase) * 0.14;
+          const open = 1 + influence * (0.18 + energy * 1.2);
+          const rx = pool.rx * pulse * open;
+          const ry = pool.ry * (1.04 + Math.cos(time * 0.0007 + pool.phase) * 0.12) * open;
+          const angle = Math.sin(time * 0.00024 + pool.phase) * 0.35 + influence * 0.25;
+
+          ctx.translate(pool.x, pool.y);
+          ctx.rotate(angle);
+
+          const fill = ctx.createRadialGradient(0, 0, 2, 0, 0, rx);
+          if (pool.hue === 0) {
+            fill.addColorStop(0, "rgba(166, 216, 200, 0.34)");
+            fill.addColorStop(1, "rgba(166, 216, 200, 0.03)");
+          } else if (pool.hue === 1) {
+            fill.addColorStop(0, "rgba(185, 173, 201, 0.24)");
+            fill.addColorStop(1, "rgba(185, 173, 201, 0.02)");
+          } else if (pool.hue === 2) {
+            fill.addColorStop(0, "rgba(242, 197, 64, 0.3)");
+            fill.addColorStop(1, "rgba(242, 197, 64, 0.02)");
+          } else {
+            fill.addColorStop(0, "rgba(231, 110, 56, 0.22)");
+            fill.addColorStop(1, "rgba(231, 110, 56, 0.02)");
+          }
+
+          ctx.fillStyle = fill;
+          ctx.beginPath();
+          ctx.ellipse(0, 0, rx, ry, 0, 0, TAU);
+          ctx.fill();
+
+          ctx.strokeStyle = "rgba(255, 255, 255, 0.22)";
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.ellipse(0, 0, rx * 0.82, ry * 0.82, 0, 0, TAU);
+          ctx.stroke();
+          ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        });
+        ctx.restore();
+      }
+
+      function drawLattice(time, energy) {
+        ctx.save();
+        ctx.strokeStyle = "rgba(132, 116, 99, 0.25)";
+        ctx.lineWidth = 0.78;
+
+        const reach = 170 + energy * 220;
+        const offsetX = Math.sin(time * 0.0003) * 10;
+
+        for (let index = 0; index < lattice.length; index += 1) {
+          const node = lattice[index];
+          const dx = pointer.x - node.x;
+          const dy = pointer.y - node.y;
+          const dist = Math.hypot(dx, dy);
+          const influence = Math.max(0, 1 - dist / reach);
+          const currentX = node.x + Math.sin(time * 0.0007 * node.drift + node.phase) * 8 + dx * influence * 0.1 + offsetX;
+          const currentY = node.y + Math.cos(time * 0.0008 * node.drift + node.phase) * 8 + dy * influence * 0.06;
+
+          const neighbors = [
+            lattice[index + 1],
+            lattice[index + 2 + Math.round(width / 94)],
+          ];
+
+          neighbors.forEach((neighbor) => {
+            if (!neighbor) {
+              return;
+            }
+            const ndx = pointer.x - neighbor.x;
+            const ndy = pointer.y - neighbor.y;
+            const ndist = Math.hypot(ndx, ndy);
+            const ninfluence = Math.max(0, 1 - ndist / reach);
+            const nx = neighbor.x + Math.sin(time * 0.0007 * neighbor.drift + neighbor.phase) * 8 + ndx * ninfluence * 0.1 + offsetX;
+            const ny = neighbor.y + Math.cos(time * 0.0008 * neighbor.drift + neighbor.phase) * 8 + ndy * ninfluence * 0.06;
+
+            ctx.globalAlpha = 0.22 + influence * 0.32;
+            ctx.beginPath();
+            ctx.moveTo(currentX, currentY);
+            ctx.lineTo(nx, ny);
+            ctx.stroke();
+          });
+
+          ctx.globalAlpha = 0.38;
+          ctx.fillStyle = "rgba(255, 249, 240, 0.62)";
+          ctx.beginPath();
+          ctx.arc(currentX, currentY, 0.9 + node.weight * 0.65, 0, TAU);
+          ctx.fill();
+        }
+
+        ctx.restore();
+      }
+
+      function drawFrond(frond, time, energy) {
+        const dx = pointer.x - frond.x;
+        const dy = pointer.y - frond.y;
+        const dist = Math.hypot(dx, dy);
+        const influence = Math.max(0, 1 - dist / 260);
+        const bend = Math.sin(time * 0.001 + frond.phase) * 0.18 + pointer.vx * 0.0018 + influence * 0.55;
+        const sway = Math.cos(time * 0.0008 + frond.phase) * 0.12 + pointer.vy * 0.0014;
+        const tipX = frond.x + Math.cos(frond.angle + sway) * frond.length * (0.44 + influence * 0.1);
+        const tipY = frond.y + Math.sin(frond.angle + bend) * frond.length;
+
+        ctx.lineWidth = frond.thickness;
+        ctx.strokeStyle =
+          frond.tint === 0
+            ? "rgba(80, 76, 84, 0.44)"
+            : frond.tint === 1
+              ? "rgba(122, 133, 140, 0.4)"
+              : "rgba(164, 146, 138, 0.42)";
+
+        ctx.beginPath();
+        ctx.moveTo(frond.x, frond.y);
+        ctx.quadraticCurveTo(
+          frond.x + Math.cos(frond.angle - 0.55) * frond.length * 0.28 + pointer.vx * 0.01,
+          frond.y - frond.length * 0.35 + influence * -18,
+          tipX,
+          tipY
+        );
+        ctx.stroke();
+
+        const segments = frond.density;
+        for (let i = 0; i <= segments; i += 1) {
+          const t = i / segments;
+          const px = mix(frond.x, tipX, t);
+          const py = mix(frond.y, tipY, t) - Math.sin(t * Math.PI) * frond.length * 0.08;
+          const normal = frond.angle + bend + Math.PI / 2;
+          const bladeLength = (1 - t * 0.72) * frond.length * 0.13 * frond.spread * (0.9 + energy * 0.8);
+          const leafPhase = time * 0.0018 + frond.phase + t * 4;
+          const wobble = Math.sin(leafPhase) * 0.18;
+
+          for (const dir of [-1, 1]) {
+            const side = normal + wobble * dir;
+            const lx = px + Math.cos(side) * bladeLength * dir;
+            const ly = py + Math.sin(side) * bladeLength * dir;
+            ctx.beginPath();
+            ctx.moveTo(px, py);
+            ctx.lineTo(lx, ly);
+            ctx.stroke();
+          }
+        }
+      }
+
+      function drawFronds(time, energy) {
+        ctx.save();
+        fronds.sort((a, b) => a.y - b.y);
+        fronds.forEach((frond) => drawFrond(frond, time, energy));
+        ctx.restore();
+      }
+
+      function drawMotes(time, energy) {
+        ctx.save();
+        motes.forEach((mote) => {
+          const driftX = Math.sin(time * 0.00042 * mote.speed + mote.sway) * mote.drift + pointer.vx * 0.02;
+          const driftY = Math.cos(time * 0.00034 * mote.speed + mote.sway) * mote.drift * 0.4 + pointer.vy * 0.016;
+          ctx.fillStyle = mote.r > 1.4 ? "rgba(255, 255, 255, 0.42)" : "rgba(120, 108, 92, 0.22)";
+          ctx.globalAlpha = 0.22 + energy * 0.6;
+          ctx.beginPath();
+          ctx.arc(mote.x + driftX, mote.y + driftY, mote.r + energy * 0.5, 0, TAU);
+          ctx.fill();
+        });
+        ctx.restore();
+      }
+
+      function draw(time) {
+        pointer.x = mix(pointer.x, pointer.tx, 0.12);
+        pointer.y = mix(pointer.y, pointer.ty, 0.12);
+        pointer.vx = mix(pointer.vx, pointer.tx - pointer.x, 0.14);
+        pointer.vy = mix(pointer.vy, pointer.ty - pointer.y, 0.14);
+        pointer.speed = mix(pointer.speed, Math.hypot(pointer.vx, pointer.vy), 0.16);
+
+        const energy = clamp(pointer.speed / 24, 0, 1);
+        const openness = clamp(0.34 + energy * 0.58, 0, 1);
+        const chorus = clamp(0.22 + energy * 0.9, 0, 1);
+
+        drawBackground(time);
+        drawPools(time, energy);
+        drawLattice(time, energy);
+        drawFronds(time, energy);
+        drawMotes(time, energy);
+
+        bendValue.textContent =
+          energy > 0.74 ? "hard east" : energy > 0.42 ? "mid sweep" : energy > 0.18 ? "soft drift" : "resting";
+        poolValue.textContent = openness.toFixed(2);
+        frondValue.textContent =
+          chorus > 0.78 ? "bright bloom" : chorus > 0.48 ? "warm stir" : chorus > 0.28 ? "small wake" : "low tide";
+        readingText.textContent =
+          energy > 0.72
+            ? "The lower delta opens into warmer channels. Keep dragging to spread coral pressure through the pale scaffold."
+            : energy > 0.36
+              ? "The fronds are catching your wake. Slow arcs keep the pooled islands split and the lattice gently bowed."
+              : "Move slowly to comb the scaffold. Drag faster to send a warm current through the lower frond bed and split open brighter pooled islands.";
+
+        requestAnimationFrame(draw);
+      }
+
+      window.addEventListener("resize", resize);
+      window.addEventListener("pointermove", (event) => {
+        pointer.active = true;
+        setPointer(event.clientX, event.clientY);
+      });
+      window.addEventListener("pointerdown", (event) => {
+        pointer.active = true;
+        setPointer(event.clientX, event.clientY);
+      });
+      window.addEventListener("touchstart", (event) => {
+        const touch = event.touches[0];
+        if (touch) {
+          setPointer(touch.clientX, touch.clientY);
+        }
+      }, { passive: true });
+      window.addEventListener("touchmove", (event) => {
+        const touch = event.touches[0];
+        if (touch) {
+          setPointer(touch.clientX, touch.clientY);
+        }
+      }, { passive: true });
+
+      resize();
+      requestAnimationFrame(draw);
+    </script>
+  </body>
+</html>

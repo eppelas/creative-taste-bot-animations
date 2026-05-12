@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>#004 Ghost Canopy Array</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --text: #f2ede4;
+        --muted: #8f897f;
+        --panel: rgba(6, 6, 6, 0.36);
+        --line: rgba(242, 237, 228, 0.16);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        background:
+          radial-gradient(circle at 50% 18%, rgba(132, 18, 28, 0.18), transparent 32%),
+          radial-gradient(circle at 18% 78%, rgba(73, 11, 16, 0.18), transparent 26%),
+          #020202;
+        color: var(--text);
+        font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+      }
+
+      canvas {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        display: block;
+      }
+
+      .hud {
+        position: fixed;
+        inset: auto 18px 18px 18px;
+        display: flex;
+        justify-content: space-between;
+        align-items: end;
+        gap: 18px;
+        pointer-events: none;
+      }
+
+      .title {
+        display: grid;
+        gap: 4px;
+      }
+
+      h1,
+      p {
+        margin: 0;
+      }
+
+      h1 {
+        font-size: 13px;
+        font-weight: 560;
+      }
+
+      p {
+        max-width: 560px;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.42;
+      }
+
+      .back {
+        pointer-events: auto;
+        color: var(--text);
+        text-decoration: none;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 8px 11px;
+        font-size: 12px;
+        background: var(--panel);
+        backdrop-filter: blur(14px);
+      }
+
+      @media (max-width: 720px) {
+        .hud {
+          top: 14px;
+          bottom: auto;
+          flex-direction: column;
+          align-items: start;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="scene"></canvas>
+    <div class="hud">
+      <div class="title">
+        <h1>#004 Ghost Canopy Array</h1>
+        <p>
+          Reflective canopy bands drift over long-exposure traffic sweeps and
+          focus-doubled calibration marks, keeping the cinematic signal field
+          distributed instead of centered on a single object.
+        </p>
+      </div>
+      <a class="back" href="../../index.html">Index</a>
+    </div>
+    <script src="../../shared/study-notes.js"></script>
+
+    <script>
+      const canvas = document.getElementById("scene");
+      const ctx = canvas.getContext("2d", { alpha: false });
+
+      const TAU = Math.PI * 2;
+      const canopies = [];
+      const streaks = [];
+      const markers = [];
+      const dust = [];
+
+      let width = 0;
+      let height = 0;
+      let dpr = 1;
+      let start = performance.now();
+
+      const rand = (min, max) => min + Math.random() * (max - min);
+      const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+
+      function seed() {
+        canopies.length = 0;
+        streaks.length = 0;
+        markers.length = 0;
+        dust.length = 0;
+
+        const rows = width < 760 ? 4 : 5;
+        const cols = width < 760 ? 2 : 3;
+        let index = 0;
+
+        for (let row = 0; row < rows; row++) {
+          for (let col = 0; col < cols; col++) {
+            canopies.push({
+              x: width * (0.18 + (col / Math.max(cols - 1, 1)) * 0.6) + rand(-24, 24),
+              y: height * (0.16 + (row / Math.max(rows - 1, 1)) * 0.58) + rand(-18, 18),
+              w: Math.min(width * 0.28, 340) * rand(0.78, 1.08),
+              h: Math.min(height * 0.12, 120) * rand(0.82, 1.16),
+              angle: rand(-0.46, -0.16),
+              phase: rand(0, TAU),
+              drift: rand(0.18, 0.46),
+              glow: index % 3 === 0 ? "amber" : "red",
+              slices: 4 + ((row + col) % 4),
+              ghost: rand(5, 14),
+            });
+            index++;
+          }
+        }
+
+        const laneCount = 7;
+        const streakCount = clamp(Math.floor((width * height) / 1800), 260, 720);
+        for (let i = 0; i < streakCount; i++) {
+          streaks.push({
+            lane: i % laneCount,
+            progress: Math.random(),
+            speed: rand(0.05, 0.2),
+            length: rand(40, 150),
+            weight: rand(0.7, 2.2),
+            glow: Math.random() > 0.24 ? "red" : "amber",
+            phase: rand(0, TAU),
+            ghost: rand(4, 16),
+          });
+        }
+
+        for (let i = 0; i < 26; i++) {
+          markers.push({
+            x: rand(0.08, 0.92),
+            y: rand(0.12, 0.9),
+            size: rand(4, 16),
+            phase: rand(0, TAU),
+            drift: rand(-0.012, 0.012),
+          });
+        }
+
+        const dustCount = clamp(Math.floor((width * height) / 2600), 180, 520);
+        for (let i = 0; i < dustCount; i++) {
+          dust.push({
+            x: Math.random(),
+            y: Math.random(),
+            radius: rand(0.3, 1.6),
+            alpha: rand(0.03, 0.22),
+            phase: rand(0, TAU),
+          });
+        }
+      }
+
+      function resize() {
+        dpr = Math.min(window.devicePixelRatio || 1, 2);
+        width = Math.floor(window.innerWidth);
+        height = Math.floor(window.innerHeight);
+        canvas.width = Math.floor(width * dpr);
+        canvas.height = Math.floor(height * dpr);
+        canvas.style.width = width + "px";
+        canvas.style.height = height + "px";
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        seed();
+      }
+
+      function strokeColor(glow, alpha) {
+        if (glow === "amber") {
+          return `rgba(255, 208, 146, ${alpha})`;
+        }
+        return `rgba(255, 72, 92, ${alpha})`;
+      }
+
+      function lanePoint(lane, progress, t) {
+        const band = lane / 6;
+        const baseY = height * (0.2 + band * 0.62);
+        const sway = Math.sin(t * 0.18 + lane * 0.9) * height * 0.035;
+        const curve = Math.sin(progress * Math.PI * 1.4 + t * 0.56 + lane) * height * 0.03;
+        return {
+          x: progress * width,
+          y: baseY + sway + curve,
+        };
+      }
+
+      function drawBackground(t) {
+        ctx.fillStyle = "rgba(2, 2, 2, 0.22)";
+        ctx.fillRect(0, 0, width, height);
+
+        const glow = ctx.createRadialGradient(
+          width * 0.52,
+          height * 0.42,
+          0,
+          width * 0.52,
+          height * 0.42,
+          Math.min(width, height) * 0.64,
+        );
+        glow.addColorStop(0, "rgba(88, 10, 18, 0.22)");
+        glow.addColorStop(0.55, "rgba(18, 4, 7, 0.16)");
+        glow.addColorStop(1, "rgba(0, 0, 0, 0)");
+        ctx.fillStyle = glow;
+        ctx.fillRect(0, 0, width, height);
+
+        ctx.strokeStyle = "rgba(242, 236, 226, 0.03)";
+        ctx.lineWidth = 1;
+        for (let i = 0; i < 22; i++) {
+          const y = ((i / 21) * height + Math.sin(t * 0.28 + i) * 8) | 0;
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(width, y);
+          ctx.stroke();
+        }
+
+        for (const mote of dust) {
+          const x = mote.x * width + Math.sin(t * 0.08 + mote.phase) * 16;
+          const y = mote.y * height + Math.cos(t * 0.11 + mote.phase) * 10;
+          ctx.fillStyle = `rgba(246, 241, 228, ${mote.alpha})`;
+          ctx.beginPath();
+          ctx.arc(x, y, mote.radius, 0, TAU);
+          ctx.fill();
+        }
+      }
+
+      function drawCanopy(canopy, t) {
+        const px = canopy.x + Math.sin(t * canopy.drift + canopy.phase) * 18;
+        const py = canopy.y + Math.cos(t * canopy.drift * 0.9 + canopy.phase) * 12;
+        const angle = canopy.angle + Math.sin(t * 0.22 + canopy.phase) * 0.08;
+
+        ctx.save();
+        ctx.translate(px, py);
+        ctx.rotate(angle);
+
+        ctx.fillStyle = "rgba(8, 8, 8, 0.28)";
+        ctx.strokeStyle = "rgba(246, 241, 228, 0.14)";
+        ctx.lineWidth = 1;
+        ctx.fillRect(-canopy.w / 2, -canopy.h / 2, canopy.w, canopy.h);
+        ctx.strokeRect(-canopy.w / 2, -canopy.h / 2, canopy.w, canopy.h);
+
+        const pane = ctx.createLinearGradient(-canopy.w / 2, -canopy.h / 2, canopy.w / 2, canopy.h / 2);
+        pane.addColorStop(0, "rgba(255,255,255,0.01)");
+        pane.addColorStop(0.45, "rgba(255,255,255,0.06)");
+        pane.addColorStop(1, "rgba(255,255,255,0.015)");
+        ctx.fillStyle = pane;
+        ctx.fillRect(-canopy.w / 2, -canopy.h / 2, canopy.w, canopy.h);
+
+        for (let i = 1; i < canopy.slices; i++) {
+          const yy = -canopy.h / 2 + (canopy.h / canopy.slices) * i;
+          ctx.strokeStyle = "rgba(246, 241, 228, 0.06)";
+          ctx.beginPath();
+          ctx.moveTo(-canopy.w / 2, yy);
+          ctx.lineTo(canopy.w / 2, yy);
+          ctx.stroke();
+        }
+
+        for (let i = 0; i < 3; i++) {
+          const lx = -canopy.w / 2 + canopy.w * (0.18 + i * 0.24);
+          const shift = Math.sin(t * 0.8 + canopy.phase + i) * 18;
+          ctx.strokeStyle = strokeColor(canopy.glow, 0.18 + i * 0.04);
+          ctx.lineWidth = 1.4 + i * 0.6;
+          ctx.beginPath();
+          ctx.moveTo(lx - 24, -canopy.h * 0.36 + shift * 0.06);
+          ctx.lineTo(lx + canopy.w * 0.2, canopy.h * 0.34 + shift * 0.08);
+          ctx.stroke();
+
+          ctx.strokeStyle = strokeColor(canopy.glow, 0.07 + i * 0.02);
+          ctx.beginPath();
+          ctx.moveTo(lx - 24 + canopy.ghost, -canopy.h * 0.36 + shift * 0.06 + canopy.ghost * 0.18);
+          ctx.lineTo(lx + canopy.w * 0.2 + canopy.ghost, canopy.h * 0.34 + shift * 0.08 + canopy.ghost * 0.18);
+          ctx.stroke();
+        }
+
+        ctx.fillStyle = "rgba(246, 241, 228, 0.34)";
+        ctx.fillRect(-canopy.w / 2 - 8, -canopy.h / 2 - 8, 10, 4);
+        ctx.fillRect(canopy.w / 2 - 6, canopy.h / 2 + 4, 6, 6);
+        ctx.restore();
+      }
+
+      function drawStreaks(t) {
+        ctx.lineCap = "round";
+        for (const streak of streaks) {
+          const move = (streak.progress + t * streak.speed) % 1;
+          const p = lanePoint(streak.lane, move, t);
+          const tail = lanePoint(streak.lane, Math.max(0, move - streak.length / width), t);
+          const offset = Math.sin(t * 0.72 + streak.phase) * 8;
+
+          ctx.strokeStyle = strokeColor(streak.glow, 0.34);
+          ctx.lineWidth = streak.weight;
+          ctx.beginPath();
+          ctx.moveTo(tail.x, tail.y + offset);
+          ctx.lineTo(p.x, p.y + offset);
+          ctx.stroke();
+
+          ctx.strokeStyle = strokeColor(streak.glow, 0.12);
+          ctx.lineWidth = streak.weight * 1.9;
+          ctx.beginPath();
+          ctx.moveTo(tail.x + streak.ghost, tail.y + offset + streak.ghost * 0.26);
+          ctx.lineTo(p.x + streak.ghost, p.y + offset + streak.ghost * 0.26);
+          ctx.stroke();
+        }
+      }
+
+      function drawMarkers(t) {
+        ctx.strokeStyle = "rgba(246, 241, 228, 0.16)";
+        ctx.fillStyle = "rgba(246, 241, 228, 0.3)";
+        for (const marker of markers) {
+          const x = marker.x * width + Math.sin(t * 0.22 + marker.phase) * width * marker.drift;
+          const y = marker.y * height + Math.cos(t * 0.17 + marker.phase) * 10;
+          const pulse = 0.7 + Math.sin(t * 1.1 + marker.phase) * 0.26;
+          const size = marker.size * pulse;
+
+          ctx.save();
+          ctx.translate(x, y);
+          ctx.rotate(t * 0.08 + marker.phase);
+          ctx.strokeRect(-size, -size, size * 2, size * 2);
+          ctx.fillRect(-2, -2, 4, 4);
+          ctx.restore();
+        }
+
+        ctx.fillStyle = "rgba(255, 78, 96, 0.08)";
+        for (let i = 0; i < 5; i++) {
+          const y = ((t * 24 + i * 117) % height) | 0;
+          ctx.fillRect(0, y, width, 1);
+        }
+      }
+
+      function draw(now) {
+        const t = (now - start) * 0.001;
+        drawBackground(t);
+        drawStreaks(t);
+        canopies.forEach((canopy) => drawCanopy(canopy, t));
+        drawMarkers(t);
+        requestAnimationFrame(draw);
+      }
+
+      window.addEventListener("resize", resize);
+      resize();
+      requestAnimationFrame(draw);
+    </script>
+  </body>
+</html>

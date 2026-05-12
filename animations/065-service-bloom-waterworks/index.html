@@ -1,0 +1,834 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>#065 Service Bloom Waterworks</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --sky: #f4efe7;
+        --ground: #e4d6c2;
+        --paper: rgba(253, 250, 245, 0.72);
+        --paper-strong: rgba(251, 246, 239, 0.9);
+        --line: rgba(48, 66, 74, 0.14);
+        --line-strong: rgba(48, 66, 74, 0.32);
+        --ink: #2b3840;
+        --muted: rgba(43, 56, 64, 0.7);
+        --teal: #8bc4cc;
+        --jade: #93b79d;
+        --coral: #dc9d88;
+        --amber: #d8ac62;
+        --water: #b9e2ea;
+        --deep-water: #6fb6c0;
+        --shadow: 0 28px 90px rgba(105, 86, 59, 0.16);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        overflow: hidden;
+        background:
+          radial-gradient(circle at 16% 16%, rgba(255, 255, 255, 0.95), transparent 18%),
+          radial-gradient(circle at 78% 20%, rgba(139, 196, 204, 0.18), transparent 20%),
+          radial-gradient(circle at 52% 82%, rgba(220, 157, 136, 0.14), transparent 24%),
+          linear-gradient(180deg, #fbf6ef 0%, var(--sky) 48%, var(--ground) 100%);
+        color: var(--ink);
+        font-family: "Azeret Mono", "IBM Plex Mono", "SFMono-Regular", monospace;
+      }
+
+      body::before,
+      body::after {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+      }
+
+      body::before {
+        opacity: 0.12;
+        background-image:
+          linear-gradient(rgba(48, 66, 74, 0.09) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(48, 66, 74, 0.08) 1px, transparent 1px);
+        background-size: 92px 92px;
+        mask-image: radial-gradient(circle at 50% 46%, black 38%, transparent 88%);
+      }
+
+      body::after {
+        opacity: 0.1;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.72), transparent 22%, transparent 78%, rgba(255, 255, 255, 0.18)),
+          repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.18) 0 2px, transparent 2px 8px);
+        mix-blend-mode: soft-light;
+      }
+
+      canvas {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        display: block;
+      }
+
+      a {
+        color: inherit;
+      }
+
+      .hud {
+        position: fixed;
+        inset: 16px;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(250px, 320px);
+        grid-template-rows: auto 1fr auto;
+        gap: 14px;
+        pointer-events: none;
+      }
+
+      .panel,
+      .legend,
+      .notes,
+      .back,
+      .mode {
+        position: relative;
+        border: 1px solid var(--line);
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(251, 246, 239, 0.46)),
+          var(--paper);
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(16px);
+      }
+
+      .panel,
+      .legend,
+      .notes {
+        border-radius: 28px;
+        overflow: hidden;
+        pointer-events: auto;
+      }
+
+      .panel::after,
+      .legend::after,
+      .notes::after {
+        content: "";
+        position: absolute;
+        inset: 1px;
+        border-radius: inherit;
+        border: 1px solid rgba(255, 255, 255, 0.42);
+        pointer-events: none;
+      }
+
+      .panel {
+        grid-column: 1 / -1;
+        display: grid;
+        grid-template-columns: minmax(0, 1.1fr) minmax(240px, 0.8fr);
+        gap: 18px;
+        padding: 18px 20px;
+      }
+
+      .title-block,
+      .readout,
+      .legend-list,
+      .mode-stack {
+        display: grid;
+        gap: 10px;
+      }
+
+      h1,
+      h2,
+      p {
+        margin: 0;
+      }
+
+      h1 {
+        font-size: clamp(2.6rem, 5.2vw, 5.4rem);
+        line-height: 0.88;
+        letter-spacing: -0.05em;
+        text-transform: uppercase;
+      }
+
+      h1 span {
+        color: var(--deep-water);
+      }
+
+      .meta,
+      .mode,
+      .back,
+      .label {
+        font-size: 0.72rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+
+      .meta,
+      .lede,
+      .legend-copy,
+      .note-copy,
+      .readout p {
+        color: var(--muted);
+      }
+
+      .lede,
+      .legend-copy,
+      .note-copy,
+      .readout p {
+        line-height: 1.5;
+      }
+
+      .chip-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .mode,
+      .back {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        border-radius: 999px;
+        padding: 10px 13px;
+        text-decoration: none;
+      }
+
+      .mode {
+        pointer-events: auto;
+        cursor: pointer;
+        border: 1px solid var(--line);
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.84), rgba(246, 238, 227, 0.66)),
+          var(--paper-strong);
+      }
+
+      .mode[data-active="true"] {
+        border-color: rgba(111, 182, 192, 0.48);
+        box-shadow:
+          inset 0 0 0 1px rgba(111, 182, 192, 0.22),
+          0 0 0 1px rgba(111, 182, 192, 0.08);
+      }
+
+      .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+        background: currentColor;
+        opacity: 0.88;
+      }
+
+      .readout strong,
+      .legend h2 {
+        font-size: 0.95rem;
+      }
+
+      .legend {
+        grid-column: 2;
+        grid-row: 2;
+        align-self: end;
+        justify-self: end;
+        width: min(100%, 300px);
+        padding: 16px;
+        display: grid;
+        gap: 14px;
+      }
+
+      .legend-list {
+        gap: 12px;
+      }
+
+      .legend-card {
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        padding: 12px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.54), transparent),
+          rgba(255, 249, 243, 0.52);
+      }
+
+      .legend-card p {
+        margin-top: 6px;
+        font-size: 0.88rem;
+        line-height: 1.45;
+        color: var(--ink);
+      }
+
+      .legend-bar {
+        display: grid;
+        gap: 8px;
+      }
+
+      .legend-row {
+        display: grid;
+        grid-template-columns: 72px 1fr 42px;
+        gap: 10px;
+        align-items: center;
+      }
+
+      .track {
+        height: 8px;
+        border-radius: 999px;
+        background: rgba(43, 56, 64, 0.08);
+        overflow: hidden;
+      }
+
+      .fill {
+        height: 100%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, var(--water), var(--deep-water));
+      }
+
+      .notes {
+        grid-column: 1 / -1;
+        grid-row: 3;
+        padding: 12px;
+      }
+
+      .note-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .note-card {
+        border-radius: 18px;
+        border: 1px solid var(--line);
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.54), transparent),
+          rgba(255, 249, 243, 0.52);
+        padding: 12px;
+      }
+
+      .label {
+        color: var(--muted);
+        margin-bottom: 8px;
+      }
+
+      .note-copy {
+        font-size: 0.9rem;
+      }
+
+      .back {
+        justify-self: start;
+        align-self: end;
+        pointer-events: auto;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.84), rgba(246, 238, 227, 0.66)),
+          var(--paper-strong);
+      }
+
+      @media (max-width: 980px) {
+        body {
+          overflow-y: auto;
+        }
+
+        .hud {
+          position: relative;
+          inset: auto;
+          min-height: 100vh;
+          padding: 16px;
+          grid-template-columns: 1fr;
+          grid-template-rows: auto auto auto auto;
+        }
+
+        .panel {
+          grid-template-columns: 1fr;
+        }
+
+        .legend {
+          grid-column: 1;
+          grid-row: 2;
+          width: 100%;
+          justify-self: stretch;
+        }
+
+        .notes {
+          grid-row: 3;
+        }
+
+        .note-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .back {
+          grid-row: 4;
+          margin-bottom: 24px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="scene" aria-hidden="true"></canvas>
+
+    <div class="hud">
+      <section class="panel">
+        <div class="title-block">
+          <p class="meta">Generated animation study 065 / daylight membrane infrastructure</p>
+          <h1>Service <span>Bloom</span> Waterworks</h1>
+          <p class="lede">
+            A pale district-scale waterworks page that keeps the current living-infrastructure
+            branch active without slipping back into a hero specimen, a cliff cutaway, or a dark
+            control board. Translucent basins, service catwalks, and slow current law share one
+            browser-native sheet.
+          </p>
+          <div class="chip-row">
+            <button class="mode" type="button" data-mode="calm" data-active="true">
+              <span class="dot"></span>
+              Calm
+            </button>
+            <button class="mode" type="button" data-mode="tide">
+              <span class="dot"></span>
+              Tide
+            </button>
+            <button class="mode" type="button" data-mode="flush">
+              <span class="dot"></span>
+              Flush
+            </button>
+          </div>
+        </div>
+
+        <div class="mode-stack">
+          <div class="readout">
+            <p class="meta">District behavior</p>
+            <strong id="mode-name">Calm circulation</strong>
+            <p id="mode-copy">
+              Fine pollen drifts through the reservoirs while the bridges keep a slow maintenance rhythm.
+            </p>
+          </div>
+          <div class="readout">
+            <p class="meta">Pointer effect</p>
+            <strong>Local warm wake</strong>
+            <p>
+              Move across the sheet to bend nearby current, lift suspended particles, and briefly
+              brighten the closest membranes.
+            </p>
+          </div>
+          <div class="readout">
+            <p class="meta">Click effect</p>
+            <strong>Pressure marker</strong>
+            <p>
+              Click to drop a temporary service pulse that radiates through the nearest basin group.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <aside class="legend">
+        <div>
+          <p class="meta">Live survey</p>
+          <h2>Reservoir balance</h2>
+          <p class="legend-copy">
+            The bars reflect the current mode and the pointer’s nearest district pressure.
+          </p>
+        </div>
+        <div class="legend-bar" id="bars"></div>
+        <div class="legend-list">
+          <div class="legend-card">
+            <p class="label">Surface logic</p>
+            <p>Translucent chambers breathe like living plumbing instead of isolated specimen petals.</p>
+          </div>
+          <div class="legend-card">
+            <p class="label">Material signal</p>
+            <p>Pale minerals, teal wash, coral service tags, and paper margins keep the branch daylight and usable.</p>
+          </div>
+        </div>
+      </aside>
+
+      <section class="notes">
+        <div class="note-grid">
+          <article class="note-card">
+            <p class="label">Idea</p>
+            <p class="note-copy">
+              Translate the latest membrane-waterworks image lane into a browser-native district sheet
+              with channels, catwalks, and shared basin law rather than another centered chamber.
+            </p>
+          </article>
+          <article class="note-card">
+            <p class="label">Interaction</p>
+            <p class="note-copy">
+              Pointer movement creates warm wakes inside the closest reservoirs, and click plants a
+              temporary maintenance pulse that expands through the nearest network.
+            </p>
+          </article>
+          <article class="note-card">
+            <p class="label">Next</p>
+            <p class="note-copy">
+              A future pass could add tiny workers, route labels, or a second seasonal layer so the
+              waterworks reads even more like an inhabited service world.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <a class="back" href="../../index.html">Back to animation index</a>
+    </div>
+
+    <script>
+      const canvas = document.getElementById("scene");
+      const ctx = canvas.getContext("2d");
+
+      const modeName = document.getElementById("mode-name");
+      const modeCopy = document.getElementById("mode-copy");
+      const modeButtons = Array.from(document.querySelectorAll(".mode"));
+      const barsContainer = document.getElementById("bars");
+
+      const modeConfig = {
+        calm: {
+          title: "Calm circulation",
+          copy: "Fine pollen drifts through the reservoirs while the bridges keep a slow maintenance rhythm.",
+          flow: 0.35,
+          pulse: 0.28,
+          drift: 0.32
+        },
+        tide: {
+          title: "Tide exchange",
+          copy: "The outer basins fill and empty in longer breaths, and the service bridges catch more reflected wash.",
+          flow: 0.72,
+          pulse: 0.5,
+          drift: 0.58
+        },
+        flush: {
+          title: "Flush cycle",
+          copy: "Short pressure surges move through the district and wake the pipes, pollen, and membrane seams.",
+          flow: 1.08,
+          pulse: 0.86,
+          drift: 0.8
+        }
+      };
+
+      const reservoirs = [
+        { x: 0.18, y: 0.28, r: 0.12, hue: "#b9e2ea", tag: "North" },
+        { x: 0.39, y: 0.22, r: 0.09, hue: "#a6d4ce", tag: "East" },
+        { x: 0.58, y: 0.35, r: 0.14, hue: "#bde6ec", tag: "Spine" },
+        { x: 0.77, y: 0.24, r: 0.11, hue: "#d8c59b", tag: "Ridge" },
+        { x: 0.25, y: 0.58, r: 0.13, hue: "#d8e9d0", tag: "South" },
+        { x: 0.48, y: 0.67, r: 0.16, hue: "#c6ece4", tag: "Delta" },
+        { x: 0.77, y: 0.62, r: 0.12, hue: "#f0cfb6", tag: "West" }
+      ];
+
+      const links = [
+        [0, 1],
+        [1, 2],
+        [2, 3],
+        [0, 4],
+        [1, 4],
+        [2, 5],
+        [3, 6],
+        [4, 5],
+        [5, 6],
+        [1, 5],
+        [2, 6]
+      ];
+
+      const particles = Array.from({ length: 180 }, (_, i) => ({
+        anchor: i % reservoirs.length,
+        orbit: 0.4 + Math.random() * 0.8,
+        angle: Math.random() * Math.PI * 2,
+        speed: 0.002 + Math.random() * 0.004,
+        lift: 0.4 + Math.random() * 0.6,
+        size: 1 + Math.random() * 2.4
+      }));
+
+      const pulses = [];
+      const surveyBars = reservoirs.map((item, index) => {
+        const row = document.createElement("div");
+        row.className = "legend-row";
+        row.innerHTML = `
+          <span class="meta">${item.tag}</span>
+          <div class="track"><div class="fill" id="fill-${index}"></div></div>
+          <span class="meta" id="value-${index}">00</span>
+        `;
+        barsContainer.appendChild(row);
+        return {
+          fill: row.querySelector(`#fill-${index}`),
+          value: row.querySelector(`#value-${index}`)
+        };
+      });
+
+      let width = 0;
+      let height = 0;
+      let dpr = Math.min(window.devicePixelRatio || 1, 2);
+      let pointer = { x: 0.5, y: 0.45, active: false };
+      let mode = "calm";
+
+      function resize() {
+        width = window.innerWidth;
+        height = window.innerHeight;
+        dpr = Math.min(window.devicePixelRatio || 1, 2);
+        canvas.width = width * dpr;
+        canvas.height = height * dpr;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+
+      function setMode(nextMode) {
+        mode = nextMode;
+        const current = modeConfig[mode];
+        modeName.textContent = current.title;
+        modeCopy.textContent = current.copy;
+        modeButtons.forEach((button) => {
+          button.dataset.active = String(button.dataset.mode === mode);
+        });
+      }
+
+      function drawBackground(time) {
+        const gradient = ctx.createLinearGradient(0, 0, 0, height);
+        gradient.addColorStop(0, "#fbf6ef");
+        gradient.addColorStop(0.52, "#f0e6d8");
+        gradient.addColorStop(1, "#dcc8ad");
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, width, height);
+
+        ctx.save();
+        ctx.globalAlpha = 0.12;
+        for (let i = 0; i < 26; i += 1) {
+          const y = (i / 25) * height;
+          ctx.fillStyle = i % 2 === 0 ? "rgba(255,255,255,0.08)" : "rgba(86,110,120,0.04)";
+          ctx.fillRect(0, y, width, 2);
+        }
+        ctx.restore();
+
+        ctx.save();
+        ctx.translate(width * 0.08, height * 0.12);
+        ctx.rotate(-0.18);
+        ctx.strokeStyle = "rgba(60, 84, 92, 0.05)";
+        ctx.lineWidth = 1;
+        for (let i = 0; i < 8; i += 1) {
+          ctx.beginPath();
+          ctx.moveTo(0, i * 78);
+          ctx.lineTo(width * 0.9, i * 78 - 40 * Math.sin(time * 0.0003 + i));
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      function project(reservoir) {
+        const x = reservoir.x * width;
+        const y = reservoir.y * height;
+        const radius = reservoir.r * Math.min(width, height);
+        return { x, y, radius };
+      }
+
+      function pointerForce(x, y) {
+        const dx = pointer.x * width - x;
+        const dy = pointer.y * height - y;
+        const dist = Math.hypot(dx, dy);
+        return Math.max(0, 1 - dist / 260);
+      }
+
+      function drawLinks(time, current) {
+        links.forEach(([aIndex, bIndex], linkIndex) => {
+          const a = project(reservoirs[aIndex]);
+          const b = project(reservoirs[bIndex]);
+          const mx = (a.x + b.x) * 0.5;
+          const my = (a.y + b.y) * 0.5;
+          const bend = Math.sin(time * 0.0006 * current.flow + linkIndex) * 22;
+          const normalX = -(b.y - a.y) / Math.max(1, Math.hypot(b.x - a.x, b.y - a.y));
+          const normalY = (b.x - a.x) / Math.max(1, Math.hypot(b.x - a.x, b.y - a.y));
+          const pForce = pointerForce(mx, my);
+          const cx = mx + normalX * (bend + pForce * 28);
+          const cy = my + normalY * (bend * 0.6 + pForce * 18);
+
+          ctx.lineWidth = 18;
+          ctx.strokeStyle = "rgba(214, 228, 225, 0.42)";
+          ctx.beginPath();
+          ctx.moveTo(a.x, a.y);
+          ctx.quadraticCurveTo(cx, cy, b.x, b.y);
+          ctx.stroke();
+
+          ctx.lineWidth = 6;
+          ctx.strokeStyle = "rgba(111, 182, 192, 0.54)";
+          ctx.beginPath();
+          ctx.moveTo(a.x, a.y);
+          ctx.quadraticCurveTo(cx, cy, b.x, b.y);
+          ctx.stroke();
+
+          ctx.lineWidth = 1.4;
+          ctx.setLineDash([10, 12]);
+          ctx.strokeStyle = "rgba(43, 56, 64, 0.18)";
+          ctx.beginPath();
+          ctx.moveTo(a.x, a.y);
+          ctx.quadraticCurveTo(cx, cy, b.x, b.y);
+          ctx.stroke();
+          ctx.setLineDash([]);
+        });
+      }
+
+      function drawReservoir(time, reservoir, index, current) {
+        const node = project(reservoir);
+        const pForce = pointerForce(node.x, node.y);
+        const pulseStrength = pulses.reduce((sum, pulse) => {
+          const dx = pulse.x - node.x;
+          const dy = pulse.y - node.y;
+          const dist = Math.hypot(dx, dy);
+          return sum + Math.max(0, 1 - dist / (220 + pulse.life * 180)) * pulse.life;
+        }, 0);
+        const swell = 1 + Math.sin(time * 0.0012 * current.flow + index * 1.4) * 0.035 + pForce * 0.08 + pulseStrength * 0.09;
+
+        ctx.save();
+        ctx.translate(node.x, node.y);
+        ctx.scale(1.12, 0.88);
+        ctx.rotate(Math.sin(time * 0.0004 + index) * 0.08);
+
+        const gradient = ctx.createRadialGradient(
+          -node.radius * 0.26,
+          -node.radius * 0.18,
+          node.radius * 0.2,
+          0,
+          0,
+          node.radius * 1.06
+        );
+        gradient.addColorStop(0, "rgba(255,255,255,0.9)");
+        gradient.addColorStop(0.34, reservoir.hue + "cc");
+        gradient.addColorStop(0.82, "rgba(111, 182, 192, 0.18)");
+        gradient.addColorStop(1, "rgba(255,255,255,0)");
+
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        for (let step = 0; step <= 44; step += 1) {
+          const t = (step / 44) * Math.PI * 2;
+          const noise = 1 + Math.sin(t * 3 + time * 0.0012 * current.drift + index) * 0.06 + Math.cos(t * 5 - time * 0.0009 + index) * 0.04;
+          const radius = node.radius * swell * noise;
+          const x = Math.cos(t) * radius;
+          const y = Math.sin(t) * radius;
+          if (step === 0) {
+            ctx.moveTo(x, y);
+          } else {
+            ctx.lineTo(x, y);
+          }
+        }
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = `rgba(43, 56, 64, ${0.12 + pForce * 0.18})`;
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.ellipse(0, 0, node.radius * 0.74, node.radius * 0.44, 0, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(255,255,255,${0.36 + pForce * 0.18})`;
+        ctx.lineWidth = 1.1;
+        ctx.stroke();
+
+        ctx.restore();
+
+        ctx.fillStyle = "rgba(43, 56, 64, 0.62)";
+        ctx.fillRect(node.x - 38, node.y + node.radius * 0.78, 76, 1);
+        ctx.fillStyle = "rgba(43, 56, 64, 0.8)";
+        ctx.font = "11px Azeret Mono, IBM Plex Mono, monospace";
+        ctx.textAlign = "center";
+        ctx.fillText(reservoir.tag.toUpperCase(), node.x, node.y + node.radius * 0.98);
+
+        const percentage = Math.max(18, Math.min(98, Math.round((0.42 + swell * 0.38 + pForce * 0.18 + pulseStrength * 0.2) * 100)));
+        surveyBars[index].fill.style.width = `${percentage}%`;
+        surveyBars[index].value.textContent = String(percentage).padStart(2, "0");
+      }
+
+      function drawParticles(time, current) {
+        particles.forEach((particle, index) => {
+          const node = project(reservoirs[particle.anchor]);
+          const pForce = pointerForce(node.x, node.y);
+          const angle = particle.angle + time * particle.speed * current.flow * 26;
+          const radius = node.radius * particle.orbit;
+          const driftX = Math.cos(angle) * radius + Math.sin(time * 0.001 + index) * 10 * current.drift;
+          const driftY = Math.sin(angle * 1.2) * radius * 0.62 + Math.cos(time * 0.0013 + index) * 8 * current.drift;
+          const x = node.x + driftX + (pointer.x * width - node.x) * pForce * 0.03;
+          const y = node.y + driftY - pForce * 16 * particle.lift;
+
+          ctx.beginPath();
+          ctx.fillStyle = pForce > 0.14 ? "rgba(220, 157, 136, 0.72)" : "rgba(111, 182, 192, 0.5)";
+          ctx.arc(x, y, particle.size + pForce * 0.7, 0, Math.PI * 2);
+          ctx.fill();
+        });
+      }
+
+      function drawBridges(time, current) {
+        links.forEach(([aIndex, bIndex], linkIndex) => {
+          if (linkIndex % 2 !== 0) {
+            return;
+          }
+
+          const a = project(reservoirs[aIndex]);
+          const b = project(reservoirs[bIndex]);
+          const t = 0.5 + Math.sin(time * 0.0005 * current.flow + linkIndex) * 0.08;
+          const x = a.x + (b.x - a.x) * t;
+          const y = a.y + (b.y - a.y) * t;
+          const sway = Math.cos(time * 0.001 + linkIndex) * 4;
+
+          ctx.save();
+          ctx.translate(x, y);
+          ctx.rotate(Math.atan2(b.y - a.y, b.x - a.x));
+          ctx.fillStyle = "rgba(247, 241, 233, 0.94)";
+          ctx.strokeStyle = "rgba(43, 56, 64, 0.16)";
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.roundRect(-32, -7 + sway, 64, 14, 7);
+          ctx.fill();
+          ctx.stroke();
+          ctx.restore();
+        });
+      }
+
+      function drawPulses() {
+        for (let i = pulses.length - 1; i >= 0; i -= 1) {
+          const pulse = pulses[i];
+          pulse.life -= 0.012;
+          if (pulse.life <= 0) {
+            pulses.splice(i, 1);
+            continue;
+          }
+
+          ctx.beginPath();
+          ctx.strokeStyle = `rgba(216, 172, 98, ${pulse.life * 0.4})`;
+          ctx.lineWidth = 2.2;
+          ctx.arc(pulse.x, pulse.y, (1 - pulse.life) * 220, 0, Math.PI * 2);
+          ctx.stroke();
+
+          ctx.beginPath();
+          ctx.fillStyle = `rgba(216, 172, 98, ${pulse.life * 0.56})`;
+          ctx.arc(pulse.x, pulse.y, 7 + pulse.life * 10, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      function frame(time) {
+        const current = modeConfig[mode];
+        drawBackground(time);
+        drawLinks(time, current);
+        drawBridges(time, current);
+        reservoirs.forEach((reservoir, index) => drawReservoir(time, reservoir, index, current));
+        drawParticles(time, current);
+        drawPulses();
+        requestAnimationFrame(frame);
+      }
+
+      modeButtons.forEach((button) => {
+        button.addEventListener("click", () => setMode(button.dataset.mode));
+      });
+
+      window.addEventListener("pointermove", (event) => {
+        pointer.x = event.clientX / Math.max(1, width);
+        pointer.y = event.clientY / Math.max(1, height);
+        pointer.active = true;
+      });
+
+      window.addEventListener("pointerleave", () => {
+        pointer.active = false;
+      });
+
+      window.addEventListener("click", (event) => {
+        pulses.push({ x: event.clientX, y: event.clientY, life: 1 });
+        if (pulses.length > 8) {
+          pulses.shift();
+        }
+      });
+
+      window.addEventListener("resize", resize);
+
+      resize();
+      setMode("calm");
+      requestAnimationFrame(frame);
+    </script>
+  </body>
+</html>

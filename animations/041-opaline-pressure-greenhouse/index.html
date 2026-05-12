@@ -1,0 +1,948 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>#041 Opaline Pressure Greenhouse</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f3ede4;
+        --paper: rgba(255, 252, 247, 0.84);
+        --panel: rgba(255, 250, 244, 0.72);
+        --panel-strong: rgba(250, 245, 238, 0.94);
+        --line: rgba(94, 122, 118, 0.18);
+        --line-strong: rgba(94, 122, 118, 0.36);
+        --text: #243230;
+        --muted: rgba(36, 50, 48, 0.62);
+        --mint: #82cbbd;
+        --teal: #4a8c89;
+        --cyan: #b0ebe1;
+        --amber: #f0bf86;
+        --rose: #db9ca5;
+        --leaf: #c9e0b1;
+        --shadow: 0 24px 70px rgba(107, 93, 75, 0.14);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        background:
+          radial-gradient(circle at 12% 10%, rgba(255, 255, 255, 0.9), transparent 18%),
+          radial-gradient(circle at 84% 18%, rgba(130, 203, 189, 0.18), transparent 22%),
+          radial-gradient(circle at 58% 88%, rgba(219, 156, 165, 0.14), transparent 20%),
+          linear-gradient(180deg, #f6f1ea 0%, #efe6da 100%);
+        color: var(--text);
+        font-family: "Azeret Mono", "IBM Plex Mono", "SFMono-Regular", monospace;
+      }
+
+      body {
+        min-height: 100vh;
+      }
+
+      .shell {
+        position: relative;
+        min-height: 100vh;
+        padding: 18px;
+        display: grid;
+        gap: 14px;
+        grid-template-columns: 280px minmax(0, 1fr) 300px;
+        grid-template-rows: auto minmax(0, 1fr) auto;
+      }
+
+      .veil {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        opacity: 0.45;
+      }
+
+      .veil::before,
+      .veil::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+      }
+
+      .veil::before {
+        background-image:
+          linear-gradient(rgba(94, 122, 118, 0.045) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(94, 122, 118, 0.04) 1px, transparent 1px);
+        background-size: 88px 88px;
+        mask-image: radial-gradient(circle at center, black 44%, transparent 92%);
+      }
+
+      .veil::after {
+        background:
+          linear-gradient(90deg, transparent 0%, rgba(176, 235, 225, 0.3) 48%, transparent 54%),
+          linear-gradient(180deg, transparent 0%, rgba(240, 191, 134, 0.18) 54%, transparent 60%);
+        mix-blend-mode: screen;
+      }
+
+      .panel {
+        position: relative;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 30px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.42), transparent 18%),
+          var(--panel);
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(18px);
+      }
+
+      .panel::after {
+        content: "";
+        position: absolute;
+        inset: 1px;
+        border-radius: inherit;
+        border: 1px solid rgba(255, 255, 255, 0.38);
+        pointer-events: none;
+      }
+
+      .header {
+        grid-column: 1 / span 3;
+        display: grid;
+        grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
+        gap: 14px;
+      }
+
+      .hero,
+      .overview,
+      .stage,
+      .diag,
+      .footer {
+        padding: 18px;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+
+      .eyebrow,
+      .label,
+      .tiny {
+        margin: 0;
+        font-size: 11px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      h1 {
+        margin-top: 0.56rem;
+        max-width: 12ch;
+        font-family: "Iowan Old Style", "Times New Roman", serif;
+        font-size: clamp(2.4rem, 5vw, 4.8rem);
+        line-height: 0.92;
+        letter-spacing: -0.06em;
+      }
+
+      .hero .body,
+      .overview .body,
+      .footer .body {
+        margin-top: 0.84rem;
+        max-width: 66ch;
+        color: rgba(36, 50, 48, 0.72);
+        line-height: 1.56;
+      }
+
+      .readouts,
+      .legend,
+      .mini-grid,
+      .footer-grid {
+        display: grid;
+        gap: 10px;
+      }
+
+      .readouts {
+        margin-top: 1rem;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .stat,
+      .legend-card,
+      .mini-card,
+      .footer-card {
+        padding: 12px 13px;
+        border-radius: 18px;
+        border: 1px solid rgba(94, 122, 118, 0.14);
+        background: rgba(255, 255, 255, 0.34);
+      }
+
+      .value {
+        margin-top: 0.36rem;
+        display: block;
+        font-size: 1.05rem;
+        letter-spacing: -0.05em;
+      }
+
+      .overview {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+
+      .legend-card {
+        display: grid;
+        gap: 8px;
+      }
+
+      .legend-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: rgba(36, 50, 48, 0.74);
+        font-size: 0.8rem;
+      }
+
+      .swatch {
+        width: 10px;
+        height: 10px;
+        flex: 0 0 auto;
+        border-radius: 999px;
+      }
+
+      .swatch.cyan { background: var(--cyan); }
+      .swatch.mint { background: var(--mint); }
+      .swatch.amber { background: var(--amber); }
+      .swatch.rose { background: var(--rose); }
+
+      .stage {
+        min-height: 660px;
+      }
+
+      .stage-shell {
+        position: relative;
+        height: 100%;
+        border-radius: 24px;
+        border: 1px solid rgba(94, 122, 118, 0.12);
+        background:
+          radial-gradient(circle at 50% 18%, rgba(255, 255, 255, 0.85), transparent 18%),
+          radial-gradient(circle at 20% 74%, rgba(176, 235, 225, 0.22), transparent 24%),
+          radial-gradient(circle at 76% 82%, rgba(219, 156, 165, 0.18), transparent 22%),
+          linear-gradient(180deg, rgba(255, 255, 255, 0.52), rgba(252, 246, 239, 0.74));
+        overflow: hidden;
+      }
+
+      #field {
+        display: block;
+        width: 100%;
+        height: min(74vh, 840px);
+      }
+
+      .glass {
+        position: absolute;
+        inset: 14px;
+        border-radius: 22px;
+        border: 1px solid rgba(255, 255, 255, 0.42);
+        pointer-events: none;
+        mix-blend-mode: screen;
+      }
+
+      .glass::before,
+      .glass::after {
+        content: "";
+        position: absolute;
+        border-radius: inherit;
+      }
+
+      .glass::before {
+        inset: 0;
+        background:
+          linear-gradient(115deg, rgba(255, 255, 255, 0.34), transparent 24%, transparent 72%, rgba(255, 255, 255, 0.24));
+      }
+
+      .glass::after {
+        inset: 18% 8% auto 8%;
+        height: 22%;
+        border-radius: 999px;
+        background: radial-gradient(circle at center, rgba(255, 255, 255, 0.34), transparent 66%);
+        opacity: 0.5;
+        filter: blur(14px);
+      }
+
+      .controls {
+        position: absolute;
+        inset: auto 20px 18px 20px;
+        display: grid;
+        gap: 10px;
+      }
+
+      .mode-row,
+      .slider-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .mode {
+        border: 1px solid rgba(94, 122, 118, 0.14);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.46);
+        color: var(--text);
+        padding: 10px 14px;
+        cursor: pointer;
+        transition:
+          transform 180ms ease,
+          background 180ms ease,
+          border-color 180ms ease;
+      }
+
+      .mode:hover,
+      .mode:focus-visible {
+        transform: translateY(-1px);
+        border-color: var(--line-strong);
+        background: rgba(255, 255, 255, 0.7);
+        outline: none;
+      }
+
+      .mode.active {
+        background:
+          linear-gradient(90deg, rgba(176, 235, 225, 0.62), rgba(240, 191, 134, 0.34)),
+          rgba(255, 255, 255, 0.72);
+        border-color: rgba(74, 140, 137, 0.34);
+      }
+
+      .slider-card {
+        min-width: 180px;
+        padding: 10px 12px;
+        border-radius: 16px;
+        border: 1px solid rgba(94, 122, 118, 0.14);
+        background: rgba(255, 255, 255, 0.46);
+      }
+
+      .slider-label {
+        display: flex;
+        justify-content: space-between;
+        gap: 0.75rem;
+        font-size: 0.76rem;
+        color: rgba(36, 50, 48, 0.78);
+      }
+
+      input[type="range"] {
+        width: 100%;
+        margin-top: 10px;
+        accent-color: var(--teal);
+      }
+
+      .diag {
+        display: grid;
+        gap: 12px;
+        align-content: start;
+      }
+
+      .mini-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .bar-row {
+        margin-top: 0.8rem;
+        display: grid;
+        gap: 8px;
+      }
+
+      .bar {
+        display: grid;
+        gap: 0.35rem;
+      }
+
+      .bar span {
+        display: flex;
+        justify-content: space-between;
+        gap: 0.75rem;
+        font-size: 0.74rem;
+        color: rgba(36, 50, 48, 0.76);
+      }
+
+      .track {
+        overflow: hidden;
+        border-radius: 999px;
+        height: 10px;
+        background: rgba(94, 122, 118, 0.08);
+      }
+
+      .fill {
+        height: 100%;
+        border-radius: inherit;
+        background:
+          linear-gradient(90deg, rgba(130, 203, 189, 0.72), rgba(240, 191, 134, 0.7), rgba(219, 156, 165, 0.62));
+        transform-origin: left center;
+      }
+
+      .footer {
+        grid-column: 1 / span 3;
+      }
+
+      .footer-grid {
+        margin-top: 1rem;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .footer-card h3 {
+        margin-bottom: 0.45rem;
+        font-size: 0.96rem;
+      }
+
+      .footer-card p {
+        color: rgba(36, 50, 48, 0.72);
+        line-height: 1.5;
+        font-size: 0.92rem;
+      }
+
+      .back {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-top: 1rem;
+        color: rgba(36, 50, 48, 0.78);
+      }
+
+      @media (max-width: 1100px) {
+        .shell {
+          grid-template-columns: 1fr;
+          grid-template-rows: auto;
+        }
+
+        .header,
+        .footer {
+          grid-column: auto;
+        }
+
+        .header {
+          grid-template-columns: 1fr;
+        }
+
+        .footer-grid,
+        .readouts {
+          grid-template-columns: 1fr;
+        }
+
+        .stage {
+          min-height: 560px;
+        }
+      }
+
+      @media (max-width: 720px) {
+        body {
+          min-height: 100dvh;
+        }
+
+        .shell {
+          padding: 12px;
+        }
+
+        .stage,
+        .hero,
+        .overview,
+        .diag,
+        .footer {
+          padding: 14px;
+        }
+
+        .controls {
+          inset: auto 12px 12px 12px;
+        }
+
+        .mode-row,
+        .slider-row {
+          flex-direction: column;
+        }
+
+        .slider-card {
+          min-width: 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="veil" aria-hidden="true"></div>
+    <main class="shell">
+      <section class="header">
+        <article class="panel hero">
+          <p class="eyebrow">Creative Taste Bot Motion Study 041</p>
+          <h1>Opaline Pressure Greenhouse</h1>
+          <p class="body">
+            A pale living control surface pulled from the current HTML lane: one
+            rooted greenhouse body carries sliders, pulse states, and opaline
+            compartments inside the same habitat instead of falling back into
+            another dark dashboard or centered specimen poster.
+          </p>
+          <div class="readouts">
+            <div class="stat">
+              <p class="tiny">Mode</p>
+              <strong class="value" id="modeValue">Pulse</strong>
+            </div>
+            <div class="stat">
+              <p class="tiny">Humidity</p>
+              <strong class="value" id="humidityValue">64%</strong>
+            </div>
+            <div class="stat">
+              <p class="tiny">Permeability</p>
+              <strong class="value" id="permeabilityValue">48%</strong>
+            </div>
+          </div>
+        </article>
+
+        <aside class="panel overview">
+          <div>
+            <p class="eyebrow">System Notes</p>
+            <p class="body">
+              The strongest recent bridge image shifted toward a daylight,
+              modular folio and a tactile living control wall. This page keeps
+              that direction browser-native with shared field motion, glass
+              drift, and local pressure rather than fake software chrome.
+            </p>
+          </div>
+
+          <div class="legend">
+            <div class="legend-card">
+              <p class="label">Field Parts</p>
+              <div class="legend-row"><span class="swatch mint"></span> root ribs</div>
+              <div class="legend-row"><span class="swatch cyan"></span> opaline chambers</div>
+              <div class="legend-row"><span class="swatch amber"></span> pulse pollen</div>
+              <div class="legend-row"><span class="swatch rose"></span> blush weather</div>
+            </div>
+          </div>
+        </aside>
+      </section>
+
+      <aside class="panel diag">
+        <p class="eyebrow">Climate Cards</p>
+        <div class="mini-grid">
+          <div class="mini-card">
+            <p class="label">Lower Support</p>
+            <p class="body">
+              Four basin roots hold the organism so the page stays physically
+              believable rather than decorative.
+            </p>
+          </div>
+          <div class="mini-card">
+            <p class="label">Face Logic</p>
+            <p class="body">
+              The central node uses light wells and membrane windows instead of
+              a pretty human face.
+            </p>
+          </div>
+          <div class="mini-card">
+            <p class="label">Design Use</p>
+            <p class="body">
+              The layout aims closer to a strange folio or editorial control
+              page than to a creature portrait alone.
+            </p>
+          </div>
+        </div>
+      </aside>
+
+      <section class="panel stage">
+        <div class="stage-shell">
+          <canvas id="field" width="1440" height="980" aria-label="Animated opaline greenhouse"></canvas>
+          <div class="glass" aria-hidden="true"></div>
+          <div class="controls">
+            <div class="mode-row" role="toolbar" aria-label="Pressure modes">
+              <button class="mode active" data-mode="pulse">Pulse</button>
+              <button class="mode" data-mode="drift">Drift</button>
+              <button class="mode" data-mode="bloom">Bloom</button>
+            </div>
+            <div class="slider-row">
+              <label class="slider-card">
+                <span class="slider-label"><span>Humidity</span><span id="humidityLabel">64%</span></span>
+                <input id="humidity" type="range" min="20" max="100" value="64" />
+              </label>
+              <label class="slider-card">
+                <span class="slider-label"><span>Permeability</span><span id="permeabilityLabel">48%</span></span>
+                <input id="permeability" type="range" min="10" max="100" value="48" />
+              </label>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <aside class="panel diag">
+        <p class="eyebrow">Signal Readouts</p>
+        <div class="mini-grid">
+          <div class="mini-card">
+            <p class="label">Compartments</p>
+            <div class="bar-row">
+              <div class="bar">
+                <span><strong>Dew wells</strong><span id="dewValue">0.58</span></span>
+                <div class="track"><div class="fill" id="dewFill" style="transform:scaleX(0.58)"></div></div>
+              </div>
+              <div class="bar">
+                <span><strong>Root lift</strong><span id="rootValue">0.44</span></span>
+                <div class="track"><div class="fill" id="rootFill" style="transform:scaleX(0.44)"></div></div>
+              </div>
+              <div class="bar">
+                <span><strong>Blush tide</strong><span id="blushValue">0.31</span></span>
+                <div class="track"><div class="fill" id="blushFill" style="transform:scaleX(0.31)"></div></div>
+              </div>
+            </div>
+          </div>
+          <div class="mini-card">
+            <p class="label">Pointer Rule</p>
+            <p class="body">
+              Move across the stage to drag local focus, wake pollen arcs, and
+              part the nearest membranes.
+            </p>
+          </div>
+        </div>
+      </aside>
+
+      <section class="panel footer">
+        <p class="eyebrow">Review Notes</p>
+        <div class="footer-grid">
+          <div class="footer-card">
+            <h3>Idea</h3>
+            <p>
+              Translate the recent pale greenhouse control-surface image lane
+              into one living browser page with atmospheric compartments,
+              suspended modules, and believable rooted support.
+            </p>
+          </div>
+          <div class="footer-card">
+            <h3>Interaction</h3>
+            <p>
+              Pointer motion shears nearby membranes and swings pollen currents,
+              while the two sliders retune humidity thickness and how easily the
+              opaline chambers open.
+            </p>
+          </div>
+          <div class="footer-card">
+            <h3>Next</h3>
+            <p>
+              A stronger follow-up could let these greenhouse modules re-tile
+              into a flatter editorial layout or grow typed labels into living
+              compartments without losing the tactile biology.
+            </p>
+          </div>
+        </div>
+        <a class="back" href="../../index.html">Back to animation index</a>
+      </section>
+    </main>
+
+    <script>
+      const canvas = document.getElementById("field");
+      const ctx = canvas.getContext("2d");
+      const stageShell = document.querySelector(".stage-shell");
+      const modeButtons = [...document.querySelectorAll(".mode")];
+      const humidityInput = document.getElementById("humidity");
+      const permeabilityInput = document.getElementById("permeability");
+      const humidityLabel = document.getElementById("humidityLabel");
+      const permeabilityLabel = document.getElementById("permeabilityLabel");
+      const modeValue = document.getElementById("modeValue");
+      const humidityValue = document.getElementById("humidityValue");
+      const permeabilityValue = document.getElementById("permeabilityValue");
+      const dewValue = document.getElementById("dewValue");
+      const rootValue = document.getElementById("rootValue");
+      const blushValue = document.getElementById("blushValue");
+      const dewFill = document.getElementById("dewFill");
+      const rootFill = document.getElementById("rootFill");
+      const blushFill = document.getElementById("blushFill");
+
+      const pointer = { x: 0.5, y: 0.56, tx: 0.5, ty: 0.56, active: false };
+      const state = {
+        mode: "pulse",
+        humidity: Number(humidityInput.value) / 100,
+        permeability: Number(permeabilityInput.value) / 100
+      };
+
+      const pollen = Array.from({ length: 56 }, (_, index) => ({
+        orbit: 0.16 + Math.random() * 0.34,
+        theta: Math.random() * Math.PI * 2,
+        speed: 0.002 + Math.random() * 0.004 + index * 0.00001,
+        radius: 1.4 + Math.random() * 3.2,
+        drift: Math.random() * Math.PI * 2
+      }));
+
+      function resizeCanvas() {
+        const rect = stageShell.getBoundingClientRect();
+        const scale = window.devicePixelRatio || 1;
+        canvas.width = Math.round(rect.width * scale);
+        canvas.height = Math.round(rect.height * scale);
+        canvas.style.width = rect.width + "px";
+        canvas.style.height = rect.height + "px";
+        ctx.setTransform(scale, 0, 0, scale, 0, 0);
+      }
+
+      function setMode(nextMode) {
+        state.mode = nextMode;
+        modeValue.textContent = nextMode[0].toUpperCase() + nextMode.slice(1);
+        modeButtons.forEach((button) => {
+          button.classList.toggle("active", button.dataset.mode === nextMode);
+        });
+      }
+
+      function updateLabels() {
+        const humidity = Math.round(state.humidity * 100);
+        const permeability = Math.round(state.permeability * 100);
+        humidityLabel.textContent = `${humidity}%`;
+        permeabilityLabel.textContent = `${permeability}%`;
+        humidityValue.textContent = `${humidity}%`;
+        permeabilityValue.textContent = `${permeability}%`;
+      }
+
+      function drawRoundedRect(x, y, w, h, r) {
+        const radius = Math.min(r, w * 0.5, h * 0.5);
+        ctx.beginPath();
+        ctx.moveTo(x + radius, y);
+        ctx.arcTo(x + w, y, x + w, y + h, radius);
+        ctx.arcTo(x + w, y + h, x, y + h, radius);
+        ctx.arcTo(x, y + h, x, y, radius);
+        ctx.arcTo(x, y, x + w, y, radius);
+        ctx.closePath();
+      }
+
+      function draw() {
+        const width = canvas.clientWidth;
+        const height = canvas.clientHeight;
+        const time = performance.now() * 0.001;
+        pointer.x += (pointer.tx - pointer.x) * 0.08;
+        pointer.y += (pointer.ty - pointer.y) * 0.08;
+
+        ctx.clearRect(0, 0, width, height);
+
+        const focusX = width * pointer.x;
+        const focusY = height * pointer.y;
+        const humidityWave = 0.3 + state.humidity * 0.7;
+        const permeabilityWave = 0.24 + state.permeability * 0.76;
+        const modeGain = state.mode === "pulse" ? 1 : state.mode === "drift" ? 0.76 : 1.26;
+
+        const bgGrad = ctx.createLinearGradient(0, 0, 0, height);
+        bgGrad.addColorStop(0, "rgba(255, 252, 247, 0.72)");
+        bgGrad.addColorStop(1, "rgba(238, 228, 216, 0.84)");
+        ctx.fillStyle = bgGrad;
+        ctx.fillRect(0, 0, width, height);
+
+        for (let i = 0; i < 7; i += 1) {
+          const y = height * (0.12 + i * 0.12);
+          ctx.strokeStyle = `rgba(94, 122, 118, ${0.045 + i * 0.004})`;
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(width * 0.08, y);
+          ctx.bezierCurveTo(width * 0.3, y - 18, width * 0.72, y + 10, width * 0.92, y - 6);
+          ctx.stroke();
+        }
+
+        const centerX = width * 0.5 + (pointer.x - 0.5) * 32;
+        const centerY = height * 0.51 + (pointer.y - 0.52) * 24;
+        const bodyW = width * 0.26;
+        const bodyH = height * 0.46;
+
+        const halo = ctx.createRadialGradient(centerX, centerY, bodyW * 0.08, centerX, centerY, bodyW * 0.88);
+        halo.addColorStop(0, "rgba(255,255,255,0.65)");
+        halo.addColorStop(0.38, "rgba(176,235,225,0.28)");
+        halo.addColorStop(1, "rgba(176,235,225,0)");
+        ctx.fillStyle = halo;
+        ctx.beginPath();
+        ctx.ellipse(centerX, centerY, bodyW * 0.9, bodyH * 0.76, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        function membranePath(scaleX, scaleY, jitter, hueShift) {
+          ctx.save();
+          ctx.translate(centerX, centerY);
+          ctx.scale(scaleX, scaleY);
+          ctx.beginPath();
+          for (let i = 0; i <= 60; i += 1) {
+            const angle = (i / 60) * Math.PI * 2;
+            const wave =
+              1
+              + Math.sin(angle * 3 + time * 0.9 * modeGain + jitter) * 0.06 * humidityWave
+              + Math.cos(angle * 5 - time * 0.5 + jitter * 0.7) * 0.05 * permeabilityWave;
+            const x = Math.cos(angle) * bodyW * 0.34 * wave;
+            const y = Math.sin(angle) * bodyH * 0.42 * wave;
+            if (i === 0) {
+              ctx.moveTo(x, y);
+            } else {
+              ctx.lineTo(x, y);
+            }
+          }
+          ctx.closePath();
+          const fill = ctx.createLinearGradient(-bodyW * 0.3, -bodyH * 0.4, bodyW * 0.4, bodyH * 0.4);
+          fill.addColorStop(0, `rgba(255,255,255,${0.52 - hueShift * 0.06})`);
+          fill.addColorStop(0.45, `rgba(176,235,225,${0.34 + hueShift * 0.03})`);
+          fill.addColorStop(1, `rgba(219,156,165,${0.22 + hueShift * 0.02})`);
+          ctx.fillStyle = fill;
+          ctx.strokeStyle = `rgba(74,140,137,${0.18 + hueShift * 0.04})`;
+          ctx.lineWidth = 1.2;
+          ctx.fill();
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        membranePath(1.16, 1.02, 0.2, 0);
+        membranePath(0.92, 0.88, 1.3, 1);
+        membranePath(0.68, 0.7, 2.1, 2);
+
+        const rootBaseY = centerY + bodyH * 0.36;
+        for (let i = 0; i < 4; i += 1) {
+          const offset = (i - 1.5) * bodyW * 0.16;
+          const pull = (pointer.x - 0.5) * (18 + i * 3);
+          const spread = 44 + i * 6;
+          ctx.strokeStyle = `rgba(74,140,137,${0.18 + i * 0.03})`;
+          ctx.lineWidth = 4.2 - i * 0.5;
+          ctx.beginPath();
+          ctx.moveTo(centerX + offset * 0.66, rootBaseY - 6);
+          ctx.bezierCurveTo(
+            centerX + offset + pull,
+            rootBaseY + 54 + Math.sin(time * 1.2 + i) * 8,
+            centerX + offset * 1.2 - pull,
+            rootBaseY + 116,
+            centerX + offset * 1.66 - spread + pull * 0.3,
+            height * 0.9
+          );
+          ctx.stroke();
+
+          ctx.beginPath();
+          ctx.moveTo(centerX + offset * 0.7, rootBaseY + 8);
+          ctx.bezierCurveTo(
+            centerX + offset - pull * 0.4,
+            rootBaseY + 62,
+            centerX + offset * 1.12 + pull,
+            rootBaseY + 124,
+            centerX + offset * 1.6 + spread * 0.74,
+            height * 0.92
+          );
+          ctx.stroke();
+        }
+
+        const chamberConfigs = [
+          { x: 0.19, y: 0.24, w: 0.18, h: 0.16, tint: "176,235,225", seed: 0.4 },
+          { x: 0.69, y: 0.2, w: 0.15, h: 0.13, tint: "240,191,134", seed: 1.1 },
+          { x: 0.14, y: 0.58, w: 0.2, h: 0.15, tint: "201,224,177", seed: 2.4 },
+          { x: 0.71, y: 0.56, w: 0.16, h: 0.18, tint: "219,156,165", seed: 3.1 }
+        ];
+
+        chamberConfigs.forEach((chamber, index) => {
+          const x = width * chamber.x + Math.sin(time * 0.35 + chamber.seed) * 6;
+          const y = height * chamber.y + Math.cos(time * 0.4 + chamber.seed) * 4;
+          const w = width * chamber.w;
+          const h = height * chamber.h;
+          drawRoundedRect(x, y, w, h, 28);
+          const fill = ctx.createLinearGradient(x, y, x + w, y + h);
+          fill.addColorStop(0, `rgba(${chamber.tint},0.28)`);
+          fill.addColorStop(1, "rgba(255,255,255,0.56)");
+          ctx.fillStyle = fill;
+          ctx.strokeStyle = "rgba(94,122,118,0.14)";
+          ctx.lineWidth = 1;
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.save();
+          ctx.beginPath();
+          drawRoundedRect(x, y, w, h, 28);
+          ctx.clip();
+          for (let band = 0; band < 4; band += 1) {
+            ctx.strokeStyle = `rgba(${chamber.tint},${0.12 + band * 0.03})`;
+            ctx.lineWidth = 6 - band;
+            ctx.beginPath();
+            const row = y + h * (0.18 + band * 0.22);
+            ctx.moveTo(x - 20, row);
+            ctx.bezierCurveTo(
+              x + w * 0.22,
+              row - 8 + Math.sin(time + band + chamber.seed) * 10,
+              x + w * 0.7,
+              row + 8 + Math.cos(time * 1.1 + chamber.seed) * 8,
+              x + w + 20,
+              row - 6
+            );
+            ctx.stroke();
+          }
+          ctx.restore();
+
+          ctx.strokeStyle = `rgba(94,122,118,${0.14 + index * 0.02})`;
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(centerX + (index % 2 === 0 ? -bodyW * 0.28 : bodyW * 0.28), centerY + (index < 2 ? -bodyH * 0.16 : bodyH * 0.18));
+          ctx.bezierCurveTo(
+            width * (0.46 + (index % 2 === 0 ? -0.16 : 0.16)),
+            height * (0.28 + index * 0.08),
+            x + w * 0.5,
+            y + h * 0.42,
+            x + w * 0.5,
+            y + h * 0.5
+          );
+          ctx.stroke();
+        });
+
+        ctx.save();
+        ctx.translate(centerX, centerY - bodyH * 0.02);
+        for (let i = -2; i <= 2; i += 1) {
+          ctx.fillStyle = i === 0 ? "rgba(74,140,137,0.9)" : "rgba(255,255,255,0.86)";
+          ctx.beginPath();
+          ctx.ellipse(i * 28, Math.sin(time * 1.4 + i) * 4, i === 0 ? 11 : 8, i === 0 ? 20 : 14, 0, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
+
+        pollen.forEach((particle, index) => {
+          particle.theta += particle.speed * modeGain * (state.mode === "drift" ? 0.8 : 1.1);
+          const radiusX = bodyW * (0.72 + particle.orbit * 0.6);
+          const radiusY = bodyH * (0.62 + particle.orbit * 0.3);
+          const wobble = Math.sin(time * 0.8 + particle.drift + index * 0.13) * 12 * humidityWave;
+          const x = centerX + Math.cos(particle.theta + particle.drift) * radiusX + (pointer.x - 0.5) * wobble;
+          const y = centerY + Math.sin(particle.theta * 1.4) * radiusY + Math.cos(time + particle.drift) * 12 * permeabilityWave;
+          const dist = Math.hypot(focusX - x, focusY - y);
+          const lift = Math.max(0, 1 - dist / 180);
+          ctx.fillStyle = lift > 0.02 ? `rgba(240,191,134,${0.3 + lift * 0.4})` : "rgba(240,191,134,0.18)";
+          ctx.beginPath();
+          ctx.arc(x, y, particle.radius + lift * 1.8, 0, Math.PI * 2);
+          ctx.fill();
+        });
+
+        const dew = Math.min(0.98, 0.34 + state.humidity * 0.5 + Math.sin(time * 0.9) * 0.04);
+        const root = Math.min(0.98, 0.28 + state.permeability * 0.34 + Math.cos(time * 0.7 + pointer.x * 2) * 0.05);
+        const blush = Math.min(0.98, 0.18 + (state.mode === "bloom" ? 0.28 : state.mode === "pulse" ? 0.16 : 0.08) + Math.max(0, 0.2 - Math.abs(pointer.x - 0.5)) * 0.6);
+        dewValue.textContent = dew.toFixed(2);
+        rootValue.textContent = root.toFixed(2);
+        blushValue.textContent = blush.toFixed(2);
+        dewFill.style.transform = `scaleX(${dew})`;
+        rootFill.style.transform = `scaleX(${root})`;
+        blushFill.style.transform = `scaleX(${blush})`;
+
+        requestAnimationFrame(draw);
+      }
+
+      modeButtons.forEach((button) => {
+        button.addEventListener("click", () => setMode(button.dataset.mode));
+      });
+
+      humidityInput.addEventListener("input", () => {
+        state.humidity = Number(humidityInput.value) / 100;
+        updateLabels();
+      });
+
+      permeabilityInput.addEventListener("input", () => {
+        state.permeability = Number(permeabilityInput.value) / 100;
+        updateLabels();
+      });
+
+      stageShell.addEventListener("pointermove", (event) => {
+        const rect = stageShell.getBoundingClientRect();
+        pointer.tx = (event.clientX - rect.left) / rect.width;
+        pointer.ty = (event.clientY - rect.top) / rect.height;
+        pointer.active = true;
+      });
+
+      stageShell.addEventListener("pointerleave", () => {
+        pointer.tx = 0.5;
+        pointer.ty = 0.56;
+        pointer.active = false;
+      });
+
+      window.addEventListener("resize", resizeCanvas);
+
+      setMode("pulse");
+      updateLabels();
+      resizeCanvas();
+      requestAnimationFrame(draw);
+    </script>
+  </body>
+</html>

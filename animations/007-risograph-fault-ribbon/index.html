@@ -1,0 +1,407 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>#007 Risograph Fault Ribbon</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --text: #f4ede2;
+        --muted: #938b82;
+        --panel: rgba(6, 6, 6, 0.38);
+        --line: rgba(244, 237, 226, 0.16);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        background:
+          radial-gradient(circle at 74% 24%, rgba(136, 10, 22, 0.14), transparent 22%),
+          radial-gradient(circle at 24% 78%, rgba(88, 8, 18, 0.12), transparent 28%),
+          #020202;
+        color: var(--text);
+        font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+      }
+
+      canvas {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        display: block;
+      }
+
+      .hud {
+        position: fixed;
+        inset: auto 18px 18px 18px;
+        display: flex;
+        justify-content: space-between;
+        align-items: end;
+        gap: 18px;
+        pointer-events: none;
+      }
+
+      .title {
+        display: grid;
+        gap: 4px;
+      }
+
+      h1,
+      p {
+        margin: 0;
+      }
+
+      h1 {
+        font-size: 13px;
+        font-weight: 560;
+      }
+
+      p {
+        max-width: 560px;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.42;
+      }
+
+      .back {
+        pointer-events: auto;
+        color: var(--text);
+        text-decoration: none;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 8px 11px;
+        font-size: 12px;
+        background: var(--panel);
+        backdrop-filter: blur(14px);
+      }
+
+      @media (max-width: 720px) {
+        .hud {
+          top: 14px;
+          bottom: auto;
+          flex-direction: column;
+          align-items: start;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="scene"></canvas>
+    <div class="hud">
+      <div class="title">
+        <h1>#007 Risograph Fault Ribbon</h1>
+        <p>
+          A diagonal crimson stipple fault drifts like printed weather:
+          raster-dot turbulence, square cutouts, and curved signal seams keep
+          the motion procedural instead of camera-based.
+        </p>
+      </div>
+      <a class="back" href="../../index.html">Index</a>
+    </div>
+    <script src="../../shared/study-notes.js"></script>
+
+    <script>
+      const canvas = document.getElementById("scene");
+      const ctx = canvas.getContext("2d", { alpha: false });
+
+      const TAU = Math.PI * 2;
+      const voids = [];
+      const marks = [];
+      const arcs = [];
+
+      let width = 0;
+      let height = 0;
+      let dpr = 1;
+      let start = performance.now();
+      let step = 8;
+
+      const rand = (min, max) => min + Math.random() * (max - min);
+      const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+      const smooth = (a, b, value) => {
+        const t = clamp((value - a) / (b - a), 0, 1);
+        return t * t * (3 - 2 * t);
+      };
+
+      function hash(x, y) {
+        const v = Math.sin(x * 127.1 + y * 311.7) * 43758.5453123;
+        return v - Math.floor(v);
+      }
+
+      function noise(x, y) {
+        const ix = Math.floor(x);
+        const iy = Math.floor(y);
+        const fx = x - ix;
+        const fy = y - iy;
+        const a = hash(ix, iy);
+        const b = hash(ix + 1, iy);
+        const c = hash(ix, iy + 1);
+        const d = hash(ix + 1, iy + 1);
+        const ux = fx * fx * (3 - 2 * fx);
+        const uy = fy * fy * (3 - 2 * fy);
+        return (
+          a * (1 - ux) * (1 - uy) +
+          b * ux * (1 - uy) +
+          c * (1 - ux) * uy +
+          d * ux * uy
+        );
+      }
+
+      function fbm(x, y) {
+        let value = 0;
+        let amp = 0.5;
+        let freq = 1;
+        for (let i = 0; i < 4; i++) {
+          value += noise(x * freq, y * freq) * amp;
+          freq *= 2.02;
+          amp *= 0.5;
+        }
+        return value;
+      }
+
+      function fieldAt(nx, ny, t) {
+        const base = (ny - 0.5) - (nx - 0.5) * 0.92;
+        const curve =
+          Math.sin(nx * 6.8 + t * 0.22) * 0.08 +
+          Math.sin(ny * 5.4 - t * 0.18) * 0.07 +
+          (fbm(nx * 2.4 + t * 0.035, ny * 2.6 - t * 0.03) - 0.5) * 0.22;
+        const center = base + curve;
+        const density = Math.exp(-Math.pow(center / 0.125, 2));
+        const angle =
+          (Math.PI * 0.2) +
+          Math.sin((nx + ny) * 8.0 + t * 0.3) * 0.8 +
+          (fbm(nx * 4.2 - t * 0.08, ny * 4.2 + t * 0.06) - 0.5) * 2.2;
+        return {
+          center,
+          density,
+          vx: Math.cos(angle),
+          vy: Math.sin(angle),
+        };
+      }
+
+      function seed() {
+        voids.length = 0;
+        marks.length = 0;
+        arcs.length = 0;
+        step = width < 720 ? 9 : 8;
+
+        const voidCount = width < 720 ? 7 : 10;
+        for (let i = 0; i < voidCount; i++) {
+          const p = (i + 0.8) / (voidCount + 0.8);
+          voids.push({
+            x: width * (0.15 + p * 0.7) + rand(-70, 70),
+            y: height * (0.82 - p * 0.62) + rand(-90, 90),
+            size: rand(width < 720 ? 28 : 40, width < 720 ? 80 : 110),
+            drift: rand(-0.14, 0.14),
+            phase: rand(0, TAU),
+          });
+        }
+
+        for (let i = 0; i < 28; i++) {
+          marks.push({
+            x: rand(0.04, 0.96),
+            y: rand(0.04, 0.96),
+            kind: Math.random() > 0.58 ? "cross" : "ticks",
+            scale: rand(0.5, 1.3),
+            phase: rand(0, TAU),
+            alpha: rand(0.12, 0.9),
+          });
+        }
+
+        for (let i = 0; i < 11; i++) {
+          arcs.push({
+            offset: rand(-0.22, 0.22),
+            width: rand(0.12, 0.28),
+            bend: rand(-0.18, 0.18),
+            phase: rand(0, TAU),
+            alpha: rand(0.08, 0.28),
+          });
+        }
+      }
+
+      function resize() {
+        dpr = Math.min(window.devicePixelRatio || 1, 2);
+        width = Math.floor(window.innerWidth);
+        height = Math.floor(window.innerHeight);
+        canvas.width = Math.floor(width * dpr);
+        canvas.height = Math.floor(height * dpr);
+        canvas.style.width = width + "px";
+        canvas.style.height = height + "px";
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        seed();
+      }
+
+      function drawBackground(t) {
+        ctx.fillStyle = "#020202";
+        ctx.fillRect(0, 0, width, height);
+
+        const glow = ctx.createRadialGradient(
+          width * 0.56,
+          height * 0.52,
+          0,
+          width * 0.56,
+          height * 0.52,
+          Math.max(width, height) * 0.72,
+        );
+        glow.addColorStop(0, "rgba(94, 8, 18, 0.24)");
+        glow.addColorStop(0.52, "rgba(16, 2, 5, 0.16)");
+        glow.addColorStop(1, "rgba(0, 0, 0, 0)");
+        ctx.fillStyle = glow;
+        ctx.fillRect(0, 0, width, height);
+
+        for (let y = 0; y < height; y += 2) {
+          const a = 0.01 + ((y / height) * 0.008);
+          ctx.fillStyle = `rgba(255, 244, 228, ${a})`;
+          ctx.fillRect(0, y, width, 1);
+        }
+
+        const textureCount = clamp(Math.floor((width * height) / 1800), 280, 860);
+        for (let i = 0; i < textureCount; i++) {
+          const x = (hash(i, 1) * width + t * 2 * hash(i, 8)) % width;
+          const y = hash(i, 2) * height;
+          const alpha = 0.014 + hash(i, 3) * 0.03;
+          ctx.fillStyle = `rgba(255, 244, 228, ${alpha})`;
+          ctx.fillRect(x, y, 1, 1);
+        }
+      }
+
+      function drawRibbon(t) {
+        const dot = width < 720 ? 2 : 1.6;
+        for (let y = 0; y < height; y += step) {
+          for (let x = 0; x < width; x += step) {
+            const nx = x / width;
+            const ny = y / height;
+            const sample = fieldAt(nx, ny, t);
+            if (sample.density < 0.05) {
+              continue;
+            }
+
+            const advect = fbm(nx * 8 + t * 0.24, ny * 8 - t * 0.18);
+            const grit = fbm(nx * 16 - t * 0.12, ny * 16 + t * 0.1);
+            const pulse = 0.55 + Math.sin(t * 2.1 + nx * 9 + ny * 7) * 0.45;
+            const active = sample.density * (0.55 + advect * 0.8) * pulse;
+            if (active < 0.12 || grit < 0.3) {
+              continue;
+            }
+
+            const dx = (advect - 0.5) * step * 1.4 + sample.vx * 2.6;
+            const dy = (grit - 0.5) * step * 1.2 + sample.vy * 2.2;
+            const size = dot + sample.density * 1.7 + (grit > 0.84 ? 1.4 : 0);
+            const white = grit > 0.965 || (sample.density > 0.62 && advect > 0.9);
+
+            if (white) {
+              ctx.fillStyle = `rgba(255, 246, 236, ${0.24 + sample.density * 0.7})`;
+            } else {
+              const r = 186 + Math.floor(grit * 60);
+              const g = 18 + Math.floor(advect * 34);
+              const b = 26 + Math.floor(sample.density * 24);
+              ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${0.08 + active * 0.52})`;
+            }
+
+            if (grit > 0.9) {
+              ctx.fillRect(x + dx, y + dy, size * 1.35, size * 1.35);
+            } else {
+              ctx.fillRect(x + dx, y + dy, size, size);
+            }
+          }
+        }
+      }
+
+      function drawArcs(t) {
+        ctx.lineWidth = 1;
+        for (const arc of arcs) {
+          ctx.strokeStyle = `rgba(255, 56, 72, ${arc.alpha})`;
+          ctx.beginPath();
+          for (let i = 0; i <= 72; i++) {
+            const p = i / 72;
+            const x = width * (0.06 + p * 0.88);
+            const base = 0.86 - p * 0.72;
+            const y =
+              height *
+              (base +
+                arc.offset +
+                Math.sin(p * 6 + t * 0.24 + arc.phase) * 0.04 +
+                Math.sin(p * 3.2 + arc.phase) * arc.bend);
+            if (i === 0) {
+              ctx.moveTo(x, y);
+            } else {
+              ctx.lineTo(x, y);
+            }
+          }
+          ctx.stroke();
+        }
+      }
+
+      function drawVoids(t) {
+        for (const box of voids) {
+          const jitter = Math.sin(t * 0.6 + box.phase) * box.drift * 100;
+          const size = box.size * (0.94 + Math.sin(t * 0.9 + box.phase) * 0.04);
+          const x = box.x + jitter;
+          const y = box.y + Math.cos(t * 0.52 + box.phase) * 18;
+
+          ctx.fillStyle = "rgba(4, 4, 4, 0.94)";
+          ctx.fillRect(x - size * 0.5, y - size * 0.5, size, size);
+
+          ctx.strokeStyle = "rgba(255, 240, 230, 0.08)";
+          ctx.lineWidth = 1;
+          ctx.strokeRect(x - size * 0.5, y - size * 0.5, size, size);
+        }
+      }
+
+      function drawMarks(t) {
+        ctx.lineCap = "square";
+        for (const mark of marks) {
+          const x = mark.x * width;
+          const y = mark.y * height;
+          const alpha = mark.alpha * (0.55 + Math.sin(t * 1.4 + mark.phase) * 0.18);
+          ctx.strokeStyle =
+            mark.kind === "cross"
+              ? `rgba(255, 184, 96, ${alpha})`
+              : `rgba(255, 106, 124, ${alpha * 0.9})`;
+          ctx.fillStyle = "rgba(255, 246, 234, 0.84)";
+
+          if (mark.kind === "cross") {
+            const s = 8 * mark.scale;
+            ctx.lineWidth = 1.2;
+            ctx.beginPath();
+            ctx.moveTo(x - s, y);
+            ctx.lineTo(x + s, y);
+            ctx.moveTo(x, y - s);
+            ctx.lineTo(x, y + s);
+            ctx.stroke();
+            if (mark.scale > 1.1) {
+              ctx.fillRect(x - 1, y - 1, 2, 2);
+            }
+          } else {
+            const count = 7 + Math.floor(mark.scale * 4);
+            const gap = 6;
+            for (let i = 0; i < count; i++) {
+              ctx.fillRect(x, y + i * gap, 10 * mark.scale, 1.6);
+            }
+          }
+        }
+      }
+
+      function frame(now) {
+        const t = (now - start) * 0.001;
+        drawBackground(t);
+        drawArcs(t);
+        drawRibbon(t);
+        drawVoids(t);
+        drawMarks(t);
+        requestAnimationFrame(frame);
+      }
+
+      window.addEventListener("resize", resize);
+      resize();
+      requestAnimationFrame(frame);
+    </script>
+  </body>
+</html>

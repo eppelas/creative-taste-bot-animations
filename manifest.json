@@ -1,0 +1,612 @@
+{
+  "animations": [
+    {
+      "id": "076-translucent-estuary-sanctum",
+      "title": "Translucent Estuary Sanctum",
+      "date": "2026-05-12",
+      "branch": "bright translucent specimen world / inhabited estuary sanctuary / browser-native refraction-and-tide study",
+      "path": "animations/076-translucent-estuary-sanctum/index.html",
+      "notes": "Canvas-and-HTML study answering the earlier request for something organically gradient and semi-transparent in HTML, but widened into a believable habitat instead of another detached chart sheet: suspended membranes, estuary basins, rooted currents, and tiny wardens share one specimen district while pointer warmth bends local channels and click sends a soft tide pulse through the full sanctuary."
+    },
+    {
+      "id": "075-hush-burrow-chorus",
+      "title": "Hush Burrow Chorus",
+      "date": "2026-05-12",
+      "branch": "tactile soft-creature habitat / warm shared burrow / browser-native direct-petting colony study",
+      "path": "animations/075-hush-burrow-chorus/index.html",
+      "notes": "Canvas-and-HTML study rotating away from the latest editorial-glass and pale-infrastructure pages by reopening the durable creature lane as a shared tactile world: several shy bodies live inside one terraced burrow, pointer movement shifts local attention and breath, and pressing directly on a body makes the same colony gather, blush, and hum."
+    },
+    {
+      "id": "074-obsidian-membrane-canyon",
+      "title": "Obsidian Glass Relay",
+      "date": "2026-05-12",
+      "branch": "dark human editorial night scene / reflected city glass / browser-native rack-focus shutter study",
+      "path": "animations/074-obsidian-membrane-canyon/index.html",
+      "notes": "Canvas-and-HTML study correcting the recent run of pale districts, crimson systems maps, and generalized creature worlds by moving into a nocturnal human editorial lane: one cropped figure stands behind wet glass while reflected signage, distant city bands, and click-triggered shutter sweeps share the same asymmetrical frame."
+    },
+    {
+      "id": "073-fog-span-switchfield",
+      "title": "Fog Span Switchfield",
+      "date": "2026-05-12",
+      "branch": "pale fog infrastructure / diagonal suspended bridges / browser-native drag-reroute switchfield",
+      "path": "animations/073-fog-span-switchfield/index.html",
+      "notes": "Canvas-and-HTML study deliberately filling the clearest open gap in the recent set: a sparse pale infrastructure landscape instead of another crimson convoy, cute district, or nocturnal workroom. Three draggable anchor rings reroute one suspended bridge field so fog pressure, membrane gates, and bridge traffic all retune inside the same quiet body."
+    },
+    {
+      "id": "072-crimson-seed-switchyard",
+      "title": "Crimson Seed Switchyard",
+      "date": "2026-05-11",
+      "branch": "crimson organic-world html / semi-transparent nursery rails / browser-native pulse-switchyard scene",
+      "path": "animations/072-crimson-seed-switchyard/index.html",
+      "notes": "Canvas-and-HTML study answering the older request to turn the liked crimson print into HTML while following the current push toward believable worlds: membrane arches, seed lanterns, and tiny caretakers share one living crimson nursery where pointer warmth opens local pods, click sends a convoy pulse, and the right rail visibly recolors the same body instead of floating beside it as detached interface chrome."
+    },
+    {
+      "id": "071-lantern-yard-procession",
+      "title": "Lantern Yard Procession",
+      "date": "2026-05-11",
+      "branch": "story-ready naive creature world / twilight courtyard rehearsal / browser-native lantern-wave landing scene",
+      "path": "animations/071-lantern-yard-procession/index.html",
+      "notes": "Canvas-and-HTML study answering the May 11 push for worlds with characters instead of more detached infographic surfaces: awkward creatures rehearse a courtyard procession under hanging lanterns, laundry banners, and chalk-stage props, while pointer movement shifts their attention locally and click sends one shared lantern wave through the scene."
+    },
+    {
+      "id": "070-rain-plastic-florist",
+      "title": "Rain Plastic Florist",
+      "date": "2026-05-11",
+      "branch": "rainy human editorial workroom / translucent florist night shift / browser-native rack-focus task scene",
+      "path": "animations/070-rain-plastic-florist/index.html",
+      "notes": "Canvas-and-HTML study using the strongest May 11 human correction without turning back into a plain portrait or another dashboard: one florist works through wet buckets, hanging bouquets, and plastic strip curtains while pointer movement pulls focus across the room, tilts the rain, and click sends a brief bench-processing flash through the shared nocturnal set."
+    },
+    {
+      "id": "069-crimson-canopy-railyard",
+      "title": "Crimson Canopy Railyard",
+      "date": "2026-05-11",
+      "branch": "dark inhabited signal ecology / canopy maintenance district / browser-native convoy-pulse railyard",
+      "path": "animations/069-crimson-canopy-railyard/index.html",
+      "notes": "Canvas-and-HTML study rotating out of the repeated pale settlement sheets by translating the liked nuclear-red branch into one browser-native maintenance world: sagging canopy lanes, survey pylons, worker traffic, and click-planted convoy pulses keep the crimson field operational and inhabited instead of centered, poster-flat, or detached from place."
+    },
+    {
+      "id": "068-chalk-membrane-floodplain",
+      "title": "Chalk Membrane Floodplain",
+      "date": "2026-05-11",
+      "branch": "pale inhabited membrane ferry-stop / translucent floodplain district / browser-native autonomous scene choreography",
+      "path": "animations/068-chalk-membrane-floodplain/index.html",
+      "notes": "Canvas-and-HTML study correcting the recent sheet-and-hover loop by committing to one explicit inhabited scene: a pale membrane floodplain ferry stop with drifting rafts, breathing service towers, distant workers, and only one scene-native dock beacon trigger instead of another chip rail, note stack, or detached infographic surface."
+    },
+    {
+      "id": "067-moss-courier-hollow",
+      "title": "Moss Courier Hollow",
+      "date": "2026-05-11",
+      "branch": "pale inhabited courier world / rooted errand creatures / browser-native story-surface hollow",
+      "path": "animations/067-moss-courier-hollow/index.html",
+      "notes": "Canvas-and-HTML study answering the latest push away from detached infographic sheets: tiny rooted couriers move through terraces, reed roofs, rope bridges, and canal letters inside one pale browser-native world, while pointer warmth locally bends steam and attention and click sends one shared errand pulse through the route network."
+    },
+    {
+      "id": "066-porous-canal-commons",
+      "title": "Porous Canal Commons",
+      "date": "2026-05-11",
+      "branch": "pale inhabited environmental mural / thermal canal district / browser-native civic current-and-steam commons",
+      "path": "animations/066-porous-canal-commons/index.html",
+      "notes": "Canvas-and-HTML study pushing the recent design-usable lane into a shared public world instead of another detached card or dark console: thermal canals, tiled chambers, bridge traffic, and click-planted pressure pulses all live on one browser-native civic surface while pointer warmth locally thickens steam, glow, and route speed."
+    },
+    {
+      "id": "065-service-bloom-waterworks",
+      "title": "Service Bloom Waterworks",
+      "date": "2026-05-11",
+      "branch": "daylight membrane infrastructure / translucent reservoir district / browser-native current-and-pressure waterworks",
+      "path": "animations/065-service-bloom-waterworks/index.html",
+      "notes": "Canvas-and-HTML study translating the latest daylight living-infrastructure cue into a pale district-scale waterworks page instead of another cliff cutaway, foldout diagram, or dark switchboard: translucent reservoirs, service catwalks, and local pressure pulses all share one browser-native current field while pointer movement warms the nearest basin group."
+    },
+    {
+      "id": "064-night-proof-switchboard",
+      "title": "Night Proof Switchboard",
+      "date": "2026-05-11",
+      "branch": "dark human editorial control surface / reflected copyshop glass / browser-native rack-focus and shutter-weather motion",
+      "path": "animations/064-night-proof-switchboard/index.html",
+      "notes": "Canvas-and-HTML study keeping the May 11 human/editorial correction active without falling into a plain portrait or another creature plate: reflected proof slips, wet-glass streaks, and visible exposure controls all act on one nocturnal copyshop surface, while pointer movement pulls focus locally and click drops a short scanner-flash mark inside the image itself."
+    },
+    {
+      "id": "063-process-delta-ledger",
+      "title": "Process Delta Ledger",
+      "date": "2026-05-11",
+      "branch": "flattened process-paper social diagram / braided slip field / browser-native seal-and-current motion",
+      "path": "animations/063-process-delta-ledger/index.html",
+      "notes": "Canvas study turning the current process-paper social-diagram cue into a flatter full-page motion surface instead of another cutaway, dashboard, or helper sheet: drifting ledger slips, braided connectors, and click-planted seals keep the page design-usable while the interaction stays embedded in a procedural paper field."
+    },
+    {
+      "id": "062-salt-funicular-atlas",
+      "title": "Salt Funicular Atlas",
+      "date": "2026-05-11",
+      "branch": "daylight cliff infrastructure / terraced greenhouse cutaway / browser-native route-and-climate atlas",
+      "path": "animations/062-salt-funicular-atlas/index.html",
+      "notes": "Canvas-and-HTML study translating the latest anti-autopilot greenhouse cutaway cue into a daylight inhabited infrastructure page instead of another dark console, helper sheet, or centered creature plate: terraced growing shelves, brine reservoirs, and a small funicular share one slanted route law while pointer movement locally warms the nearest shelf and click rotates the whole atlas through calm, descent, and bloom climate modes."
+    },
+    {
+      "id": "061-membrane-study-desk",
+      "title": "Membrane Study Desk",
+      "date": "2026-05-11",
+      "branch": "pale botanical-interface research surface / draggable translucent panes / browser-native scan-and-current desk",
+      "path": "animations/061-membrane-study-desk/index.html",
+      "notes": "Canvas-and-HTML study extending the calmer translucent technical branch into a lighter operable desk instead of another creature habitat, portrait sheet, or dark dashboard: draggable specimen panes, local pointer warmth, and mode-switched scan weather all retune the same research surface while keeping the interaction embedded in the page material itself."
+    },
+    {
+      "id": "060-mudwisp-chorus-router",
+      "title": "Mudwisp Chorus Router",
+      "date": "2026-05-11",
+      "branch": "warm design-native live interface / awkward chorus beings / browser-native route-and-sequence habitat",
+      "path": "animations/060-mudwisp-chorus-router/index.html",
+      "notes": "Canvas-and-HTML study translating the freshest Mudwisp live-interface branch into one pale browser-native room: draggable beings, route-weight sliders, and a step sequencer all retune the same chorus habitat directly, so the interaction stays embodied in the field instead of reading like another detached dashboard, mural, or paper system."
+    },
+    {
+      "id": "059-clause-grove-register",
+      "title": "Clause Grove Register",
+      "date": "2026-05-11",
+      "branch": "local-first semantic garden / clause-scale grove parsing / browser-native typed-text current field",
+      "path": "animations/059-clause-grove-register/index.html",
+      "notes": "Canvas-and-HTML study following the queued semantic-garden branch instead of repeating the recent mural, bulletin, or control-surface streak: typed clauses become separate groves with distinct density, softness, and spark behavior, pointer movement bends local currents, and click plants a temporary warm front while the page stays static, self-contained, and browser-native."
+    },
+    {
+      "id": "058-bathhouse-commons-mural",
+      "title": "Bathhouse Commons Mural",
+      "date": "2026-05-11",
+      "branch": "pale environmental illustration system / awkward communal bathhouse tiles / browser-native steam-and-ripple mural",
+      "path": "animations/058-bathhouse-commons-mural/index.html",
+      "notes": "Canvas-and-HTML study extending the freshest design-usable environmental lane into a shared bathhouse wall: multiple awkward communal tiles drift together inside one soft mural, pointer warmth lifts local steam, and click cycles hush, rinse, and gossip without falling back into another dark control panel, dossier, or centered specimen."
+    },
+    {
+      "id": "057-sag-nest-routing-bulletin",
+      "title": "Sag & Nest Routing Bulletin",
+      "date": "2026-05-11",
+      "branch": "pale civic foldout object / draggable route slips / browser-native neighborhood bulletin map",
+      "path": "animations/057-sag-nest-routing-bulletin/index.html",
+      "notes": "Canvas-and-HTML study extending the strongest fresh Sag & Nest foldout image lane into a tactile browser object: draggable route slips, soft creature errands, and weather modes all live inside one pale neighborhood map, so the page stays design-usable and interactive without repeating the recent dark control-console or human chamber streak."
+    },
+    {
+      "id": "056-crimson-pressure-funnel",
+      "title": "Crimson Pressure Funnel",
+      "date": "2026-05-11",
+      "branch": "dark design-usable signal poster / three shared pressure wells / browser-native crimson field retuning study",
+      "path": "animations/056-crimson-pressure-funnel/index.html",
+      "notes": "Canvas-and-HTML study extending the freshest crimson lawful-field branch into a more explicit HTML motion page: three neighboring pressure wells share one distributed particle fabric, pointer movement shears the system locally, and click or button changes rotate the same composition through drop, braid, and flare instead of adding another centered emblem, portrait, or detached dashboard."
+    },
+    {
+      "id": "055-slow-shutter-editorial",
+      "title": "Slow Shutter Editorial",
+      "date": "2026-05-11",
+      "branch": "dark human editorial chamber / split-focus reflections / browser-native long-exposure figure study",
+      "path": "animations/055-slow-shutter-editorial/index.html",
+      "notes": "Canvas-and-HTML study answering the fresh correction against creature overmix and boring portraits at the same time: three fragmented human figures share one nocturnal glass chamber, and pointer movement acts like rack focus plus wet-surface shear while click pulses send one brief shutter flare through the whole editorial surface instead of exposing control chrome."
+    },
+    {
+      "id": "054-hushed-figure-switchsheet",
+      "title": "Hushed Figure Switchsheet",
+      "date": "2026-05-11",
+      "branch": "pale modular human illustration sheet / route-weather editorial surface / browser-native pointer-focus layout",
+      "path": "animations/054-hushed-figure-switchsheet/index.html",
+      "notes": "Canvas-and-HTML study extending the strongest current human design lane without repeating the recent dark interface streak: several awkward public-body figure cards share one paper sheet, and pointer proximity works like a quiet lens that sharpens the nearest vignette, bends shared route bands, and sends click pulses through the editorial weather instead of exposing fake dashboard chrome."
+    },
+    {
+      "id": "053-pressure-garden-console",
+      "title": "Pressure Garden Console",
+      "date": "2026-05-11",
+      "branch": "dark design-usable control surface / visible right-rail tuners / browser-native procedural pressure field",
+      "path": "animations/053-pressure-garden-console/index.html",
+      "notes": "Canvas-and-HTML study translating the strongest recent HTML-interface request into a single operable page: the right-hand tuner rail visibly changes dot polarity, wave curvature, and membrane density in the central field, so the controls act on the exact image they inhabit instead of sitting beside another detached atlas, dossier, or mascot."
+    },
+    {
+      "id": "052-tender-transit-modules",
+      "title": "Tender Transit Modules",
+      "date": "2026-05-11",
+      "branch": "human editorial modules / rainy public-body fragments / browser-native focus-and-reflection sheet",
+      "path": "animations/052-tender-transit-modules/index.html",
+      "notes": "Canvas study answering the May 11 correction by moving out of both the recent dossier cluster and the broader creature overmix: several small human transit scenes share one paper sheet, and pointer proximity works like a focus lens that sharpens bodies, shifts note lines, and shears local rain reflections without exposing a separate control UI."
+    },
+    {
+      "id": "051-rack-focus-switchyard",
+      "title": "Rack Focus Switchyard",
+      "date": "2026-05-11",
+      "branch": "dark design-usable split-focus interface / distributed relay panes / browser-native pointer-repelled switchyard study",
+      "path": "animations/051-rack-focus-switchyard/index.html",
+      "notes": "Canvas-and-SVG study translating the current request for a stronger HTML-like image into a non-creature lane: three offset windows share reflected relay traffic, rack-focus echoes, and click-planted anchors, while pointer movement repels branch growth away from the cursor so the page stays procedural, cinematic, and distributed rather than collapsing into a centered mascot or specimen dossier."
+    },
+    {
+      "id": "050-route-sample-workbench",
+      "title": "Route Sample Workbench",
+      "date": "2026-05-11",
+      "branch": "pale operable organic workstation / draggable specimen slips / browser-native route retuning study",
+      "path": "animations/050-route-sample-workbench/index.html",
+      "notes": "Canvas-and-HTML study translating the strongest recent specimen-route ledger direction into a tactile pale workbench: movable sample slips physically retune the route field, lower creeper density grows in the floor band, and click pulses travel through the same page so the interface stays embodied instead of collapsing into dark HUD chrome or another static atlas."
+    },
+    {
+      "id": "049-signal-husk-dossier",
+      "title": "Signal Husk Dossier",
+      "date": "2026-05-10",
+      "branch": "dark design-usable specimen dossier / grounded three-dot organism / browser-native timed relay handoff study",
+      "path": "animations/049-signal-husk-dossier/index.html",
+      "notes": "SVG-and-canvas study translating the recent push for a stronger HTML interface image into a darker timed dossier: one grounded three-dot husk carries the page logic inside its seams, stability marks, route-glass traces, and side ledgers, while a repeating hold-sift-flare relay cycle drives the motion and pointer input only biases the active window locally."
+    },
+    {
+      "id": "048-greenhouse-route-atlas",
+      "title": "Greenhouse Route Atlas",
+      "date": "2026-05-10",
+      "branch": "pale organismal service page / translucent route membrane / browser-native creeper atlas motion study",
+      "path": "animations/048-greenhouse-route-atlas/index.html",
+      "notes": "Canvas-and-HTML study translating the strongest recent route-console image logic into one shared living page: translucent route membranes, specimen insets, and a lower creeper lattice all respond to local pointer pressure and short click pulses without collapsing into a detached dashboard or centered hero specimen."
+    },
+    {
+      "id": "047-creeper-lattice-weather",
+      "title": "Creeper Lattice Weather",
+      "date": "2026-05-10",
+      "branch": "pale governed field page / hanging creeper lattice / browser-native specimen-weather motion study",
+      "path": "animations/047-creeper-lattice-weather/index.html",
+      "notes": "Canvas study extending the freshest quiet creeper-field branch into motion instead of another dark console or poster creature: hanging stems, bead capsules, and light calibration marks spread across a pale page, while pointer movement and seeded weather cells only bend the nearby current, knot local growth, or trigger drifting pollen."
+    },
+    {
+      "id": "046-pilgrim-gait-sheet",
+      "title": "Pilgrim Gait Sheet",
+      "date": "2026-05-10",
+      "branch": "design-usable illustrated creature poster / grounded three-dot species / browser-native gait and balance sheet",
+      "path": "animations/046-pilgrim-gait-sheet/index.html",
+      "notes": "Canvas study deliberately breaking the recent manual and console streak by turning the strongest grounded-creature feedback into a reusable illustration poster: several stance snapshots of one three-dot pilgrim species share the same page, and pointer pressure only redistributes balance, root span, and bead-thread sway inside believable anatomy."
+    },
+    {
+      "id": "045-crimson-sag-weather",
+      "title": "Crimson Sag Weather",
+      "date": "2026-05-10",
+      "branch": "dark design-usable generative poster / governed sag-field weather / browser-native distributed pressure study",
+      "path": "animations/045-crimson-sag-weather/index.html",
+      "notes": "Canvas study deliberately breaking the recent manual-and-folio streak by turning the strongest fresh crimson field cue into a darker generative poster: sagging lanes, calibration ticks, and ember particles answer pointer shear directly, with floating anchors retuning the weather law between weighted drop, cross-current braid, and rising flare."
+    },
+    {
+      "id": "044-pettable-care-sheet",
+      "title": "Pettable Care Sheet",
+      "date": "2026-05-10",
+      "branch": "design-usable soft-creature illustration / pettable rooted colony / browser-native care-sheet poster",
+      "path": "animations/044-pettable-care-sheet/index.html",
+      "notes": "Canvas study deliberately breaking the recent interface-folio streak by flattening the creature branch into one illustrated care poster: several awkward rooted beings share the same page, answer brushing and petting directly through gaze and blush, and pass brief warmth pulses through a visible colony thread."
+    },
+    {
+      "id": "043-kindred-switchfolio",
+      "title": "Kindred Switchfolio",
+      "date": "2026-05-10",
+      "branch": "pale design-usable living interface / rooted bilateral organism / browser-native switchfolio manual",
+      "path": "animations/043-kindred-switchfolio/index.html",
+      "notes": "Canvas study continuing the explicit HTML/interface lane while flattening it into a more believable page system: one rooted nonhuman body, side chambers, and specimen-style annotation tabs share the same pale switchfolio, with pointer-driven seam bending and a few meaningful body-law switches instead of another detached dashboard or slider farm."
+    },
+    {
+      "id": "042-signal-spine-manual",
+      "title": "Signal Spine Manual",
+      "date": "2026-05-10",
+      "branch": "dark design-usable printed interface / living segmented spine / browser-native alignment-drift manual",
+      "path": "animations/042-signal-spine-manual/index.html",
+      "notes": "SVG-and-canvas study following the latest request for an HTML animation that feels closer to a real interface image: a dark printed manual of segmented spine modules, split-focus side diagnostics, and pointer-driven alignment drift, where the page behaves like one living control surface instead of another detached dashboard or habitat scene."
+    },
+    {
+      "id": "041-opaline-pressure-greenhouse",
+      "title": "Opaline Pressure Greenhouse",
+      "date": "2026-05-10",
+      "branch": "pale living control surface / rooted greenhouse folio / browser-native opaline pressure habitat",
+      "path": "animations/041-opaline-pressure-greenhouse/index.html",
+      "notes": "Canvas-and-HTML study following the latest push toward a stronger HTML/control-surface lane in a lighter register: one rooted greenhouse body holds opaline chambers, tactile humidity controls, and shared pollen weather inside the same modular folio instead of reverting to a dark detached dashboard."
+    },
+    {
+      "id": "040-relay-organ-atlas",
+      "title": "Relay Organ Atlas",
+      "date": "2026-05-10",
+      "branch": "dark design-usable relay interface / grounded bilateral organism / browser-native local refraction atlas",
+      "path": "animations/040-relay-organ-atlas/index.html",
+      "notes": "SVG-and-HTML study responding to the latest push for a more believable page-like animation: one rooted bilateral organism is embedded in a dark relay atlas with live side metrics and local pointer refraction, so the interface behavior remains inside the same body instead of splitting into a detached dashboard or specimen poster."
+    },
+    {
+      "id": "039-lucent-relay-folio",
+      "title": "Lucent Relay Folio",
+      "date": "2026-05-10",
+      "branch": "optical translucent habitat / reflective valve conservatory / browser-native focus-rack field",
+      "path": "animations/039-lucent-relay-folio/index.html",
+      "notes": "Canvas study following the current push away from repeated plates and switchboards: a tall translucent conservatory of hanging valves, reflective glass echoes, and pale signal weather where pointer movement shifts focus planes and opens the nearest membranes without exposing a control console."
+    },
+    {
+      "id": "038-affection-thread-sanctuary",
+      "title": "Affection Thread Sanctuary",
+      "date": "2026-05-10",
+      "branch": "interactive habitat world / paired rooted creatures / browser-native membrane sanctuary",
+      "path": "animations/038-affection-thread-sanctuary/index.html",
+      "notes": "Canvas study deliberately breaking the recent console streak by turning the design-usable creature branch into a small inhabited sanctuary: several rooted beings exchange warmth through thread bridges and hanging membrane canopies, while pointer movement bends the local climate directly in-world instead of through panels."
+    },
+    {
+      "id": "037-triad-pulse-switchboard",
+      "title": "Triad Pulse Switchboard",
+      "date": "2026-05-10",
+      "branch": "embodied crimson atlas / rooted creature interface / browser-native translucent signal-weather switchboard",
+      "path": "animations/037-triad-pulse-switchboard/index.html",
+      "notes": "Canvas study following the current request for design-usable HTML while keeping the system alive: a rooted three-dot being sits inside one dark translucent plate with embedded weather cards and pointer-driven glass shear, so the controls visibly retune roots, orbit pressure, and signal lanes in the same body."
+    },
+    {
+      "id": "036-crimson-front-console",
+      "title": "Crimson Front Console",
+      "date": "2026-05-10",
+      "branch": "design-usable crimson forecast interface / storm-cell dashboard / browser-native structural weather field",
+      "path": "animations/036-crimson-front-console/index.html",
+      "notes": "HTML-and-canvas study answering the strongest current gap in the animation set: a real page-like crimson control surface instead of another board-creature or specimen plate, with live mode switches, sliders, relay readouts, and a procedural pressure map that bends under pointer shear."
+    },
+    {
+      "id": "035-glyph-limb-folio",
+      "title": "Glyph Limb Folio",
+      "date": "2026-05-10",
+      "branch": "editorial anatomy poster / rooted alien illustration / browser-native membrane folio",
+      "path": "animations/035-glyph-limb-folio/index.html",
+      "notes": "Canvas study answering the recent push toward more design-usable 2D illustration and more believable creature logic: one rooted alien body opens and closes like a specimen folio, with bead-thread feelers, distributed internal light, and pointer-driven membrane folds instead of another detached dashboard."
+    },
+    {
+      "id": "034-bead-root-switchfield",
+      "title": "Bead Root Switchfield",
+      "date": "2026-05-10",
+      "branch": "dark design-illustration organism plate / rooted stance creature / browser-native diagonal switchfield",
+      "path": "animations/034-bead-root-switchfield/index.html",
+      "notes": "Canvas study responding to the recent push for more design-usable HTML and the specific creature feedback about bead-thread head details and more believable lower-body support: one rooted organism stands inside a dark diagonal switchfield, with mode cards changing stance, tendril fan, and lane pressure directly inside the same illustrated plate."
+    },
+    {
+      "id": "033-utterance-fault-weather",
+      "title": "Utterance Fault Weather",
+      "date": "2026-05-10",
+      "branch": "dark relay weather map / text-and-mic pressure glyphs / browser-native structural signal field",
+      "path": "animations/033-utterance-fault-weather/index.html",
+      "notes": "Canvas study deliberately breaking the recent pale-board cluster by turning the crimson field into a dark survey-weather plate where typed or spoken fragments arrive as temporary pressure glyphs inside a segmented fault seam, with pointer shear and local turbulence keeping the motion structural instead of organism-based."
+    },
+    {
+      "id": "032-suture-glyph-switchyard",
+      "title": "Suture Glyph Switchyard",
+      "date": "2026-05-10",
+      "branch": "pale editorial signal surface / stitched diagram board / browser-native design-adjacent switchyard",
+      "path": "animations/032-suture-glyph-switchyard/index.html",
+      "notes": "Canvas study responding to the recent request for a more design-usable HTML direction by flattening the interaction into one pale editorial board of stitched current lanes, bead relays, and floating grammar cards, with the motion staying procedural and embedded in the surface instead of returning to another translucent specimen or detached dashboard."
+    },
+    {
+      "id": "031-porous-interface-creature",
+      "title": "Porous Interface Creature",
+      "date": "2026-05-10",
+      "branch": "pale design-board organism / translucent interface creature / browser-native embedded controls",
+      "path": "animations/031-porous-interface-creature/index.html",
+      "notes": "Canvas study answering the recent request for a more design-usable HTML interface by building one pale translucent board-creature with root-legs, soft probes, and small embedded panels, where hover and mode switches change gait, connector tension, and internal warmth inside the same anatomical object."
+    },
+    {
+      "id": "030-shelter-climate-chamber",
+      "title": "Shelter Climate Chamber",
+      "date": "2026-05-10",
+      "branch": "interactive living habitat world / translucent shelter ecology / browser-native climate chamber",
+      "path": "animations/030-shelter-climate-chamber/index.html",
+      "notes": "Canvas study translating the strongest new habitat-world direction into a damp inhabited chamber of suspended shelter membranes, climate ribs, and small occupant glows, where floating world anchors switch hush, bloom, and tide without falling back into a plate or dashboard."
+    },
+    {
+      "id": "029-diagonal-glyph-weather",
+      "title": "Diagonal Glyph Weather",
+      "date": "2026-05-10",
+      "branch": "graphic stencil surrealism / diagonal signal field / browser-native glyph weather",
+      "path": "animations/029-diagonal-glyph-weather/index.html",
+      "notes": "Canvas study deliberately breaking the recent translucent habitats and semantic orchard streak by turning the stencil-surreal print facet into moving weather: diagonal contour lanes, cutout blocks, connector marks, and floating mode anchors that change the field grammar directly in the scene."
+    },
+    {
+      "id": "028-phrase-bloom-orchard",
+      "title": "Phrase Bloom Orchard",
+      "date": "2026-05-09",
+      "branch": "semantic-input orchard / sentence-grown organisms / browser-native canopy field",
+      "path": "animations/028-phrase-bloom-orchard/index.html",
+      "notes": "Canvas study returning to the semantic garden idea with more distance from the recent translucent atlas branch: each sentence becomes one suspended organism with a trunk, buds, and orbiting seeds, while pointer movement only bends the local canopy instead of turning the page into another control dashboard."
+    },
+    {
+      "id": "027-patch-braid-atlas",
+      "title": "Patch Braid Atlas",
+      "date": "2026-05-09",
+      "branch": "interactive translucent habitat world / floating patch organs / vertical browser-native membrane braid",
+      "path": "animations/027-patch-braid-atlas/index.html",
+      "notes": "Canvas study answering the liked organic translucent HTML branch while moving away from the recent plate-and-dock streak: a tall membrane habitat carries its own floating patch organs in the scene, and clicking bloom, mesh, or drift changes the field law directly inside the world."
+    },
+    {
+      "id": "026-segmented-fault-organism",
+      "title": "Segmented Fault Organism",
+      "date": "2026-05-09",
+      "branch": "interactive dark terrain plate / segmented living survey body / browser-native diagnostic field",
+      "path": "animations/026-segmented-fault-organism/index.html",
+      "notes": "Canvas study pushing the technical-map branch into a vertical living plate: one segmented fault organism carries cyan, magenta, and amber diagnostics through a dark terrain field, while pointer movement bends the body and click pulses travel through the same survey tissue."
+    },
+    {
+      "id": "025-emotion-patch-creature",
+      "title": "Emotion Patch Creature",
+      "date": "2026-05-09",
+      "branch": "interactive interface-creature / emotion-card organism / browser-native face-and-paw mutation",
+      "path": "animations/025-emotion-patch-creature/index.html",
+      "notes": "Canvas study returning to the liked interface-organism branch with a single awkward alien whose visible emotion cards directly rewire expression, paw anatomy, blush pressure, and orbit traces so the controls feel like exposed feelings rather than a detached dashboard."
+    },
+    {
+      "id": "024-lucent-switchyard-spine",
+      "title": "Lucent Switchyard Spine",
+      "date": "2026-05-09",
+      "branch": "interactive translucent switchyard / multi-organ spine / pointer-rerouted glow field",
+      "path": "animations/024-lucent-switchyard-spine/index.html",
+      "notes": "Canvas study extending the liked vertical translucent plate into a shared anatomical switchyard where several membrane organs feed one illuminated spine and pointer pressure reroutes the flow without collapsing into another side console or single hero specimen."
+    },
+    {
+      "id": "023-blush-membrane-creature",
+      "title": "Blush Membrane Creature",
+      "date": "2026-05-09",
+      "branch": "interactive tactile creature / pettable membrane face / direct-touch emotional motion",
+      "path": "animations/023-blush-membrane-creature/index.html",
+      "notes": "Canvas study returning to the soft-creature branch with the specific correction from the last creature-console feedback: petting and poking act on the body itself, changing blush pressure, gaze, recoil, and mouth shape without depending on a detached control rail."
+    },
+    {
+      "id": "022-thought-thicket-atlas",
+      "title": "Thought Thicket Atlas",
+      "date": "2026-05-09",
+      "branch": "semantic-input living diagram / sentence-sized organism groves / text-reactive atlas field",
+      "path": "animations/022-thought-thicket-atlas/index.html",
+      "notes": "Canvas study intentionally pivoting away from the recent translucent habitat streak by treating each sentence as one distinct grove with its own ribs, spores, and side organisms, then using pointer pressure only as a local field disturbance rather than the main control system."
+    },
+    {
+      "id": "021-lattice-frond-delta",
+      "title": "Lattice Frond Delta",
+      "date": "2026-05-09",
+      "branch": "pale lattice habitat / procedural frond colony / pooled island current field",
+      "path": "animations/021-lattice-frond-delta/index.html",
+      "notes": "Canvas study breaking away from both the recent dark control surfaces and the last fog-vane atmosphere by fusing pale rhombus scaffolds, pooled island openings, and dense frond bundles into one touch-bent habitat current."
+    },
+    {
+      "id": "020-mist-vane-choir",
+      "title": "Mist Vane Choir",
+      "date": "2026-05-09",
+      "branch": "pale atmospheric translucent field / suspended weather vanes / fog pressure interaction",
+      "path": "animations/020-mist-vane-choir/index.html",
+      "notes": "Canvas study deliberately breaking the recent dark membrane-control loop by moving the translucent HTML branch into an overcast weather instrument: soft vanes, wet fibers, and pointer-driven pressure fronts with a lighter palette and no right-rail dashboard."
+    },
+    {
+      "id": "019-pressure-estuary-plate",
+      "title": "Pressure Estuary Plate",
+      "date": "2026-05-09",
+      "branch": "interactive vertical habitat plate / crimson-cyan membrane estuary / visible patch controls",
+      "path": "animations/019-pressure-estuary-plate/index.html",
+      "notes": "Canvas study fusing the crimson procedural-particle branch with the organic translucent technical-plate branch, then making the control rail materially re-tint, fold, and open the same distributed habitat field instead of decorating it."
+    },
+    {
+      "id": "018-living-patch-console",
+      "title": "Living Patch Console",
+      "date": "2026-05-09",
+      "branch": "interactive interface organism / visible law switches / membrane patch field",
+      "path": "animations/018-living-patch-console/index.html",
+      "notes": "Canvas study following the liked interface/control-surface feedback by making the rail materially affect the same living field: red-white spore polarity, wave rounding, and tissue pressure all rewire the organism in place instead of controlling a separate dashboard."
+    },
+    {
+      "id": "017-neon-pollen-parallax",
+      "title": "Neon Pollen Parallax",
+      "date": "2026-05-09",
+      "branch": "cinematic pollen world / reflective relay panes / focus-shifted glitch field",
+      "path": "animations/017-neon-pollen-parallax/index.html",
+      "notes": "Canvas study pivoting away from the recent translucent habitat run into a night-world seen through glass, where drifting pollen, reflective panes, and long-exposure rails change optical behavior under pointer-driven focus and reflection shifts."
+    },
+    {
+      "id": "016-opaline-reef-array",
+      "title": "Opaline Reef Array",
+      "date": "2026-05-09",
+      "branch": "interactive translucent reef panorama / membrane pores / ladder-trace current field",
+      "path": "animations/016-opaline-reef-array/index.html",
+      "notes": "Canvas study extending the organic translucent HTML branch into a distributed reef of opaline stems, pore capsules, and embedded ladder diagnostics that all bend and bloom under one shared touch current."
+    },
+    {
+      "id": "015-hush-membrane-shoal",
+      "title": "Hush Membrane Shoal",
+      "date": "2026-05-09",
+      "branch": "interactive translucent shoal / pettable membrane colony / pointer-and-touch pressure wake",
+      "path": "animations/015-hush-membrane-shoal/index.html",
+      "notes": "Canvas study pivoting the organic translucent HTML branch away from vertical specimen layouts into a shallow colony of soft membrane bodies that blush, dimple, and comb open under direct touch."
+    },
+    {
+      "id": "014-lumen-weir-garden",
+      "title": "Lumen Weir Garden",
+      "date": "2026-05-09",
+      "branch": "interactive translucent estuary / hanging membrane valves / pointer-driven lumen wake",
+      "path": "animations/014-lumen-weir-garden/index.html",
+      "notes": "Canvas study extending the organic translucent HTML branch into a more vertical chamber of hanging valves, anatomical channels, and field-based pointer wakes instead of another centered specimen or side-rail layout."
+    },
+    {
+      "id": "013-lucent-habitat-field",
+      "title": "Lucent Habitat Field",
+      "date": "2026-05-09",
+      "branch": "interactive translucent habitat world / distributed membrane organisms / pointer-driven pressure wake",
+      "path": "animations/013-lucent-habitat-field/index.html",
+      "notes": "Canvas study widening the translucent technical-plate branch into a shared fluid chamber of soft organisms, linked ribs, and field-based interaction instead of another single specimen with a control rail."
+    },
+    {
+      "id": "012-gradient-valve-garden",
+      "title": "Gradient Valve Garden",
+      "date": "2026-05-09",
+      "branch": "interactive translucent botanical technical plate / exposed membrane channels / pointer-reactive valve garden",
+      "path": "animations/012-gradient-valve-garden/index.html",
+      "notes": "Canvas study translating the organic translucent-plate request into stacked valve capsules, visible right-rail anatomy controls, and tactile lumen pressure instead of a passive poster."
+    },
+    {
+      "id": "011-lucent-specimen-atlas",
+      "title": "Lucent Specimen Atlas",
+      "date": "2026-05-08",
+      "branch": "interactive translucent botanical technical plate / browser-native membrane study / pointer-reactive specimen field",
+      "path": "animations/011-lucent-specimen-atlas/index.html",
+      "notes": "Canvas study translating the vertical alien botanical plate into layered translucent membranes, internal lumens, and soft inspection-beam interaction instead of a static poster."
+    },
+    {
+      "id": "010-creature-mood-console",
+      "title": "Creature Mood Console",
+      "date": "2026-05-08",
+      "branch": "interactive creature control surface / browser-native emotion console / pointer-reactive face study",
+      "path": "animations/010-creature-mood-console/index.html",
+      "notes": "Canvas study of a live soft-creature interface where mood cards change membrane behavior, exposed meters, and local gaze response instead of a passive loop."
+    },
+    {
+      "id": "009-chorus-fault-garden",
+      "title": "Chorus Fault Garden",
+      "date": "2026-05-08",
+      "branch": "interactive semantic signal field / text-reactive organism garden / browser-native procedural motion",
+      "path": "animations/009-chorus-fault-garden/index.html",
+      "notes": "Canvas study where each typed sentence grows into a distributed crimson organism cluster with calibration traces and local pointer-driven shear instead of a central actor."
+    },
+    {
+      "id": "001-glitch-particle-bloom",
+      "title": "Glitch Particle Bloom",
+      "date": "2026-05-07",
+      "branch": "dark red glitch-particle / generative graphics",
+      "path": "animations/001-glitch-particle-bloom/index.html",
+      "notes": "Code-based study of dark red particle logic with sparse white calibration squares, no central eye."
+    },
+    {
+      "id": "002-signal-petal-reactor",
+      "title": "Signal Petal Reactor",
+      "date": "2026-05-08",
+      "branch": "dark red signal field / living diagram / generative graphics",
+      "path": "animations/002-signal-petal-reactor/index.html",
+      "notes": "Code-based study of sagging impossible-red particle lanes with sparse white calibration marks and no central object."
+    },
+    {
+      "id": "003-split-focus-relay",
+      "title": "Split Focus Relay",
+      "date": "2026-05-08",
+      "branch": "cinematic signal field / control surface / generative graphics",
+      "path": "animations/003-split-focus-relay/index.html",
+      "notes": "Code-based study of tilted relay panes, reflected streaks, and split-focus control-surface motion with no central emblem."
+    },
+    {
+      "id": "004-ghost-canopy-array",
+      "title": "Ghost Canopy Array",
+      "date": "2026-05-08",
+      "branch": "cinematic signal field / reflective canopy / long-exposure relay",
+      "path": "animations/004-ghost-canopy-array/index.html",
+      "notes": "Code-based study of drifting reflective canopy bands, long-exposure traffic sweeps, and focus-doubled calibration marks without a central hero object."
+    },
+    {
+      "id": "005-crimson-weather-loom",
+      "title": "Crimson Weather Loom",
+      "date": "2026-05-08",
+      "branch": "crimson computational weather / particle field / code-native motion",
+      "path": "animations/005-crimson-weather-loom/index.html",
+      "notes": "Canvas study of red particle weather moving through woven pressure contours, calibration ticks, and internal signal flow instead of camera-driven parallax."
+    },
+    {
+      "id": "006-soft-echo-nursery",
+      "title": "Soft Echo Nursery",
+      "date": "2026-05-08",
+      "branch": "naive cringe creature / soft idle loop / browser-native character motion",
+      "path": "animations/006-soft-echo-nursery/index.html",
+      "notes": "Canvas study of an awkward soft-creature colony with breathing bellies, badly aligned yellow eyes, stitched smiles, and low-gloss internal warmth."
+    },
+    {
+      "id": "007-risograph-fault-ribbon",
+      "title": "Risograph Fault Ribbon",
+      "date": "2026-05-08",
+      "branch": "crimson risograph particle print / browser-native signal ribbon",
+      "path": "animations/007-risograph-fault-ribbon/index.html",
+      "notes": "Canvas study of a diagonal crimson stipple fault with printed-noise turbulence, square cutouts, and curved signal seams instead of camera-led motion."
+    },
+    {
+      "id": "008-reactive-fault-atlas",
+      "title": "Reactive Fault Atlas",
+      "date": "2026-05-08",
+      "branch": "interactive crimson risograph signal field / pointer-driven procedural motion",
+      "path": "animations/008-reactive-fault-atlas/index.html",
+      "notes": "Canvas study of a cursor-reactive crimson stipple fault where density, dark void squares, and calibration traces shear open locally without introducing a central object."
+    }
+  ]
+}

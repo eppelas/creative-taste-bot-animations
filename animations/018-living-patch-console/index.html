@@ -1,0 +1,745 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>#018 Living Patch Console</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #05050a;
+        --panel: rgba(10, 12, 19, 0.7);
+        --line: rgba(244, 236, 224, 0.12);
+        --text: #f2ece2;
+        --muted: rgba(242, 236, 226, 0.68);
+        --cream: #f5e7cc;
+        --red: #ff5469;
+        --wine: #521523;
+        --cyan: #7cd4e3;
+        --violet: #8f80ff;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        background:
+          radial-gradient(circle at 20% 14%, rgba(124, 212, 227, 0.08), transparent 20%),
+          radial-gradient(circle at 82% 76%, rgba(255, 84, 105, 0.1), transparent 22%),
+          linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 20%),
+          var(--bg);
+        color: var(--text);
+        font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+      }
+
+      body {
+        overflow: hidden;
+      }
+
+      canvas {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        display: block;
+      }
+
+      .hud {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 1rem;
+        padding: 1rem;
+        pointer-events: none;
+      }
+
+      .panel,
+      .rail {
+        pointer-events: auto;
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 22px;
+        backdrop-filter: blur(18px);
+        box-shadow: 0 18px 48px rgba(0, 0, 0, 0.28);
+      }
+
+      .panel {
+        width: min(33rem, 100%);
+        padding: 1rem 1rem 0.95rem;
+      }
+
+      .rail {
+        width: min(20rem, 48vw);
+        padding: 0.95rem;
+      }
+
+      .eyebrow,
+      .hint,
+      .meta,
+      .label,
+      .value,
+      .small {
+        margin: 0;
+      }
+
+      .eyebrow,
+      .label,
+      .small {
+        font-size: 0.7rem;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: rgba(242, 236, 226, 0.54);
+      }
+
+      h1 {
+        margin: 0.4rem 0 0.55rem;
+        font-size: clamp(1.95rem, 4vw, 3rem);
+        line-height: 0.94;
+      }
+
+      .hint,
+      .meta {
+        color: var(--muted);
+        line-height: 1.48;
+        font-size: 0.93rem;
+      }
+
+      .meta {
+        margin-top: 0.75rem;
+        font-size: 0.85rem;
+      }
+
+      .back {
+        display: inline-flex;
+        margin-top: 0.8rem;
+        color: var(--text);
+        text-decoration: none;
+        border-bottom: 1px solid rgba(242, 236, 226, 0.34);
+      }
+
+      .stack {
+        display: grid;
+        gap: 0.85rem;
+      }
+
+      .section {
+        display: grid;
+        gap: 0.45rem;
+      }
+
+      .control-group {
+        display: grid;
+        gap: 0.45rem;
+      }
+
+      .steps {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.45rem;
+      }
+
+      .step {
+        padding: 0.72rem 0.5rem;
+        border: 1px solid rgba(242, 236, 226, 0.12);
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.03);
+        color: var(--text);
+        cursor: pointer;
+        text-align: center;
+        font: inherit;
+      }
+
+      .step.active {
+        border-color: rgba(124, 212, 227, 0.28);
+        box-shadow: inset 0 0 0 1px rgba(124, 212, 227, 0.18);
+      }
+
+      .mode-grid {
+        display: grid;
+        gap: 0.5rem;
+      }
+
+      .mode {
+        width: 100%;
+        padding: 0.76rem 0.82rem;
+        border: 1px solid rgba(242, 236, 226, 0.1);
+        border-radius: 15px;
+        background: rgba(255, 255, 255, 0.03);
+        color: var(--text);
+        text-align: left;
+        cursor: pointer;
+      }
+
+      .mode strong,
+      .step strong {
+        display: block;
+        font-size: 0.82rem;
+        margin-bottom: 0.14rem;
+      }
+
+      .mode span,
+      .step span {
+        display: block;
+        color: var(--muted);
+        font-size: 0.72rem;
+        line-height: 1.32;
+      }
+
+      .mode.active {
+        border-color: rgba(255, 84, 105, 0.28);
+        box-shadow: inset 0 0 0 1px rgba(255, 84, 105, 0.18);
+      }
+
+      .rows {
+        display: grid;
+        gap: 0.65rem;
+      }
+
+      .row {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        padding-bottom: 0.42rem;
+        border-bottom: 1px solid rgba(242, 236, 226, 0.08);
+      }
+
+      .value {
+        font-size: 1rem;
+        color: var(--text);
+      }
+
+      @media (max-width: 920px) {
+        .hud {
+          flex-direction: column;
+          align-items: stretch;
+        }
+
+        .rail {
+          width: min(100%, 20rem);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="scene"></canvas>
+    <div class="hud">
+      <section class="panel">
+        <p class="eyebrow">Code Animation Study #018</p>
+        <h1>Living Patch Console</h1>
+        <p class="hint">
+          A living instrument instead of a static interface mockup: one patch
+          rail changes how the field thinks, shifting red-white dot polarity,
+          wave rounding, and membrane pressure inside the same responsive world.
+        </p>
+        <p class="meta">
+          Press the rail to rewire the behavior. Drag through the screen to
+          bruise and lift the local tissue. The controls should feel like they
+          are touching the organism directly, not operating a separate widget.
+        </p>
+        <a class="back" href="../../index.html">Index</a>
+      </section>
+
+      <section class="rail" aria-label="Patch controls">
+        <div class="stack">
+          <div class="section">
+            <p class="small">Behavior bank</p>
+            <div class="mode-grid" id="modeGrid"></div>
+          </div>
+
+          <div class="section">
+            <p class="small">Law switches</p>
+
+            <div class="control-group">
+              <p class="label">Dot polarity</p>
+              <div class="steps" id="polaritySteps"></div>
+            </div>
+
+            <div class="control-group">
+              <p class="label">Wave rounding</p>
+              <div class="steps" id="roundingSteps"></div>
+            </div>
+
+            <div class="control-group">
+              <p class="label">Pressure depth</p>
+              <div class="steps" id="pressureSteps"></div>
+            </div>
+          </div>
+
+          <div class="rows">
+            <div class="row">
+              <div>
+                <p class="label">Patch mood</p>
+                <p class="value" id="moodValue">soft drift</p>
+              </div>
+            </div>
+            <div class="row">
+              <div>
+                <p class="label">Red bias</p>
+                <p class="value" id="biasValue">0.34</p>
+              </div>
+            </div>
+            <div class="row">
+              <div>
+                <p class="label">Wake curve</p>
+                <p class="value" id="curveValue">round</p>
+              </div>
+            </div>
+            <div class="row">
+              <div>
+                <p class="label">Touch pressure</p>
+                <p class="value" id="pressureValue">0.28</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+    <script src="../../shared/study-notes.js"></script>
+
+    <script>
+      const canvas = document.getElementById("scene");
+      const ctx = canvas.getContext("2d");
+
+      const modeGrid = document.getElementById("modeGrid");
+      const polaritySteps = document.getElementById("polaritySteps");
+      const roundingSteps = document.getElementById("roundingSteps");
+      const pressureSteps = document.getElementById("pressureSteps");
+
+      const moodValue = document.getElementById("moodValue");
+      const biasValue = document.getElementById("biasValue");
+      const curveValue = document.getElementById("curveValue");
+      const pressureValue = document.getElementById("pressureValue");
+
+      const modes = [
+        {
+          name: "Soft Drift",
+          note: "Cream dots hold the field together while rounded seams exhale.",
+          polarity: 0.34,
+          rounding: 0.78,
+          pressure: 0.28,
+        },
+        {
+          name: "Hot Splice",
+          note: "Red punctures spread outward and the membrane kinks harder.",
+          polarity: 0.72,
+          rounding: 0.3,
+          pressure: 0.66,
+        },
+        {
+          name: "Ghost Ladder",
+          note: "Cool rails surface while white calibration spores regain control.",
+          polarity: 0.46,
+          rounding: 0.58,
+          pressure: 0.44,
+        },
+      ];
+
+      const levels = {
+        polarity: [
+          { name: "Pale", note: "cream-heavy", value: 0.24 },
+          { name: "Split", note: "mixed pulse", value: 0.5 },
+          { name: "Hot", note: "red-biased", value: 0.76 },
+        ],
+        rounding: [
+          { name: "Cut", note: "crease the seams", value: 0.24 },
+          { name: "Fold", note: "balanced curve", value: 0.56 },
+          { name: "Bloom", note: "soft rounded swell", value: 0.82 },
+        ],
+        pressure: [
+          { name: "Hush", note: "shallow wake", value: 0.22 },
+          { name: "Lean", note: "mid-depth drag", value: 0.48 },
+          { name: "Bruise", note: "deep tissue shove", value: 0.76 },
+        ],
+      };
+
+      const state = {
+        modeIndex: 0,
+        polarity: modes[0].polarity,
+        rounding: modes[0].rounding,
+        pressure: modes[0].pressure,
+      };
+
+      let width = 0;
+      let height = 0;
+      let dpr = Math.min(window.devicePixelRatio || 1, 2);
+      let timeStart = performance.now();
+      const pointer = {
+        x: 0.5,
+        y: 0.5,
+        px: 0.5,
+        py: 0.5,
+        vx: 0,
+        vy: 0,
+        active: false,
+        energy: 0,
+      };
+
+      const columns = [];
+      const spores = [];
+      const ladders = [];
+
+      function resize() {
+        width = window.innerWidth;
+        height = window.innerHeight;
+        dpr = Math.min(window.devicePixelRatio || 1, 2);
+        canvas.width = Math.floor(width * dpr);
+        canvas.height = Math.floor(height * dpr);
+        canvas.style.width = width + "px";
+        canvas.style.height = height + "px";
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        buildField();
+      }
+
+      function buildField() {
+        columns.length = 0;
+        spores.length = 0;
+        ladders.length = 0;
+
+        const columnCount = Math.max(6, Math.round(width / 150));
+        const rowCount = Math.max(6, Math.round(height / 110));
+
+        for (let cx = 0; cx < columnCount; cx += 1) {
+          const x = width * 0.11 + (width * 0.74 * cx) / Math.max(1, columnCount - 1);
+          const nodes = [];
+          for (let ry = 0; ry < rowCount; ry += 1) {
+            nodes.push({
+              x,
+              y: height * 0.12 + (height * 0.76 * ry) / Math.max(1, rowCount - 1),
+              phase: Math.random() * Math.PI * 2,
+              wobble: 12 + Math.random() * 30,
+              radius: 18 + Math.random() * 32,
+              lane: Math.random(),
+            });
+          }
+          columns.push(nodes);
+        }
+
+        const sporeCount = Math.max(220, Math.round((width * height) / 4200));
+        for (let i = 0; i < sporeCount; i += 1) {
+          spores.push({
+            x: Math.random() * width,
+            y: Math.random() * height,
+            depth: 0.2 + Math.random() * 1.1,
+            phase: Math.random() * Math.PI * 2,
+            speed: 0.15 + Math.random() * 0.55,
+            size: 0.8 + Math.random() * 2.5,
+            lane: Math.random(),
+          });
+        }
+
+        const ladderCount = Math.max(4, Math.round(width / 250));
+        for (let i = 0; i < ladderCount; i += 1) {
+          ladders.push({
+            x: width * (0.12 + 0.72 * Math.random()),
+            y: height * (0.18 + 0.58 * Math.random()),
+            h: 90 + Math.random() * 180,
+            w: 18 + Math.random() * 28,
+            phase: Math.random() * Math.PI * 2,
+          });
+        }
+      }
+
+      function clamp(value, min, max) {
+        return Math.max(min, Math.min(max, value));
+      }
+
+      function lerp(a, b, t) {
+        return a + (b - a) * t;
+      }
+
+      function pointerMove(clientX, clientY) {
+        const nx = clamp(clientX / width, 0, 1);
+        const ny = clamp(clientY / height, 0, 1);
+        pointer.vx = nx - pointer.x;
+        pointer.vy = ny - pointer.y;
+        pointer.px = pointer.x;
+        pointer.py = pointer.y;
+        pointer.x = nx;
+        pointer.y = ny;
+        pointer.active = true;
+        pointer.energy = clamp(pointer.energy + Math.hypot(pointer.vx, pointer.vy) * 6, 0, 1.4);
+      }
+
+      window.addEventListener("pointermove", (event) => {
+        pointerMove(event.clientX, event.clientY);
+      });
+      window.addEventListener("pointerdown", (event) => {
+        pointerMove(event.clientX, event.clientY);
+        pointer.energy = 1;
+      });
+      window.addEventListener("pointerleave", () => {
+        pointer.active = false;
+      });
+      window.addEventListener("resize", resize);
+
+      function makeModeButtons() {
+        modes.forEach((mode, index) => {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "mode";
+          button.innerHTML = `<strong>${mode.name}</strong><span>${mode.note}</span>`;
+          button.addEventListener("click", () => {
+            state.modeIndex = index;
+            state.polarity = mode.polarity;
+            state.rounding = mode.rounding;
+            state.pressure = mode.pressure;
+            syncControlSets();
+            syncLabels();
+            syncActiveStates();
+          });
+          modeGrid.appendChild(button);
+        });
+      }
+
+      function makeStepButtons(key, mount) {
+        levels[key].forEach((level) => {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "step";
+          button.innerHTML = `<strong>${level.name}</strong><span>${level.note}</span>`;
+          button.addEventListener("click", () => {
+            state[key] = level.value;
+            syncLabels();
+            syncActiveStates();
+          });
+          mount.appendChild(button);
+        });
+      }
+
+      function nearestIndex(options, value) {
+        let bestIndex = 0;
+        let bestDistance = Infinity;
+        options.forEach((option, index) => {
+          const distance = Math.abs(option.value - value);
+          if (distance < bestDistance) {
+            bestDistance = distance;
+            bestIndex = index;
+          }
+        });
+        return bestIndex;
+      }
+
+      function syncControlSets() {
+        state.polarity = clamp(state.polarity, 0, 1);
+        state.rounding = clamp(state.rounding, 0, 1);
+        state.pressure = clamp(state.pressure, 0, 1);
+      }
+
+      function syncActiveStates() {
+        [...modeGrid.children].forEach((button, index) => {
+          button.classList.toggle("active", index === state.modeIndex);
+        });
+
+        [
+          ["polarity", polaritySteps],
+          ["rounding", roundingSteps],
+          ["pressure", pressureSteps],
+        ].forEach(([key, mount]) => {
+          const activeIndex = nearestIndex(levels[key], state[key]);
+          [...mount.children].forEach((button, index) => {
+            button.classList.toggle("active", index === activeIndex);
+          });
+        });
+      }
+
+      function syncLabels() {
+        moodValue.textContent = modes[state.modeIndex].name.toLowerCase();
+        biasValue.textContent = state.polarity.toFixed(2);
+        curveValue.textContent =
+          state.rounding < 0.35 ? "creased" : state.rounding < 0.68 ? "folded" : "round";
+        pressureValue.textContent = state.pressure.toFixed(2);
+      }
+
+      function drawBackdrop(t) {
+        ctx.clearRect(0, 0, width, height);
+
+        const drift = pointer.active ? pointer.x : 0.5;
+        const glow = ctx.createRadialGradient(
+          width * (0.28 + drift * 0.24),
+          height * (0.36 + (pointer.y - 0.5) * 0.08),
+          20,
+          width * (0.28 + drift * 0.24),
+          height * (0.36 + (pointer.y - 0.5) * 0.08),
+          Math.max(width, height) * 0.58,
+        );
+        glow.addColorStop(0, `rgba(124, 212, 227, ${0.12 + state.rounding * 0.08})`);
+        glow.addColorStop(0.32, `rgba(255, 84, 105, ${0.08 + state.polarity * 0.08})`);
+        glow.addColorStop(0.7, "rgba(14, 15, 24, 0.16)");
+        glow.addColorStop(1, "rgba(5, 5, 10, 0)");
+        ctx.fillStyle = glow;
+        ctx.fillRect(0, 0, width, height);
+
+        for (let i = 0; i < 9; i += 1) {
+          const y = (height / 8) * i + Math.sin(t * 0.00018 + i) * 14;
+          ctx.strokeStyle = `rgba(242, 236, 226, ${0.016 + state.rounding * 0.016})`;
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(width, y + Math.cos(t * 0.00016 + i * 1.2) * 12);
+          ctx.stroke();
+        }
+      }
+
+      function drawMembranes(t) {
+        const px = pointer.x * width;
+        const py = pointer.y * height;
+        const pointerStrength = pointer.active ? 1 : 0;
+
+        columns.forEach((nodes, columnIndex) => {
+          const hueMix = columnIndex / Math.max(1, columns.length - 1);
+          const strokeAlpha = 0.18 + state.pressure * 0.12 + hueMix * 0.04;
+          ctx.lineWidth = 2.4 + state.rounding * 3.2;
+          ctx.strokeStyle = `rgba(${180 + hueMix * 40}, ${70 + state.polarity * 60}, ${90 + hueMix * 60}, ${strokeAlpha})`;
+          ctx.beginPath();
+
+          nodes.forEach((node, index) => {
+            const bob = Math.sin(t * 0.001 + node.phase) * node.wobble;
+            const dx = Math.cos(t * 0.0013 + node.phase * 0.7) * (12 + state.rounding * 18);
+            const dist = Math.hypot(node.x - px, node.y - py);
+            const falloff = Math.max(0, 1 - dist / 260);
+            const bend = falloff * pointerStrength * state.pressure * 60;
+            const nx = node.x + dx + bend * (node.x - px) / Math.max(1, dist);
+            const ny = node.y + bob * 0.28 + bend * (node.y - py) / Math.max(1, dist);
+
+            if (index === 0) {
+              ctx.moveTo(nx, ny);
+            } else {
+              const prev = nodes[index - 1];
+              const prevBob = Math.sin(t * 0.001 + prev.phase) * prev.wobble;
+              const prevDist = Math.hypot(prev.x - px, prev.y - py);
+              const prevFalloff = Math.max(0, 1 - prevDist / 260);
+              const prevBend = prevFalloff * pointerStrength * state.pressure * 60;
+              const pxNode =
+                prev.x +
+                Math.cos(t * 0.0013 + prev.phase * 0.7) * (12 + state.rounding * 18) +
+                prevBend * (prev.x - px) / Math.max(1, prevDist);
+              const pyNode =
+                prev.y +
+                prevBob * 0.28 +
+                prevBend * (prev.y - py) / Math.max(1, prevDist);
+              const midX = lerp(pxNode, nx, 0.5) + (state.rounding - 0.5) * 24;
+              const midY = lerp(pyNode, ny, 0.5) + Math.sin(t * 0.0017 + index + columnIndex) * 10;
+              ctx.quadraticCurveTo(midX, midY, nx, ny);
+            }
+
+            const inner = 0.16 + state.pressure * 0.16 + falloff * 0.28;
+            const redBias = clamp(state.polarity + node.lane * 0.16 - 0.08, 0, 1);
+            const capsule = ctx.createRadialGradient(nx, ny, node.radius * 0.08, nx, ny, node.radius);
+            capsule.addColorStop(0, `rgba(245, 231, 204, ${0.3 + inner})`);
+            capsule.addColorStop(0.35, `rgba(255, 84, 105, ${0.08 + redBias * 0.26 + inner * 0.22})`);
+            capsule.addColorStop(0.7, `rgba(124, 212, 227, ${0.08 + state.rounding * 0.18})`);
+            capsule.addColorStop(1, "rgba(5, 5, 10, 0)");
+            ctx.fillStyle = capsule;
+            ctx.beginPath();
+            ctx.ellipse(
+              nx,
+              ny,
+              node.radius * (0.78 + state.rounding * 0.24),
+              node.radius * (0.48 + state.pressure * 0.3),
+              Math.sin(t * 0.0006 + node.phase) * 0.5,
+              0,
+              Math.PI * 2,
+            );
+            ctx.fill();
+
+            ctx.strokeStyle = `rgba(245, 231, 204, ${0.08 + falloff * 0.18})`;
+            ctx.lineWidth = 0.8 + state.rounding * 0.8;
+            ctx.beginPath();
+            ctx.ellipse(
+              nx,
+              ny,
+              node.radius * (0.42 + state.rounding * 0.1),
+              node.radius * (0.18 + state.rounding * 0.12),
+              Math.sin(t * 0.0005 + node.phase),
+              0,
+              Math.PI * 2,
+            );
+            ctx.stroke();
+          });
+
+          ctx.stroke();
+        });
+      }
+
+      function drawLadders(t) {
+        ladders.forEach((ladder, index) => {
+          const shift = Math.sin(t * 0.0008 + ladder.phase) * (8 + state.pressure * 18);
+          const x = ladder.x + shift;
+          const y = ladder.y + Math.cos(t * 0.0007 + ladder.phase) * 10;
+          const stepCount = 6 + Math.round(state.rounding * 4);
+          ctx.strokeStyle = `rgba(124, 212, 227, ${0.08 + (1 - state.polarity) * 0.16})`;
+          ctx.lineWidth = 1.2;
+          ctx.beginPath();
+          ctx.roundRect(x, y, ladder.w, ladder.h, 9);
+          ctx.stroke();
+
+          for (let i = 0; i < stepCount; i += 1) {
+            const yy = y + (ladder.h / Math.max(1, stepCount - 1)) * i;
+            const inset = (i % 2 === 0 ? 2 : 6) + Math.sin(t * 0.0012 + index + i) * 1.5;
+            ctx.strokeStyle =
+              i % 2 === 0
+                ? `rgba(245, 231, 204, ${0.08 + state.rounding * 0.1})`
+                : `rgba(255, 84, 105, ${0.06 + state.polarity * 0.14})`;
+            ctx.beginPath();
+            ctx.moveTo(x + inset, yy);
+            ctx.lineTo(x + ladder.w - inset, yy);
+            ctx.stroke();
+          }
+        });
+      }
+
+      function drawSpores(t) {
+        spores.forEach((spore) => {
+          const sway = Math.sin(t * 0.0008 * spore.speed + spore.phase) * 16 * spore.depth;
+          const drift = Math.cos(t * 0.0005 * spore.speed + spore.phase) * 12 * state.rounding;
+          const x = (spore.x + sway + width * 2) % width;
+          const y = (spore.y + drift + height * 2) % height;
+          const dist = Math.hypot(x - pointer.x * width, y - pointer.y * height);
+          const falloff = Math.max(0, 1 - dist / 190) * state.pressure;
+          const isRed = spore.lane < state.polarity;
+          ctx.fillStyle = isRed
+            ? `rgba(255, 84, 105, ${0.12 + falloff * 0.3})`
+            : `rgba(245, 231, 204, ${0.16 + (1 - state.polarity) * 0.2 + falloff * 0.24})`;
+          ctx.beginPath();
+          ctx.arc(x, y, spore.size + falloff * 2.2, 0, Math.PI * 2);
+          ctx.fill();
+
+          if (falloff > 0.08) {
+            ctx.strokeStyle = `rgba(124, 212, 227, ${falloff * 0.18})`;
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(x - 10, y);
+            ctx.lineTo(x + 10, y);
+            ctx.stroke();
+          }
+        });
+      }
+
+      function animate(now) {
+        const t = now - timeStart;
+        pointer.energy = lerp(pointer.energy, 0, 0.04);
+        drawBackdrop(t);
+        drawMembranes(t);
+        drawLadders(t);
+        drawSpores(t);
+        requestAnimationFrame(animate);
+      }
+
+      makeModeButtons();
+      makeStepButtons("polarity", polaritySteps);
+      makeStepButtons("rounding", roundingSteps);
+      makeStepButtons("pressure", pressureSteps);
+      syncControlSets();
+      syncLabels();
+      syncActiveStates();
+      resize();
+      requestAnimationFrame(animate);
+    </script>
+  </body>
+</html>

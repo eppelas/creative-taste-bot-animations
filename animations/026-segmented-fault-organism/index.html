@@ -1,0 +1,796 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>#026 Segmented Fault Organism</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #05060a;
+        --panel: rgba(10, 13, 20, 0.74);
+        --line: rgba(228, 236, 241, 0.14);
+        --text: #ebede6;
+        --muted: rgba(235, 237, 230, 0.68);
+        --cyan: #87dff1;
+        --magenta: #f95ca8;
+        --amber: #f6ca62;
+        --mint: #bde8ab;
+        --terrain: #0c1220;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background:
+          radial-gradient(circle at 20% 18%, rgba(249, 92, 168, 0.08), transparent 20%),
+          radial-gradient(circle at 78% 22%, rgba(135, 223, 241, 0.08), transparent 24%),
+          linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 24%),
+          var(--bg);
+        color: var(--text);
+        font-family: "Azeret Mono", "IBM Plex Mono", "SFMono-Regular", monospace;
+      }
+
+      canvas {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        display: block;
+      }
+
+      .hud {
+        position: fixed;
+        inset: 16px;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 16px;
+        pointer-events: none;
+      }
+
+      .panel,
+      .dock,
+      .back {
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        background: var(--panel);
+        backdrop-filter: blur(18px);
+        box-shadow: 0 24px 80px rgba(0, 0, 0, 0.36);
+      }
+
+      .panel,
+      .dock {
+        pointer-events: auto;
+      }
+
+      .panel {
+        width: min(30rem, calc(100vw - 32px));
+        display: grid;
+        gap: 10px;
+        padding: 15px 16px 16px;
+      }
+
+      .dock {
+        width: min(21rem, calc(100vw - 32px));
+        display: grid;
+        gap: 10px;
+        padding: 14px;
+      }
+
+      .back {
+        position: fixed;
+        right: 16px;
+        bottom: 16px;
+        padding: 10px 14px;
+        color: var(--text);
+        text-decoration: none;
+        pointer-events: auto;
+      }
+
+      .eyebrow,
+      .hint,
+      .meta,
+      .small,
+      .label,
+      .value {
+        margin: 0;
+      }
+
+      .eyebrow,
+      .small {
+        font-size: 11px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: rgba(235, 237, 230, 0.54);
+      }
+
+      h1 {
+        margin: 0;
+        font-size: clamp(1.9rem, 4vw, 3rem);
+        line-height: 0.92;
+      }
+
+      .hint,
+      .meta,
+      .label {
+        color: var(--muted);
+        line-height: 1.46;
+      }
+
+      .hint {
+        font-size: 0.95rem;
+      }
+
+      .meta,
+      .label {
+        font-size: 0.8rem;
+      }
+
+      .chips {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.55rem;
+      }
+
+      .chip {
+        border: 1px solid rgba(235, 237, 230, 0.1);
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.03);
+        color: var(--text);
+        padding: 0.68rem 0.72rem;
+        cursor: pointer;
+        text-align: left;
+      }
+
+      .chip strong,
+      .chip span {
+        display: block;
+      }
+
+      .chip strong {
+        font-size: 0.74rem;
+        margin-bottom: 0.16rem;
+      }
+
+      .chip span {
+        font-size: 0.68rem;
+        color: var(--muted);
+        line-height: 1.32;
+      }
+
+      .chip.active {
+        border-color: rgba(135, 223, 241, 0.34);
+        box-shadow:
+          inset 0 0 0 1px rgba(135, 223, 241, 0.18),
+          0 0 0 1px rgba(249, 92, 168, 0.06);
+      }
+
+      .rows {
+        display: grid;
+        gap: 0.5rem;
+      }
+
+      .row {
+        display: grid;
+        gap: 0.15rem;
+        padding-bottom: 0.48rem;
+        border-bottom: 1px solid rgba(235, 237, 230, 0.08);
+      }
+
+      .value {
+        font-size: 0.95rem;
+        letter-spacing: 0.05em;
+      }
+
+      @media (max-width: 920px) {
+        .hud {
+          inset: 14px;
+          flex-direction: column;
+          align-items: stretch;
+        }
+
+        .panel,
+        .dock {
+          width: min(100%, 30rem);
+        }
+
+        .back {
+          right: 14px;
+          bottom: 14px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="scene"></canvas>
+    <div class="hud">
+      <section class="panel">
+        <p class="eyebrow">Code Animation Study #026</p>
+        <h1>Segmented Fault Organism</h1>
+        <p class="hint">
+          A vertical technical plate where one survey creature threads through a
+          dark terrain map, carrying cyan, magenta, and amber diagnostics across
+          a living fault instead of behaving like another dashboard widget.
+        </p>
+        <p class="meta">
+          Move through the body to bend segments and wake the nearby terrain.
+          Press to inject a pulse. The chips below swap the diagnostic law:
+          stress, bloom, or relay.
+        </p>
+      </section>
+
+      <section class="dock" aria-label="Diagnostic law controls">
+        <div>
+          <p class="small">Law deck</p>
+          <div class="chips" id="chipGrid"></div>
+        </div>
+        <div class="rows">
+          <div class="row">
+            <p class="label">Current law</p>
+            <p class="value" id="modeValue">stress</p>
+          </div>
+          <div class="row">
+            <p class="label">Tissue pressure</p>
+            <p class="value" id="pressureValue">0.42</p>
+          </div>
+          <div class="row">
+            <p class="label">Pulse spread</p>
+            <p class="value" id="pulseValue">27m</p>
+          </div>
+          <div class="row">
+            <p class="label">Survey drift</p>
+            <p class="value" id="driftValue">north-west</p>
+          </div>
+        </div>
+      </section>
+    </div>
+    <a class="back" href="../../index.html">Back to index</a>
+    <script src="../../shared/study-notes.js"></script>
+
+    <script>
+      const canvas = document.getElementById("scene");
+      const ctx = canvas.getContext("2d");
+
+      const chipGrid = document.getElementById("chipGrid");
+      const modeValue = document.getElementById("modeValue");
+      const pressureValue = document.getElementById("pressureValue");
+      const pulseValue = document.getElementById("pulseValue");
+      const driftValue = document.getElementById("driftValue");
+
+      const pointer = {
+        x: window.innerWidth * 0.5,
+        y: window.innerHeight * 0.55,
+        tx: window.innerWidth * 0.5,
+        ty: window.innerHeight * 0.55,
+        down: false
+      };
+
+      const modes = [
+        {
+          id: "stress",
+          title: "Stress",
+          note: "creases + harder seismic drift",
+          palette: ["#87dff1", "#f95ca8", "#f6ca62"],
+          bend: 0.95,
+          grain: 1.15,
+          pulseGain: 1.1
+        },
+        {
+          id: "bloom",
+          title: "Bloom",
+          note: "soft pores + amber spill",
+          palette: ["#bde8ab", "#87dff1", "#f6ca62"],
+          bend: 0.65,
+          grain: 0.82,
+          pulseGain: 1.45
+        },
+        {
+          id: "relay",
+          title: "Relay",
+          note: "fast tags + magenta reroute",
+          palette: ["#87dff1", "#f95ca8", "#c893ff"],
+          bend: 1.18,
+          grain: 1,
+          pulseGain: 0.95
+        }
+      ];
+
+      let activeMode = modes[0];
+      let time = 0;
+      const pulses = [];
+      const segments = [];
+      const particles = [];
+      const contourBands = [];
+
+      function resize() {
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = Math.round(window.innerWidth * dpr);
+        canvas.height = Math.round(window.innerHeight * dpr);
+        canvas.style.width = `${window.innerWidth}px`;
+        canvas.style.height = `${window.innerHeight}px`;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        buildScene();
+      }
+
+      function noise(x, y, seed = 0) {
+        return (
+          Math.sin(x * 1.37 + seed * 3.1) +
+          Math.sin(y * 1.81 - seed * 0.7) +
+          Math.sin((x + y) * 0.93 + seed * 1.6) +
+          Math.sin(Math.hypot(x * 1.4, y * 0.7) * 2.4 + seed * 2.2)
+        ) * 0.25;
+      }
+
+      function buildScene() {
+        const w = window.innerWidth;
+        const h = window.innerHeight;
+        segments.length = 0;
+        particles.length = 0;
+        contourBands.length = 0;
+
+        for (let i = 0; i < 26; i += 1) {
+          const t = i / 25;
+          const y = h * (0.08 + 0.84 * t);
+          const baseX =
+            w * 0.5 +
+            Math.sin(t * 5.8 + 0.4) * w * 0.13 +
+            Math.sin(t * 13.4 - 0.7) * w * 0.035;
+          segments.push({
+            index: i,
+            t,
+            x: baseX,
+            y,
+            width: 34 + Math.sin(t * 6.2) * 10 + (1 - Math.abs(t - 0.45) * 1.6) * 24,
+            height: 14 + Math.cos(t * 8.4) * 3,
+            phase: Math.random() * Math.PI * 2
+          });
+        }
+
+        for (let i = 0; i < 160; i += 1) {
+          particles.push({
+            x: Math.random() * w,
+            y: Math.random() * h,
+            speed: 0.4 + Math.random() * 1.15,
+            size: 1 + Math.random() * 2.5,
+            phase: Math.random() * Math.PI * 2,
+            hue: i % 3
+          });
+        }
+
+        for (let i = 0; i < 18; i += 1) {
+          contourBands.push({
+            offset: Math.random() * h,
+            amp: 18 + Math.random() * 42,
+            freq: 0.004 + Math.random() * 0.003,
+            speed: 0.1 + Math.random() * 0.22,
+            alpha: 0.08 + Math.random() * 0.08
+          });
+        }
+      }
+
+      function setMode(id) {
+        const next = modes.find((mode) => mode.id === id) || modes[0];
+        activeMode = next;
+        modeValue.textContent = next.id;
+        renderChips();
+      }
+
+      function renderChips() {
+        chipGrid.innerHTML = "";
+        for (const mode of modes) {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = `chip${mode.id === activeMode.id ? " active" : ""}`;
+          button.innerHTML = `<strong>${mode.title}</strong><span>${mode.note}</span>`;
+          button.addEventListener("click", () => setMode(mode.id));
+          chipGrid.appendChild(button);
+        }
+      }
+
+      function spawnPulse(x, y, force = 1) {
+        pulses.push({
+          x,
+          y,
+          r: 10,
+          life: 0,
+          max: 90 + force * 70
+        });
+      }
+
+      function drawBackground(w, h) {
+        const g = ctx.createLinearGradient(0, 0, 0, h);
+        g.addColorStop(0, "#03050a");
+        g.addColorStop(0.46, "#08101b");
+        g.addColorStop(1, "#05060a");
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, w, h);
+
+        ctx.save();
+        ctx.globalCompositeOperation = "screen";
+        for (let i = 0; i < contourBands.length; i += 1) {
+          const band = contourBands[i];
+          ctx.beginPath();
+          for (let x = -40; x <= w + 40; x += 16) {
+            const nx = x * band.freq;
+            const y =
+              ((band.offset + time * band.speed * 36 + i * 22) % (h + 180)) - 90 +
+              Math.sin(nx * 13 + time * 0.4 + i) * band.amp * 0.18 +
+              noise(nx + time * 0.1, i * 0.4, i) * band.amp;
+            if (x === -40) {
+              ctx.moveTo(x, y);
+            } else {
+              ctx.lineTo(x, y);
+            }
+          }
+          ctx.strokeStyle = `rgba(127, 158, 195, ${band.alpha})`;
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        }
+        ctx.restore();
+
+        const field = ctx.createRadialGradient(
+          pointer.x,
+          pointer.y,
+          0,
+          pointer.x,
+          pointer.y,
+          Math.max(w, h) * 0.45
+        );
+        field.addColorStop(0, "rgba(249, 92, 168, 0.10)");
+        field.addColorStop(0.25, "rgba(135, 223, 241, 0.08)");
+        field.addColorStop(1, "rgba(0, 0, 0, 0)");
+        ctx.fillStyle = field;
+        ctx.fillRect(0, 0, w, h);
+      }
+
+      function drawTerrainGrid(w, h) {
+        ctx.save();
+        ctx.strokeStyle = "rgba(230, 236, 240, 0.05)";
+        ctx.lineWidth = 1;
+        for (let x = 0; x <= w; x += 48) {
+          ctx.beginPath();
+          ctx.moveTo(x + 0.5, 0);
+          ctx.lineTo(x + 0.5, h);
+          ctx.stroke();
+        }
+        for (let y = 0; y <= h; y += 48) {
+          ctx.beginPath();
+          ctx.moveTo(0, y + 0.5);
+          ctx.lineTo(w, y + 0.5);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      function drawParticles() {
+        ctx.save();
+        for (const particle of particles) {
+          particle.y -= particle.speed * (0.55 + activeMode.grain * 0.22);
+          particle.x += Math.sin(time * 0.8 + particle.phase) * 0.2;
+          if (particle.y < -12) {
+            particle.y = window.innerHeight + 12;
+            particle.x = Math.random() * window.innerWidth;
+          }
+
+          const dx = particle.x - pointer.x;
+          const dy = particle.y - pointer.y;
+          const dist = Math.hypot(dx, dy);
+          const pull = Math.max(0, 1 - dist / 170);
+          const palette = activeMode.palette[particle.hue % activeMode.palette.length];
+          ctx.fillStyle = palette.replace(")", "");
+          ctx.globalAlpha = 0.18 + pull * 0.32;
+          ctx.beginPath();
+          ctx.arc(
+            particle.x + dx * -0.015 * pull,
+            particle.y + dy * -0.015 * pull,
+            particle.size + pull * 1.4,
+            0,
+            Math.PI * 2
+          );
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+
+      function drawPulses() {
+        ctx.save();
+        ctx.globalCompositeOperation = "screen";
+        for (let i = pulses.length - 1; i >= 0; i -= 1) {
+          const pulse = pulses[i];
+          pulse.life += 1.2 + activeMode.pulseGain * 0.25;
+          pulse.r += 1.6 + activeMode.pulseGain * 0.9;
+          const alpha = Math.max(0, 0.3 - pulse.life / pulse.max * 0.32);
+          if (alpha <= 0) {
+            pulses.splice(i, 1);
+            continue;
+          }
+          ctx.strokeStyle = `rgba(135, 223, 241, ${alpha})`;
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.arc(pulse.x, pulse.y, pulse.r, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.strokeStyle = `rgba(249, 92, 168, ${alpha * 0.55})`;
+          ctx.beginPath();
+          ctx.arc(pulse.x, pulse.y, pulse.r * 0.66, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      function drawOrganism() {
+        const w = window.innerWidth;
+        ctx.save();
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+
+        for (let i = 0; i < segments.length - 1; i += 1) {
+          const a = projectedSegment(segments[i]);
+          const b = projectedSegment(segments[i + 1]);
+          ctx.strokeStyle = "rgba(98, 129, 170, 0.2)";
+          ctx.lineWidth = Math.max(a.width, b.width) * 0.44;
+          ctx.beginPath();
+          ctx.moveTo(a.x, a.y);
+          ctx.lineTo(b.x, b.y);
+          ctx.stroke();
+        }
+
+        for (const segment of segments) {
+          const p = projectedSegment(segment);
+          const glow = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.width * 1.5);
+          glow.addColorStop(0, "rgba(255, 243, 217, 0.22)");
+          glow.addColorStop(0.36, `rgba(135, 223, 241, ${0.18 + p.pull * 0.12})`);
+          glow.addColorStop(1, "rgba(0, 0, 0, 0)");
+          ctx.fillStyle = glow;
+          ctx.beginPath();
+          ctx.ellipse(p.x, p.y, p.width * 1.4, p.width * 0.9, p.rotation, 0, Math.PI * 2);
+          ctx.fill();
+
+          const shell = ctx.createLinearGradient(
+            p.x - p.width,
+            p.y - p.height,
+            p.x + p.width,
+            p.y + p.height
+          );
+          shell.addColorStop(0, "rgba(6, 11, 18, 0.95)");
+          shell.addColorStop(0.45, `rgba(19, 34, 50, ${0.94 - p.pull * 0.08})`);
+          shell.addColorStop(1, "rgba(5, 8, 12, 0.96)");
+
+          ctx.save();
+          ctx.translate(p.x, p.y);
+          ctx.rotate(p.rotation);
+          ctx.fillStyle = shell;
+          ctx.strokeStyle = "rgba(230, 235, 241, 0.12)";
+          ctx.lineWidth = 1;
+          roundedCapsule(-p.width, -p.height, p.width * 2, p.height * 2, p.height);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.strokeStyle = `rgba(135, 223, 241, ${0.26 + p.pull * 0.28})`;
+          ctx.lineWidth = 1.2;
+          ctx.beginPath();
+          ctx.moveTo(-p.width * 0.72, 0);
+          ctx.lineTo(p.width * 0.72, 0);
+          ctx.stroke();
+
+          ctx.fillStyle = `rgba(249, 92, 168, ${0.2 + p.pull * 0.26})`;
+          ctx.fillRect(-p.width * 0.22, -p.height * 0.42, p.width * 0.3, p.height * 0.84);
+          ctx.fillStyle = `rgba(246, 202, 98, ${0.18 + p.pulse * 0.3})`;
+          ctx.fillRect(p.width * 0.12, -p.height * 0.34, p.width * 0.18, p.height * 0.68);
+
+          for (let n = -1; n <= 1; n += 1) {
+            ctx.strokeStyle = `rgba(189, 232, 171, ${0.12 + p.pull * 0.1})`;
+            ctx.beginPath();
+            ctx.moveTo(-p.width * 0.9, n * p.height * 0.48);
+            ctx.lineTo(-p.width * 1.18, n * p.height * 0.68);
+            ctx.stroke();
+          }
+          ctx.restore();
+
+          drawTag(p, w);
+        }
+        ctx.restore();
+      }
+
+      function drawTag(p, w) {
+        const tx = p.x + Math.sign(p.x - w * 0.5 || 1) * (p.width + 26);
+        const ty = p.y - 10;
+        ctx.save();
+        ctx.strokeStyle = `rgba(230, 235, 241, ${0.1 + p.pull * 0.12})`;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(p.x, p.y);
+        ctx.lineTo(tx, ty);
+        ctx.lineTo(tx + (tx < p.x ? -22 : 22), ty);
+        ctx.stroke();
+
+        ctx.fillStyle = `rgba(6, 10, 16, ${0.7 + p.pull * 0.08})`;
+        ctx.fillRect(tx + (tx < p.x ? -72 : 0), ty - 12, 72, 20);
+        ctx.strokeStyle = `rgba(135, 223, 241, ${0.18 + p.pulse * 0.2})`;
+        ctx.strokeRect(tx + (tx < p.x ? -72 : 0), ty - 12, 72, 20);
+        ctx.fillStyle = "rgba(230, 235, 241, 0.7)";
+        ctx.font = "10px ui-monospace, monospace";
+        ctx.fillText(
+          `S${String(p.index).padStart(2, "0")} ${Math.round((0.3 + p.pull) * 99)}`,
+          tx + (tx < p.x ? -66 : 6),
+          ty + 1
+        );
+        ctx.restore();
+      }
+
+      function projectedSegment(segment) {
+        const dx = segment.x - pointer.x;
+        const dy = segment.y - pointer.y;
+        const dist = Math.hypot(dx, dy);
+        const pull = Math.max(0, 1 - dist / 220);
+        let pulse = 0;
+        for (const ring of pulses) {
+          const d = Math.abs(Math.hypot(segment.x - ring.x, segment.y - ring.y) - ring.r);
+          pulse = Math.max(pulse, Math.max(0, 1 - d / 28));
+        }
+        const bend =
+          Math.sin(time * 1.6 + segment.phase) * 10 +
+          Math.sin(segment.t * 12 + time * 0.8) * 6;
+        const offsetX =
+          bend +
+          (segment.x - pointer.x) * -0.08 * pull * activeMode.bend +
+          Math.sin(time * 2.4 + segment.index) * pulse * 9;
+        const offsetY = Math.cos(time * 2 + segment.phase) * 4 + pulse * 2;
+        return {
+          index: segment.index,
+          x: segment.x + offsetX,
+          y: segment.y + offsetY,
+          width: segment.width + pull * 7 + pulse * 5,
+          height: segment.height + pull * 1.5 + pulse * 1.2,
+          rotation:
+            Math.sin(time + segment.phase) * 0.12 +
+            pull * 0.26 * Math.sign(pointer.x - segment.x || 1),
+          pull,
+          pulse
+        };
+      }
+
+      function roundedCapsule(x, y, w, h, r) {
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.arcTo(x + w, y, x + w, y + h, r);
+        ctx.arcTo(x + w, y + h, x, y + h, r);
+        ctx.arcTo(x, y + h, x, y, r);
+        ctx.arcTo(x, y, x + w, y, r);
+        ctx.closePath();
+      }
+
+      function drawDiagnostics() {
+        const w = window.innerWidth;
+        const h = window.innerHeight;
+        ctx.save();
+
+        const frameX = w * 0.11;
+        const frameY = h * 0.08;
+        const frameW = w * 0.78;
+        const frameH = h * 0.84;
+        ctx.strokeStyle = "rgba(230, 235, 241, 0.1)";
+        ctx.strokeRect(frameX, frameY, frameW, frameH);
+
+        const labels = [
+          ["fault map", 0.12, 0.13],
+          ["drift field", 0.73, 0.18],
+          ["segment relay", 0.15, 0.88],
+          ["pollen pressure", 0.7, 0.83]
+        ];
+        ctx.fillStyle = "rgba(230, 235, 241, 0.56)";
+        ctx.font = "11px ui-monospace, monospace";
+        for (const [text, rx, ry] of labels) {
+          ctx.fillText(text, w * rx, h * ry);
+        }
+
+        for (let i = 0; i < 4; i += 1) {
+          const px = w * (0.17 + i * 0.18);
+          const py = h * 0.16;
+          miniGraph(px, py, 66, 26, i);
+        }
+        miniGraph(w * 0.7, h * 0.76, 92, 34, 5);
+        miniGraph(w * 0.15, h * 0.75, 96, 34, 9);
+
+        ctx.restore();
+      }
+
+      function miniGraph(x, y, w, h, seed) {
+        ctx.save();
+        ctx.strokeStyle = "rgba(230, 235, 241, 0.14)";
+        ctx.strokeRect(x, y, w, h);
+        ctx.beginPath();
+        for (let i = 0; i <= w; i += 4) {
+          const v =
+            y +
+            h * 0.55 +
+            Math.sin((i + seed * 17) * 0.12 + time * (0.7 + seed * 0.01)) * h * 0.18 +
+            noise(i * 0.03, seed * 0.8, seed) * h * 0.3;
+          if (i === 0) {
+            ctx.moveTo(x + i, v);
+          } else {
+            ctx.lineTo(x + i, v);
+          }
+        }
+        ctx.strokeStyle = ["rgba(135, 223, 241, 0.55)", "rgba(249, 92, 168, 0.52)", "rgba(246, 202, 98, 0.55)"][seed % 3];
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      function updateMeters() {
+        const pressure = 0.34 + Math.max(0, 1 - Math.hypot(pointer.x - window.innerWidth * 0.5, pointer.y - window.innerHeight * 0.52) / 320) * 0.52;
+        pressureValue.textContent = pressure.toFixed(2);
+        pulseValue.textContent = `${Math.round(18 + pulses.length * 6 + pressure * 18)}m`;
+        const drift = [
+          "north-west",
+          "magenta fold",
+          "amber spill",
+          "relay south",
+          "cyan hinge"
+        ][Math.floor((time * 0.7) % 5)];
+        driftValue.textContent = drift;
+      }
+
+      function tick() {
+        time += 0.016;
+        pointer.x += (pointer.tx - pointer.x) * 0.12;
+        pointer.y += (pointer.ty - pointer.y) * 0.12;
+
+        const w = window.innerWidth;
+        const h = window.innerHeight;
+        drawBackground(w, h);
+        drawTerrainGrid(w, h);
+        drawParticles();
+        drawDiagnostics();
+        drawPulses();
+        drawOrganism();
+        updateMeters();
+
+        requestAnimationFrame(tick);
+      }
+
+      function handlePointer(event) {
+        pointer.tx = event.clientX;
+        pointer.ty = event.clientY;
+        if (pointer.down) {
+          spawnPulse(pointer.tx, pointer.ty, 0.5);
+        }
+      }
+
+      window.addEventListener("pointermove", handlePointer);
+      window.addEventListener("pointerdown", (event) => {
+        pointer.down = true;
+        handlePointer(event);
+        spawnPulse(event.clientX, event.clientY, 1);
+      });
+      window.addEventListener("pointerup", () => {
+        pointer.down = false;
+      });
+      window.addEventListener("pointerleave", () => {
+        pointer.down = false;
+      });
+      window.addEventListener("keydown", (event) => {
+        if (event.key === "1") setMode("stress");
+        if (event.key === "2") setMode("bloom");
+        if (event.key === "3") setMode("relay");
+        if (event.key === " ") {
+          event.preventDefault();
+          spawnPulse(pointer.x, pointer.y, 1.2);
+        }
+      });
+      window.addEventListener("resize", resize);
+
+      renderChips();
+      resize();
+      tick();
+    </script>
+  </body>
+</html>

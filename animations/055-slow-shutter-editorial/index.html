@@ -1,0 +1,849 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>#055 Slow Shutter Editorial</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #05070a;
+        --bg-soft: #0c1016;
+        --panel: rgba(11, 15, 20, 0.8);
+        --panel-strong: rgba(10, 13, 18, 0.94);
+        --line: rgba(155, 190, 210, 0.15);
+        --line-strong: rgba(155, 190, 210, 0.32);
+        --text: #dce3ea;
+        --muted: rgba(220, 227, 234, 0.6);
+        --glow: #f1e8d6;
+        --cyan: #84c5dc;
+        --crimson: #b94759;
+        --rose: #ef9a92;
+        --amber: #d3b06c;
+        --shadow: 0 28px 90px rgba(0, 0, 0, 0.42);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        background:
+          radial-gradient(circle at 16% 18%, rgba(132, 197, 220, 0.12), transparent 24%),
+          radial-gradient(circle at 80% 20%, rgba(239, 154, 146, 0.08), transparent 18%),
+          radial-gradient(circle at 56% 78%, rgba(185, 71, 89, 0.12), transparent 30%),
+          linear-gradient(180deg, #0d1217 0%, #080a0f 36%, #030406 100%);
+        color: var(--text);
+        font-family: "Avenir Next Condensed", "Trebuchet MS", "Arial Narrow", sans-serif;
+      }
+
+      body {
+        overflow-x: hidden;
+      }
+
+      body::before,
+      body::after {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+      }
+
+      body::before {
+        opacity: 0.11;
+        background-image:
+          linear-gradient(rgba(140, 177, 194, 0.1) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(140, 177, 194, 0.1) 1px, transparent 1px);
+        background-size: min(4vw, 38px) min(4vw, 38px);
+        mask-image: radial-gradient(circle at 50% 46%, black 34%, transparent 90%);
+      }
+
+      body::after {
+        opacity: 0.05;
+        background-image:
+          linear-gradient(rgba(255, 255, 255, 0.9) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.9) 1px, transparent 1px);
+        background-size: 3px 3px;
+        mix-blend-mode: screen;
+      }
+
+      a {
+        color: inherit;
+      }
+
+      canvas {
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        display: block;
+      }
+
+      .shell {
+        position: relative;
+        z-index: 1;
+        width: min(1320px, calc(100% - 24px));
+        margin: 0 auto;
+        padding: 18px 0 28px;
+      }
+
+      .topline,
+      .meta,
+      .note-label,
+      .window-tag,
+      .back {
+        font-family: "Azeret Mono", "IBM Plex Mono", "SFMono-Regular", monospace;
+      }
+
+      .topline {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 0 6px 14px;
+        color: var(--muted);
+        font-size: 0.76rem;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+      }
+
+      .board {
+        display: grid;
+        grid-template-columns: minmax(0, 1.32fr) minmax(260px, 0.68fr);
+        gap: 16px;
+        min-height: 78vh;
+      }
+
+      .viewer,
+      .stack,
+      .footer-card,
+      .back {
+        border: 1px solid var(--line);
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 22%),
+          linear-gradient(180deg, rgba(9, 12, 17, 0.84), rgba(7, 9, 13, 0.96));
+        box-shadow: var(--shadow);
+      }
+
+      .viewer,
+      .stack,
+      .footer-card {
+        position: relative;
+        overflow: hidden;
+        border-radius: 30px;
+      }
+
+      .viewer::before,
+      .stack::before,
+      .footer-card::before {
+        content: "";
+        position: absolute;
+        inset: 12px;
+        border: 1px solid rgba(133, 176, 192, 0.1);
+        border-radius: 22px;
+        pointer-events: none;
+      }
+
+      .viewer {
+        min-height: 78vh;
+      }
+
+      .hero-copy {
+        position: absolute;
+        inset: 20px 20px auto 20px;
+        z-index: 2;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 16px;
+        pointer-events: none;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+
+      .hero-title {
+        max-width: 11ch;
+      }
+
+      .hero-title h1 {
+        font-size: clamp(1.9rem, 2.95vw, 3.15rem);
+        line-height: 0.92;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .hero-title p {
+        margin-top: 12px;
+        max-width: 31rem;
+        color: rgba(220, 227, 234, 0.76);
+        line-height: 1.5;
+        font-size: 0.95rem;
+      }
+
+      .hero-side {
+        align-self: start;
+        text-align: right;
+        max-width: 18rem;
+        color: rgba(220, 227, 234, 0.62);
+        font-size: 0.8rem;
+        line-height: 1.46;
+      }
+
+      .meta {
+        margin-top: 14px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.8rem;
+        font-size: 0.7rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      .window-layer {
+        position: absolute;
+        inset: 112px 22px 26px;
+        z-index: 2;
+      }
+
+      .window {
+        position: absolute;
+        overflow: hidden;
+        border: 1px solid rgba(166, 199, 212, 0.16);
+        border-radius: 28px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.06), transparent 24%),
+          linear-gradient(180deg, rgba(10, 14, 20, 0.78), rgba(7, 10, 14, 0.9));
+        box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
+        transition:
+          transform 220ms ease,
+          border-color 220ms ease,
+          box-shadow 220ms ease,
+          opacity 220ms ease;
+      }
+
+      .window::before {
+        content: "";
+        position: absolute;
+        inset: 12px;
+        border-radius: 20px;
+        border: 1px solid rgba(242, 232, 214, 0.08);
+        pointer-events: none;
+      }
+
+      .window.active {
+        border-color: rgba(242, 232, 214, 0.26);
+        box-shadow:
+          0 28px 90px rgba(0, 0, 0, 0.36),
+          0 0 0 1px rgba(255, 255, 255, 0.04) inset;
+      }
+
+      .window svg {
+        position: absolute;
+        inset: 16px;
+        width: calc(100% - 32px);
+        height: calc(100% - 32px);
+        overflow: visible;
+      }
+
+      .window-tag {
+        position: absolute;
+        left: 18px;
+        bottom: 16px;
+        z-index: 2;
+        color: rgba(220, 227, 234, 0.7);
+        font-size: 0.7rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+
+      .silhouette {
+        fill: rgba(236, 231, 221, 0.9);
+      }
+
+      .accent-cyan {
+        stroke: rgba(132, 197, 220, 0.9);
+      }
+
+      .accent-rose {
+        stroke: rgba(239, 154, 146, 0.85);
+      }
+
+      .accent-amber {
+        stroke: rgba(211, 176, 108, 0.88);
+      }
+
+      .trace,
+      .ghost,
+      .frame-mark {
+        fill: none;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      .trace {
+        stroke-width: 2.1;
+      }
+
+      .ghost {
+        stroke: rgba(236, 231, 221, 0.15);
+        stroke-width: 10;
+      }
+
+      .frame-mark {
+        stroke: rgba(236, 231, 221, 0.22);
+        stroke-width: 1.2;
+        stroke-dasharray: 4 10;
+      }
+
+      .stack {
+        display: grid;
+        grid-template-rows: auto auto 1fr;
+        gap: 14px;
+        padding: 18px;
+      }
+
+      .card {
+        position: relative;
+        padding: 14px 15px 15px;
+        border: 1px solid rgba(166, 199, 212, 0.12);
+        border-radius: 22px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 22%),
+          rgba(9, 13, 18, 0.5);
+      }
+
+      .card p {
+        color: rgba(220, 227, 234, 0.74);
+        line-height: 1.52;
+        font-size: 0.92rem;
+      }
+
+      .small {
+        margin-bottom: 8px;
+        color: var(--muted);
+        font-size: 0.7rem;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+      }
+
+      .legend {
+        display: grid;
+        gap: 10px;
+      }
+
+      .legend-row {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 10px;
+        align-items: center;
+        color: rgba(220, 227, 234, 0.72);
+        font-size: 0.86rem;
+      }
+
+      .swatch {
+        width: 42px;
+        height: 10px;
+        border-radius: 999px;
+      }
+
+      .footer {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
+        margin-top: 16px;
+      }
+
+      .footer-card {
+        padding: 16px 16px 18px;
+      }
+
+      .footer-card p {
+        color: rgba(220, 227, 234, 0.72);
+        line-height: 1.54;
+        font-size: 0.92rem;
+      }
+
+      .note-label {
+        margin-bottom: 8px;
+        color: var(--muted);
+        font-size: 0.72rem;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+      }
+
+      .back {
+        position: fixed;
+        right: 16px;
+        bottom: 16px;
+        z-index: 4;
+        border-radius: 999px;
+        padding: 11px 14px;
+        text-decoration: none;
+        color: var(--text);
+        font-size: 0.74rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+
+      @media (max-width: 980px) {
+        .board,
+        .footer {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .stack {
+          order: -1;
+        }
+
+        .hero-copy {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .hero-side {
+          text-align: left;
+          max-width: 28rem;
+        }
+
+        .window-layer {
+          inset: 154px 22px 26px;
+        }
+      }
+
+      @media (max-width: 720px) {
+        .shell {
+          width: min(100% - 20px, 1320px);
+          padding-top: 12px;
+          padding-bottom: 20px;
+        }
+
+        .board {
+          min-height: auto;
+        }
+
+        .viewer,
+        .stack,
+        .footer-card {
+          border-radius: 24px;
+        }
+
+        .viewer::before,
+        .stack::before,
+        .footer-card::before {
+          inset: 10px;
+          border-radius: 18px;
+        }
+
+        .viewer {
+          min-height: 72vh;
+        }
+
+        .hero-copy {
+          inset: 18px 16px auto 16px;
+        }
+
+        .window-layer {
+          inset: 176px 14px 16px;
+        }
+
+        .window {
+          border-radius: 22px;
+        }
+
+        .window::before {
+          inset: 10px;
+          border-radius: 16px;
+        }
+
+        .stack {
+          padding: 14px;
+        }
+
+        .footer {
+          gap: 12px;
+          margin-top: 12px;
+        }
+
+        .back {
+          right: 12px;
+          bottom: 12px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="field"></canvas>
+
+    <main class="shell">
+      <div class="topline">
+        <span>Code Animation Study #055</span>
+        <span>Human Editorial Lane / Split Focus / Long Exposure</span>
+      </div>
+
+      <section class="board">
+        <section class="viewer">
+          <div class="hero-copy">
+            <div class="hero-title">
+              <h1>Slow Shutter Editorial</h1>
+              <p>
+                A browser-native nocturnal fashion page that answers the recent
+                request for humans without collapsing into a plain portrait:
+                three fragmented figures sit behind one wet glass chamber, with
+                focus drift, afterimage trails, and reflected route marks
+                keeping the surface cinematic instead of dashboard-like.
+              </p>
+              <div class="meta">
+                <span>Human editorial branch</span>
+                <span>Pointer rack focus</span>
+                <span>Static self-contained page</span>
+              </div>
+            </div>
+            <p class="hero-side">
+              Move across the chamber to pull the nearest figure into focus and
+              drag its reflections sideways. Click to release a brief shutter
+              flare that runs through the whole pane.
+            </p>
+          </div>
+
+          <div class="window-layer" id="windowLayer">
+            <article class="window" data-window="0">
+              <svg viewBox="0 0 320 420" aria-hidden="true">
+                <path class="ghost" d="M116 118c24-34 75-42 104 2 16 25 11 71-1 101-11 28-11 67 7 112" />
+                <path class="frame-mark" d="M30 344c70-10 109-8 162 11 40 14 71 12 98 6" />
+                <path class="accent-cyan trace" d="M26 276c32-23 84-29 130-10 32 13 53 40 107 58" />
+                <path class="silhouette" d="M142 80c22-1 40 19 39 46-2 32-17 45-17 68 0 16 7 33 20 46 18 19 20 48 14 88-8 51-17 86-56 86-35 0-49-31-54-82-4-41 5-76 25-97 15-16 21-33 20-49-1-21-15-36-14-61 2-25 19-44 23-45z" />
+                <path class="accent-amber trace" d="M128 92c31 43 56 83 48 174" />
+                <path class="accent-rose trace" d="M76 177c26 16 45 17 66 14" />
+              </svg>
+              <span class="window-tag">Figure 01 / seated arc</span>
+            </article>
+
+            <article class="window" data-window="1">
+              <svg viewBox="0 0 320 420" aria-hidden="true">
+                <path class="ghost" d="M210 86c-28 20-44 56-44 103 0 29 8 57 18 81 11 28 13 67-5 121" />
+                <path class="frame-mark" d="M24 122c55 17 103 18 147 3 55-19 92-18 127-8" />
+                <path class="accent-rose trace" d="M31 297c42-17 73-42 110-72 34-28 70-43 140-45" />
+                <path class="silhouette" d="M180 74c26 0 45 22 43 54-3 39-27 55-38 77-13 28-7 58 7 86 19 37 19 70-3 99-17 23-42 34-68 24-31-12-37-43-33-78 3-26 16-51 31-71 18-24 32-47 28-79-5-43 9-112 33-112z" />
+                <path class="accent-cyan trace" d="M176 84c-13 54-33 110-18 178" />
+                <path class="accent-amber trace" d="M188 162c23 34 49 54 88 70" />
+              </svg>
+              <span class="window-tag">Figure 02 / standing fold</span>
+            </article>
+
+            <article class="window" data-window="2">
+              <svg viewBox="0 0 320 420" aria-hidden="true">
+                <path class="ghost" d="M98 76c17 17 29 46 35 86 5 30 16 54 40 76 28 27 41 74 33 142" />
+                <path class="frame-mark" d="M27 312c54 1 90-4 125-24 43-25 82-30 142-15" />
+                <path class="accent-amber trace" d="M25 166c36 8 70 23 118 31 48 8 88 5 144-13" />
+                <path class="silhouette" d="M92 78c32 2 48 28 48 61 0 24 4 49 23 69 24 26 33 55 35 98 3 52-21 100-70 103-39 2-68-23-75-77-6-42 4-74 24-99 16-20 24-38 21-65-5-44 7-92 23-90z" />
+                <path class="accent-cyan trace" d="M132 92c-2 48 15 92 48 132" />
+                <path class="accent-rose trace" d="M105 193c-20 26-33 48-34 79" />
+              </svg>
+              <span class="window-tag">Figure 03 / turning veil</span>
+            </article>
+          </div>
+        </section>
+
+        <aside class="stack">
+          <article class="card">
+            <p class="small">Direction</p>
+            <p>
+              This page keeps the human lane but avoids another beige modular
+              sheet. The palette shifts back into night glass, reflected street
+              light, and half-legible editorial framing instead of clean app
+              chrome.
+            </p>
+          </article>
+
+          <article class="card">
+            <p class="small">Interaction</p>
+            <p>
+              Pointer movement behaves like rack focus plus wet-glass shear: the
+              nearest frame becomes clearer while the others slip into doubled
+              exposure. Click adds one quick flash pulse rather than a control
+              widget.
+            </p>
+          </article>
+
+          <article class="card legend">
+            <p class="small">Signal Bands</p>
+            <div class="legend-row">
+              <span class="swatch" style="background: linear-gradient(90deg, rgba(132, 197, 220, 0.2), rgba(132, 197, 220, 0.92));"></span>
+              <span>Cyan marks carry the clearest focus law.</span>
+            </div>
+            <div class="legend-row">
+              <span class="swatch" style="background: linear-gradient(90deg, rgba(239, 154, 146, 0.15), rgba(239, 154, 146, 0.9));"></span>
+              <span>Rose marks hold reflected city bleed.</span>
+            </div>
+            <div class="legend-row">
+              <span class="swatch" style="background: linear-gradient(90deg, rgba(211, 176, 108, 0.14), rgba(211, 176, 108, 0.88));"></span>
+              <span>Amber marks track long-shutter body arcs.</span>
+            </div>
+          </article>
+        </aside>
+      </section>
+
+      <section class="footer">
+        <article class="footer-card">
+          <p class="note-label">Idea</p>
+          <p>
+            Build a design-usable human editorial study that still feels code
+            native: three figures share one responsive optical chamber instead
+            of becoming either generic fashion photos or another illustrated
+            creature world.
+          </p>
+        </article>
+
+        <article class="footer-card">
+          <p class="note-label">Interaction</p>
+          <p>
+            The viewer does not operate a panel. They disturb the focus plane
+            directly, causing nearby reflections, window borders, and motion
+            traces to lean toward the cursor and briefly flare on click.
+          </p>
+        </article>
+
+        <article class="footer-card">
+          <p class="note-label">Next</p>
+          <p>
+            A stronger follow-up could deepen this into a whole nocturnal
+            editorial contact sheet with more bodies, sharper textile logic, or
+            reflections that behave like passing traffic instead of static rain.
+          </p>
+        </article>
+      </section>
+    </main>
+
+    <a class="back" href="../../index.html">Back to index</a>
+
+    <script>
+      const canvas = document.getElementById("field");
+      const ctx = canvas.getContext("2d");
+      const layer = document.getElementById("windowLayer");
+      const windows = [...document.querySelectorAll(".window")];
+
+      const pointer = { x: 0.5, y: 0.5, active: false };
+      let width = 0;
+      let height = 0;
+      let dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const pulses = [];
+      const particles = Array.from({ length: 220 }, (_, index) => ({
+        x: Math.random(),
+        y: Math.random(),
+        size: 0.8 + Math.random() * 2.6,
+        speed: 0.0006 + Math.random() * 0.0018,
+        drift: (Math.random() - 0.5) * 0.0012,
+        lane: index % 3,
+      }));
+
+      function resize() {
+        width = window.innerWidth;
+        height = window.innerHeight;
+        dpr = Math.min(window.devicePixelRatio || 1, 2);
+        canvas.width = width * dpr;
+        canvas.height = height * dpr;
+        canvas.style.width = `${width}px`;
+        canvas.style.height = `${height}px`;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        layoutWindows();
+      }
+
+      function layoutWindows() {
+        const mobile = width < 720;
+        const medium = width < 980;
+        const dims = mobile
+          ? [
+              { x: 0.48, y: 0.2, w: 0.84, h: 0.22, r: -4 },
+              { x: 0.52, y: 0.48, w: 0.82, h: 0.24, r: 3 },
+              { x: 0.48, y: 0.77, w: 0.84, h: 0.2, r: -2 },
+            ]
+          : medium
+            ? [
+                { x: 0.28, y: 0.34, w: 0.42, h: 0.54, r: -7 },
+                { x: 0.7, y: 0.3, w: 0.35, h: 0.48, r: 5 },
+                { x: 0.54, y: 0.72, w: 0.48, h: 0.42, r: -4 },
+              ]
+            : [
+                { x: 0.23, y: 0.42, w: 0.3, h: 0.58, r: -8 },
+                { x: 0.7, y: 0.31, w: 0.27, h: 0.48, r: 5 },
+                { x: 0.57, y: 0.74, w: 0.34, h: 0.42, r: -5 },
+              ];
+
+        windows.forEach((node, index) => {
+          const spec = dims[index];
+          node.dataset.baseRotate = spec.r;
+          node.style.left = `${spec.x * 100}%`;
+          node.style.top = `${spec.y * 100}%`;
+          node.style.width = `${spec.w * 100}%`;
+          node.style.height = `${spec.h * 100}%`;
+        });
+      }
+
+      function addPulse(x, y) {
+        pulses.push({ x, y, born: performance.now() });
+      }
+
+      function updateWindows(time) {
+        const rect = layer.getBoundingClientRect();
+        let activeIndex = 0;
+        let best = Infinity;
+
+        windows.forEach((node, index) => {
+          const box = node.getBoundingClientRect();
+          const cx = (box.left + box.right) * 0.5;
+          const cy = (box.top + box.bottom) * 0.5;
+          const dx = pointer.x * width - cx;
+          const dy = pointer.y * height - cy;
+          const distance = Math.hypot(dx, dy);
+          if (distance < best) {
+            best = distance;
+            activeIndex = index;
+          }
+        });
+
+        windows.forEach((node, index) => {
+          const box = node.getBoundingClientRect();
+          const cx = (box.left + box.right) * 0.5;
+          const cy = (box.top + box.bottom) * 0.5;
+          const px = (pointer.x * width - cx) / Math.max(box.width, 1);
+          const py = (pointer.y * height - cy) / Math.max(box.height, 1);
+          const pulseBoost = pulses.reduce((sum, pulse) => {
+            const age = (time - pulse.born) / 1000;
+            if (age > 1.4) {
+              return sum;
+            }
+            const localX = rect.left + pulse.x * rect.width;
+            const localY = rect.top + pulse.y * rect.height;
+            const dist = Math.hypot(localX - cx, localY - cy);
+            return sum + Math.max(0, 1 - dist / (Math.max(box.width, box.height) * 1.4)) * (1 - age / 1.4);
+          }, 0);
+          const baseRotate = Number(node.dataset.baseRotate || 0);
+          const focus = index === activeIndex ? 1 : 0;
+          const blur = Math.max(0, 6 - focus * 5 - pulseBoost * 2.2 + Math.abs(px) * 3);
+          const xShift = px * (focus ? 24 : 12) + Math.sin(time * 0.00035 + index * 1.8) * 5;
+          const yShift = py * (focus ? 18 : 10) + Math.cos(time * 0.0003 + index) * 4;
+          const rotate = baseRotate + px * 5 + Math.sin(time * 0.00022 + index) * 1.6;
+          const scale = 1 + focus * 0.03 + pulseBoost * 0.018;
+
+          node.style.transform =
+            `translate(-50%, -50%) translate(${xShift}px, ${yShift}px) rotate(${rotate}deg) scale(${scale})`;
+          node.style.filter = `blur(${blur}px) saturate(${1 + focus * 0.18 + pulseBoost * 0.16})`;
+          node.style.opacity = `${0.6 + focus * 0.34 + pulseBoost * 0.1}`;
+          node.classList.toggle("active", focus > 0);
+        });
+      }
+
+      function drawField(time) {
+        ctx.clearRect(0, 0, width, height);
+
+        const gradient = ctx.createLinearGradient(0, 0, 0, height);
+        gradient.addColorStop(0, "rgba(14, 18, 24, 0.72)");
+        gradient.addColorStop(0.48, "rgba(8, 11, 15, 0.28)");
+        gradient.addColorStop(1, "rgba(2, 3, 5, 0.92)");
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, width, height);
+
+        for (let i = 0; i < 8; i += 1) {
+          const y = height * (0.14 + i * 0.11);
+          const drift = Math.sin(time * 0.0002 + i * 0.8) * 26;
+          ctx.beginPath();
+          ctx.moveTo(-40, y + drift);
+          for (let x = 0; x <= width + 80; x += 70) {
+            const wave =
+              Math.sin(x * 0.008 + time * 0.0006 + i * 1.4) * (12 + i * 1.2) +
+              Math.cos(x * 0.004 + time * 0.0003 + i) * 8;
+            ctx.lineTo(x, y + drift + wave);
+          }
+          ctx.strokeStyle = i % 2 === 0 ? "rgba(132, 197, 220, 0.08)" : "rgba(239, 154, 146, 0.06)";
+          ctx.lineWidth = 1.2;
+          ctx.stroke();
+        }
+
+        particles.forEach((particle, index) => {
+          particle.y += particle.speed;
+          particle.x += particle.drift + Math.sin(time * 0.0004 + index) * 0.00018;
+          if (particle.y > 1.06) {
+            particle.y = -0.05;
+            particle.x = Math.random();
+          }
+          if (particle.x < -0.04) particle.x = 1.02;
+          if (particle.x > 1.04) particle.x = -0.02;
+
+          const laneBend =
+            Math.sin((particle.y + particle.lane * 0.17) * 10 + time * 0.0008) * 30 +
+            (pointer.x - 0.5) * 36;
+          const x = particle.x * width + laneBend;
+          const y = particle.y * height;
+          const intensity = 0.16 + Math.max(0, 0.34 - Math.abs(pointer.y * height - y) / height);
+          ctx.fillStyle =
+            particle.lane === 0
+              ? `rgba(132, 197, 220, ${intensity})`
+              : particle.lane === 1
+                ? `rgba(239, 154, 146, ${intensity})`
+                : `rgba(241, 232, 214, ${intensity + 0.06})`;
+          ctx.beginPath();
+          ctx.arc(x, y, particle.size, 0, Math.PI * 2);
+          ctx.fill();
+        });
+
+        pulses.forEach((pulse, index) => {
+          const age = (time - pulse.born) / 1000;
+          if (age > 1.4) {
+            pulses.splice(index, 1);
+            return;
+          }
+          const radius = age * Math.min(width, height) * 0.55;
+          ctx.strokeStyle = `rgba(241, 232, 214, ${0.3 * (1 - age / 1.4)})`;
+          ctx.lineWidth = 2.2;
+          ctx.beginPath();
+          ctx.arc(pulse.x * width, pulse.y * height, radius, 0, Math.PI * 2);
+          ctx.stroke();
+        });
+
+        const vignette = ctx.createRadialGradient(
+          width * 0.5,
+          height * 0.45,
+          Math.min(width, height) * 0.12,
+          width * 0.5,
+          height * 0.48,
+          Math.max(width, height) * 0.68
+        );
+        vignette.addColorStop(0, "rgba(0, 0, 0, 0)");
+        vignette.addColorStop(1, "rgba(0, 0, 0, 0.58)");
+        ctx.fillStyle = vignette;
+        ctx.fillRect(0, 0, width, height);
+      }
+
+      function frame(time) {
+        drawField(time);
+        updateWindows(time);
+        requestAnimationFrame(frame);
+      }
+
+      window.addEventListener("resize", resize);
+      window.addEventListener("pointermove", (event) => {
+        pointer.x = event.clientX / width;
+        pointer.y = event.clientY / height;
+        pointer.active = true;
+      });
+      window.addEventListener("pointerleave", () => {
+        pointer.active = false;
+        pointer.x = 0.5;
+        pointer.y = 0.5;
+      });
+      window.addEventListener("click", (event) => {
+        addPulse(event.clientX / width, event.clientY / height);
+      });
+
+      resize();
+      requestAnimationFrame(frame);
+    </script>
+  </body>
+</html>

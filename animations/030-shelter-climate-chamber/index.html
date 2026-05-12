@@ -1,0 +1,685 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>#030 Shelter Climate Chamber</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #05070b;
+        --ink: #f0ece3;
+        --muted: rgba(240, 236, 227, 0.68);
+        --line: rgba(211, 234, 236, 0.16);
+        --panel: rgba(8, 12, 20, 0.7);
+        --cyan: #8fe3db;
+        --mint: #bbf0bd;
+        --rose: #f4a6bc;
+        --gold: #f4cd88;
+        --violet: #a7a0ff;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background:
+          radial-gradient(circle at 18% 16%, rgba(143, 227, 219, 0.12), transparent 24%),
+          radial-gradient(circle at 82% 20%, rgba(244, 166, 188, 0.1), transparent 28%),
+          radial-gradient(circle at 52% 84%, rgba(167, 160, 255, 0.09), transparent 24%),
+          linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 22%),
+          var(--bg);
+        color: var(--ink);
+        font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+      }
+
+      canvas {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        display: block;
+      }
+
+      .hud {
+        position: fixed;
+        inset: 16px;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 16px;
+        pointer-events: none;
+      }
+
+      .panel,
+      .back {
+        border: 1px solid var(--line);
+        background: var(--panel);
+        backdrop-filter: blur(18px);
+        box-shadow: 0 28px 88px rgba(0, 0, 0, 0.34);
+      }
+
+      .panel,
+      .anchor {
+        pointer-events: auto;
+      }
+
+      .panel {
+        width: min(34rem, calc(100vw - 32px));
+        border-radius: 24px;
+        padding: 15px 16px 16px;
+        display: grid;
+        gap: 10px;
+      }
+
+      .back {
+        position: fixed;
+        right: 16px;
+        bottom: 16px;
+        padding: 10px 14px;
+        border-radius: 999px;
+        color: var(--ink);
+        text-decoration: none;
+        pointer-events: auto;
+      }
+
+      .eyebrow,
+      .hint,
+      .meta,
+      .label,
+      .value {
+        margin: 0;
+      }
+
+      .eyebrow,
+      .label {
+        font-size: 11px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: rgba(240, 236, 227, 0.54);
+      }
+
+      h1 {
+        margin: 0;
+        font-size: clamp(1.95rem, 4vw, 3.2rem);
+        line-height: 0.92;
+      }
+
+      .hint,
+      .meta {
+        color: var(--muted);
+        line-height: 1.46;
+      }
+
+      .hint {
+        font-size: 0.95rem;
+      }
+
+      .meta {
+        font-size: 0.8rem;
+      }
+
+      .readout {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.95rem;
+      }
+
+      .value {
+        display: block;
+        margin-top: 0.22rem;
+        font-size: 0.96rem;
+      }
+
+      .anchor-layer {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+      }
+
+      .anchor {
+        position: absolute;
+        min-width: 122px;
+        padding: 10px 12px;
+        border: 1px solid rgba(211, 234, 236, 0.16);
+        border-radius: 16px;
+        background: rgba(6, 10, 18, 0.7);
+        box-shadow: 0 20px 52px rgba(0, 0, 0, 0.24);
+        transform: translate(-50%, -50%);
+        color: var(--ink);
+        cursor: pointer;
+        pointer-events: auto;
+      }
+
+      .anchor strong,
+      .anchor span {
+        display: block;
+      }
+
+      .anchor strong {
+        margin-bottom: 0.14rem;
+        font-size: 0.74rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .anchor span {
+        font-size: 0.68rem;
+        line-height: 1.32;
+        color: var(--muted);
+      }
+
+      .anchor.active {
+        border-color: rgba(244, 205, 136, 0.34);
+        box-shadow:
+          inset 0 0 0 1px rgba(244, 205, 136, 0.14),
+          0 20px 56px rgba(0, 0, 0, 0.28);
+      }
+
+      @media (max-width: 920px) {
+        .hud {
+          inset: 14px;
+        }
+
+        .panel {
+          width: min(100%, 32rem);
+        }
+
+        .anchor {
+          min-width: 104px;
+          padding: 8px 10px;
+        }
+
+        .back {
+          right: 14px;
+          bottom: 14px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="scene"></canvas>
+    <div class="hud">
+      <section class="panel">
+        <p class="eyebrow">Code Animation Study #030</p>
+        <h1>Shelter Climate Chamber</h1>
+        <p class="hint">
+          A living habitat world with suspended shelter membranes, damp climate
+          ribs, and small occupant glows, so the scene feels like an inhabited
+          chamber instead of a single collectible object or another dashboard.
+        </p>
+        <p class="meta">
+          Move through the chamber to bend heat and humidity around the nearest
+          shelters. Click a floating anchor to change the world law: hush,
+          bloom, or tide.
+        </p>
+        <div class="readout">
+          <p class="label">World law<span class="value" id="modeValue">hush</span></p>
+          <p class="label">Climate pressure<span class="value" id="pressureValue">0.41</span></p>
+          <p class="label">Occupancy glow<span class="value" id="occupancyValue">63%</span></p>
+        </div>
+      </section>
+    </div>
+    <div class="anchor-layer" id="anchorLayer" aria-label="Habitat anchors"></div>
+    <a class="back" href="../../index.html">Back to index</a>
+    <script src="../../shared/study-notes.js"></script>
+
+    <script>
+      const canvas = document.getElementById("scene");
+      const ctx = canvas.getContext("2d");
+      const anchorLayer = document.getElementById("anchorLayer");
+      const modeValue = document.getElementById("modeValue");
+      const pressureValue = document.getElementById("pressureValue");
+      const occupancyValue = document.getElementById("occupancyValue");
+
+      const pointer = {
+        x: window.innerWidth * 0.52,
+        y: window.innerHeight * 0.58,
+        tx: window.innerWidth * 0.52,
+        ty: window.innerHeight * 0.58,
+        active: false,
+        down: false,
+      };
+
+      const modes = [
+        {
+          id: "hush",
+          label: "Hush",
+          hint: "cool shelter",
+          shell: "#8fe3db",
+          glow: "#f4cd88",
+          accent: "#a7a0ff",
+          particle: "#bbf0bd",
+          sway: 0.34,
+          pulse: 0.7,
+          warmth: 0.34,
+        },
+        {
+          id: "bloom",
+          label: "Bloom",
+          hint: "warm colony",
+          shell: "#f4a6bc",
+          glow: "#f4cd88",
+          accent: "#8fe3db",
+          particle: "#f7dbc0",
+          sway: 0.54,
+          pulse: 1.06,
+          warmth: 0.62,
+        },
+        {
+          id: "tide",
+          label: "Tide",
+          hint: "humid current",
+          shell: "#a7a0ff",
+          glow: "#8fe3db",
+          accent: "#f4a6bc",
+          particle: "#d7d9ff",
+          sway: 0.82,
+          pulse: 0.9,
+          warmth: 0.48,
+        },
+      ];
+
+      let activeMode = modes[0];
+      let w = 0;
+      let h = 0;
+      let dpr = Math.min(window.devicePixelRatio || 1, 2);
+      let time = 0;
+      let climate = 0.41;
+      let occupancy = 0.63;
+      const shelters = [];
+      const motes = [];
+      const anchors = [];
+      const ripples = [];
+
+      function resize() {
+        dpr = Math.min(window.devicePixelRatio || 1, 2);
+        w = window.innerWidth;
+        h = window.innerHeight;
+        canvas.width = Math.round(w * dpr);
+        canvas.height = Math.round(h * dpr);
+        canvas.style.width = `${w}px`;
+        canvas.style.height = `${h}px`;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        buildScene();
+      }
+
+      function buildScene() {
+        shelters.length = 0;
+        motes.length = 0;
+        anchors.length = 0;
+        ripples.length = 0;
+        anchorLayer.replaceChildren();
+
+        const columns = Math.max(4, Math.round(w / 260));
+        const rows = Math.max(4, Math.round(h / 220));
+        const centerX = w * 0.5;
+        const centerY = h * 0.56;
+
+        for (let row = 0; row < rows; row += 1) {
+          for (let col = 0; col < columns; col += 1) {
+            const nx = (col + 0.5) / columns;
+            const ny = (row + 0.6) / rows;
+            const px = nx * w + (Math.random() - 0.5) * 54;
+            const py = ny * h + (Math.random() - 0.5) * 64;
+            const dist = Math.hypot(px - centerX, py - centerY);
+            shelters.push({
+              x: px,
+              y: py,
+              r: 32 + Math.random() * 42 + (1 - Math.min(1, dist / (w * 0.68))) * 18,
+              tilt: Math.random() * Math.PI * 2,
+              phase: Math.random() * Math.PI * 2,
+              stalk: 26 + Math.random() * 80,
+              root: 18 + Math.random() * 40,
+              density: 0.5 + Math.random() * 0.8,
+              child: Math.random() > 0.4,
+            });
+          }
+        }
+
+        for (let i = 0; i < 240; i += 1) {
+          motes.push({
+            x: Math.random() * w,
+            y: Math.random() * h,
+            z: Math.random(),
+            speed: 0.25 + Math.random() * 0.9,
+            swing: 0.4 + Math.random() * 1.1,
+            phase: Math.random() * Math.PI * 2,
+            size: 1 + Math.random() * 3,
+          });
+        }
+
+        const anchorLayout = [
+          { id: "hush", x: 0.18, y: 0.24 },
+          { id: "bloom", x: 0.82, y: 0.38 },
+          { id: "tide", x: 0.3, y: 0.79 },
+        ];
+
+        anchorLayout.forEach((item) => {
+          const mode = modes.find((entry) => entry.id === item.id);
+          const el = document.createElement("button");
+          el.className = "anchor";
+          el.type = "button";
+          el.innerHTML = `<strong>${mode.label}</strong><span>${mode.hint}</span>`;
+          el.addEventListener("click", () => {
+            activeMode = mode;
+            spawnRipple(item.x * w, item.y * h, 90);
+            syncAnchors();
+          });
+          anchorLayer.appendChild(el);
+          anchors.push({
+            mode,
+            x: item.x,
+            y: item.y,
+            phase: Math.random() * Math.PI * 2,
+            el,
+          });
+        });
+
+        syncAnchors();
+      }
+
+      function syncAnchors() {
+        modeValue.textContent = activeMode.id;
+        anchors.forEach((anchor) => {
+          anchor.el.classList.toggle("active", anchor.mode.id === activeMode.id);
+        });
+      }
+
+      function spawnRipple(x, y, radius) {
+        ripples.push({
+          x,
+          y,
+          r: radius * 0.2,
+          max: radius,
+          alpha: 0.4,
+        });
+      }
+
+      function updateAnchors() {
+        anchors.forEach((anchor, index) => {
+          const wobbleX = Math.sin(time * 0.0007 + anchor.phase + index) * 22;
+          const wobbleY = Math.cos(time * 0.0009 + anchor.phase + index * 1.4) * 18;
+          const px = anchor.x * w + wobbleX;
+          const py = anchor.y * h + wobbleY;
+          anchor.el.style.left = `${px}px`;
+          anchor.el.style.top = `${py}px`;
+        });
+      }
+
+      function mixColor(hex, alpha) {
+        const value = hex.replace("#", "");
+        const bigint = parseInt(value, 16);
+        const r = (bigint >> 16) & 255;
+        const g = (bigint >> 8) & 255;
+        const b = bigint & 255;
+        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+      }
+
+      function lerp(a, b, t) {
+        return a + (b - a) * t;
+      }
+
+      function ease(current, target, factor) {
+        return current + (target - current) * factor;
+      }
+
+      function drawBackdrop() {
+        const sky = ctx.createLinearGradient(0, 0, 0, h);
+        sky.addColorStop(0, "#08101a");
+        sky.addColorStop(0.48, "#0b1320");
+        sky.addColorStop(1, "#06070b");
+        ctx.fillStyle = sky;
+        ctx.fillRect(0, 0, w, h);
+
+        const glowA = ctx.createRadialGradient(w * 0.28, h * 0.24, 0, w * 0.28, h * 0.24, w * 0.42);
+        glowA.addColorStop(0, mixColor(activeMode.shell, 0.18));
+        glowA.addColorStop(1, "rgba(0, 0, 0, 0)");
+        ctx.fillStyle = glowA;
+        ctx.fillRect(0, 0, w, h);
+
+        const glowB = ctx.createRadialGradient(w * 0.72, h * 0.76, 0, w * 0.72, h * 0.76, w * 0.48);
+        glowB.addColorStop(0, mixColor(activeMode.accent, 0.14));
+        glowB.addColorStop(1, "rgba(0, 0, 0, 0)");
+        ctx.fillStyle = glowB;
+        ctx.fillRect(0, 0, w, h);
+
+        ctx.save();
+        ctx.strokeStyle = "rgba(236, 238, 240, 0.035)";
+        ctx.lineWidth = 1;
+        for (let i = 0; i < 9; i += 1) {
+          const y = h * 0.18 + i * (h * 0.09);
+          ctx.beginPath();
+          ctx.moveTo(0, y + Math.sin(time * 0.00018 + i) * 8);
+          for (let x = 0; x <= w; x += 42) {
+            const warp =
+              Math.sin(x * 0.0048 + i + time * 0.00021) * 8 +
+              Math.cos(x * 0.0022 - i * 0.8 + time * 0.00016) * 6;
+            ctx.lineTo(x, y + warp);
+          }
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      function drawRoots(shelter, influence, sway) {
+        const strands = 4;
+        ctx.save();
+        ctx.strokeStyle = mixColor(activeMode.accent, 0.11 + influence * 0.1);
+        ctx.lineWidth = 1.2;
+        for (let i = 0; i < strands; i += 1) {
+          const angle = shelter.tilt + (i / (strands - 1) - 0.5) * 1.3;
+          const length = shelter.stalk * (0.7 + i * 0.08);
+          const startX = shelter.x + Math.cos(angle) * shelter.r * 0.26;
+          const startY = shelter.y + Math.sin(angle) * shelter.r * 0.2;
+          ctx.beginPath();
+          ctx.moveTo(startX, startY);
+          for (let step = 1; step <= 4; step += 1) {
+            const t = step / 4;
+            const bend =
+              Math.sin(time * 0.001 + shelter.phase + step * 0.6) * 8 * activeMode.sway +
+              sway * 18 * (1 - t);
+            const px = startX + Math.cos(angle) * length * t + Math.cos(angle + Math.PI / 2) * bend;
+            const py = startY + Math.sin(angle) * length * t + Math.sin(angle + Math.PI / 2) * bend;
+            ctx.lineTo(px, py);
+          }
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      function drawShelter(shelter) {
+        const dx = pointer.x - shelter.x;
+        const dy = pointer.y - shelter.y;
+        const distance = Math.hypot(dx, dy);
+        const influence = Math.max(0, 1 - distance / 260);
+        const sway =
+          Math.sin(time * 0.001 * (0.8 + activeMode.sway) + shelter.phase) * 10 +
+          Math.cos(time * 0.0007 + shelter.phase * 1.2) * 6 +
+          influence * 22 * (pointer.down ? 1.2 : 0.7);
+        const pulse = (Math.sin(time * 0.0012 * activeMode.pulse + shelter.phase) + 1) * 0.5;
+        const radius = shelter.r * (0.9 + pulse * 0.08 + influence * 0.1);
+        const topY = shelter.y - shelter.stalk * 0.6 + sway * 0.28;
+
+        drawRoots(shelter, influence, sway / 20);
+
+        ctx.save();
+        ctx.translate(shelter.x, shelter.y + sway * 0.18);
+        ctx.rotate(shelter.tilt + sway * 0.0028);
+
+        const shellGradient = ctx.createRadialGradient(-radius * 0.26, -radius * 0.32, radius * 0.12, 0, 0, radius);
+        shellGradient.addColorStop(0, mixColor(activeMode.glow, 0.34 + influence * 0.18));
+        shellGradient.addColorStop(0.4, mixColor(activeMode.shell, 0.22 + activeMode.warmth * 0.16));
+        shellGradient.addColorStop(1, "rgba(6, 10, 18, 0.03)");
+
+        ctx.fillStyle = shellGradient;
+        ctx.beginPath();
+        ctx.moveTo(-radius * 0.84, radius * 0.1);
+        ctx.bezierCurveTo(
+          -radius * 0.62,
+          -radius * 0.86,
+          radius * 0.52,
+          -radius * 0.98,
+          radius * 0.88,
+          radius * 0.04
+        );
+        ctx.bezierCurveTo(
+          radius * 0.72,
+          radius * 0.78,
+          -radius * 0.42,
+          radius * 0.94,
+          -radius * 0.84,
+          radius * 0.1
+        );
+        ctx.fill();
+
+        ctx.strokeStyle = mixColor(activeMode.shell, 0.18 + influence * 0.16);
+        ctx.lineWidth = 1.3;
+        ctx.stroke();
+
+        for (let i = 0; i < 4; i += 1) {
+          const ring = 0.28 + i * 0.14;
+          ctx.strokeStyle = mixColor(activeMode.accent, 0.08 + i * 0.02);
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.ellipse(0, radius * (0.16 - ring * 0.12), radius * (0.58 - ring * 0.08), radius * (0.26 - ring * 0.03), 0, 0, Math.PI);
+          ctx.stroke();
+        }
+
+        const innerGradient = ctx.createRadialGradient(0, 0, radius * 0.06, 0, radius * 0.08, radius * 0.72);
+        innerGradient.addColorStop(0, mixColor(activeMode.glow, 0.44 + influence * 0.22));
+        innerGradient.addColorStop(0.45, mixColor(activeMode.particle, 0.16 + occupancy * 0.18));
+        innerGradient.addColorStop(1, "rgba(255, 255, 255, 0)");
+        ctx.fillStyle = innerGradient;
+        ctx.beginPath();
+        ctx.ellipse(0, radius * 0.12, radius * 0.42, radius * 0.28, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        for (let i = 0; i < 3; i += 1) {
+          const angle = shelter.phase + i * 2.1 + time * 0.0005 * (1 + influence);
+          const ox = Math.cos(angle) * radius * 0.22;
+          const oy = Math.sin(angle) * radius * 0.1 + radius * 0.08;
+          ctx.fillStyle = mixColor(activeMode.glow, 0.48 - i * 0.08);
+          ctx.beginPath();
+          ctx.arc(ox, oy, radius * (0.06 - i * 0.01), 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        if (shelter.child) {
+          ctx.fillStyle = mixColor(activeMode.shell, 0.2);
+          ctx.beginPath();
+          ctx.ellipse(radius * 0.56, radius * 0.18, radius * 0.22, radius * 0.12, 0.5, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        ctx.restore();
+
+        ctx.save();
+        ctx.strokeStyle = mixColor(activeMode.glow, 0.08 + influence * 0.14);
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(shelter.x, topY);
+        ctx.quadraticCurveTo(
+          shelter.x + Math.sin(shelter.phase + time * 0.001) * 24,
+          shelter.y - shelter.stalk * 0.2,
+          shelter.x,
+          shelter.y + radius * 0.18
+        );
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      function drawMotes() {
+        motes.forEach((mote) => {
+          const driftX = Math.sin(time * 0.0003 * mote.speed + mote.phase) * 18 * mote.swing;
+          const driftY = Math.cos(time * 0.00026 * mote.speed + mote.phase) * 12 * mote.swing;
+          mote.y -= 0.18 + mote.z * 0.46 + activeMode.sway * 0.14;
+          mote.x += Math.sin(time * 0.0002 + mote.phase) * 0.3 + (pointer.x - w * 0.5) * 0.00002 * (mote.z + 0.2);
+          if (mote.y < -20) {
+            mote.y = h + 20;
+            mote.x = Math.random() * w;
+          }
+          if (mote.x < -20) mote.x = w + 20;
+          if (mote.x > w + 20) mote.x = -20;
+          ctx.fillStyle = mixColor(activeMode.particle, 0.08 + mote.z * 0.24);
+          ctx.beginPath();
+          ctx.ellipse(mote.x + driftX, mote.y + driftY, mote.size * (1 + mote.z), mote.size * 0.6, 0, 0, Math.PI * 2);
+          ctx.fill();
+        });
+      }
+
+      function drawRipples() {
+        for (let i = ripples.length - 1; i >= 0; i -= 1) {
+          const ripple = ripples[i];
+          ripple.r += 1.8 + activeMode.sway;
+          ripple.alpha *= 0.97;
+          ctx.strokeStyle = mixColor(activeMode.glow, ripple.alpha);
+          ctx.lineWidth = 1.4;
+          ctx.beginPath();
+          ctx.ellipse(ripple.x, ripple.y, ripple.r, ripple.r * 0.42, 0, 0, Math.PI * 2);
+          ctx.stroke();
+          if (ripple.r >= ripple.max || ripple.alpha < 0.02) {
+            ripples.splice(i, 1);
+          }
+        }
+      }
+
+      function render() {
+        time += 16;
+        pointer.x = ease(pointer.x, pointer.tx, 0.08);
+        pointer.y = ease(pointer.y, pointer.ty, 0.08);
+        climate = ease(climate, 0.28 + activeMode.warmth * 0.56 + (pointer.active ? 0.08 : 0), 0.04);
+        occupancy = ease(
+          occupancy,
+          0.44 + activeMode.pulse * 0.16 + (pointer.down ? 0.14 : 0) + Math.sin(time * 0.0006) * 0.04,
+          0.035
+        );
+
+        drawBackdrop();
+        drawMotes();
+        shelters.forEach(drawShelter);
+        drawRipples();
+        updateAnchors();
+
+        pressureValue.textContent = climate.toFixed(2);
+        occupancyValue.textContent = `${Math.round(occupancy * 100)}%`;
+        requestAnimationFrame(render);
+      }
+
+      window.addEventListener("pointermove", (event) => {
+        pointer.tx = event.clientX;
+        pointer.ty = event.clientY;
+        pointer.active = true;
+      });
+
+      window.addEventListener("pointerdown", (event) => {
+        pointer.tx = event.clientX;
+        pointer.ty = event.clientY;
+        pointer.down = true;
+        spawnRipple(event.clientX, event.clientY, 110);
+      });
+
+      window.addEventListener("pointerup", () => {
+        pointer.down = false;
+      });
+
+      window.addEventListener("pointerleave", () => {
+        pointer.active = false;
+        pointer.down = false;
+        pointer.tx = w * 0.52;
+        pointer.ty = h * 0.58;
+      });
+
+      window.addEventListener("resize", resize);
+
+      resize();
+      render();
+    </script>
+  </body>
+</html>

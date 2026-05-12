@@ -1,0 +1,596 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>#020 Mist Vane Choir</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg-top: #eef1f4;
+        --bg-bottom: #d8dce3;
+        --fog: rgba(255, 255, 255, 0.52);
+        --mist: rgba(248, 250, 255, 0.82);
+        --line: rgba(59, 69, 88, 0.12);
+        --text: #293141;
+        --muted: rgba(41, 49, 65, 0.62);
+        --teal: #86d6d2;
+        --mint: #c7efda;
+        --lavender: #b8b4ff;
+        --rose: #efb1c4;
+        --amber: #f7d19d;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        background:
+          radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.9), transparent 24%),
+          radial-gradient(circle at 78% 16%, rgba(199, 239, 218, 0.26), transparent 26%),
+          radial-gradient(circle at 68% 74%, rgba(184, 180, 255, 0.16), transparent 22%),
+          linear-gradient(180deg, var(--bg-top), var(--bg-bottom));
+        color: var(--text);
+        font-family: "Avenir Next", "Segoe UI", sans-serif;
+        overflow: hidden;
+      }
+
+      canvas {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        display: block;
+      }
+
+      .overlay {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+      }
+
+      .badge,
+      .footer,
+      .back {
+        position: absolute;
+        backdrop-filter: blur(18px);
+        background: rgba(255, 255, 255, 0.5);
+        border: 1px solid var(--line);
+        box-shadow: 0 18px 50px rgba(48, 57, 74, 0.1);
+      }
+
+      .badge {
+        top: 18px;
+        left: 18px;
+        width: min(28rem, calc(100vw - 36px));
+        padding: 14px 16px 15px;
+        border-radius: 22px;
+      }
+
+      .footer {
+        left: 18px;
+        right: 18px;
+        bottom: 18px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+        padding: 12px 14px;
+        border-radius: 18px;
+      }
+
+      .back {
+        top: 18px;
+        right: 18px;
+        padding: 10px 14px;
+        border-radius: 999px;
+        color: var(--text);
+        text-decoration: none;
+        pointer-events: auto;
+      }
+
+      .eyebrow,
+      .hint,
+      .mini,
+      .reading {
+        margin: 0;
+      }
+
+      .eyebrow,
+      .mini {
+        text-transform: uppercase;
+        letter-spacing: 0.16em;
+        font-size: 0.7rem;
+        color: rgba(41, 49, 65, 0.5);
+      }
+
+      h1 {
+        margin: 0.42rem 0 0.48rem;
+        font-size: clamp(2rem, 4vw, 3.5rem);
+        line-height: 0.92;
+        font-weight: 700;
+      }
+
+      .hint,
+      .reading {
+        color: var(--muted);
+        line-height: 1.46;
+        font-size: 0.95rem;
+        max-width: 46rem;
+      }
+
+      .reading {
+        font-size: 0.9rem;
+      }
+
+      .stats {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.9rem 1.4rem;
+      }
+
+      .stat strong {
+        display: block;
+        font-size: 0.78rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: rgba(41, 49, 65, 0.5);
+        margin-bottom: 0.2rem;
+      }
+
+      .stat span {
+        display: block;
+        font-size: 1rem;
+        color: var(--text);
+      }
+
+      @media (max-width: 720px) {
+        .footer {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+
+        .back {
+          top: auto;
+          right: 18px;
+          bottom: 104px;
+        }
+
+        h1 {
+          font-size: clamp(1.9rem, 10vw, 3rem);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="scene"></canvas>
+    <div class="overlay">
+      <section class="badge">
+        <p class="eyebrow">Code Animation Study #020</p>
+        <h1>Mist Vane Choir</h1>
+        <p class="hint">
+          A pale atmospheric branch for the translucent HTML lane: suspended
+          soft vanes, wet fibers, and foggy signal membranes drifting like a
+          weather instrument instead of another dark control organism.
+        </p>
+      </section>
+
+      <a class="back" href="../../index.html">Index</a>
+
+      <section class="footer" aria-label="Field reading">
+        <div class="stats">
+          <div class="stat">
+            <strong>Pressure front</strong>
+            <span id="pressureValue">resting</span>
+          </div>
+          <div class="stat">
+            <strong>Choir openness</strong>
+            <span id="opennessValue">0.41</span>
+          </div>
+          <div class="stat">
+            <strong>Fiber drift</strong>
+            <span id="driftValue">soft east</span>
+          </div>
+        </div>
+        <p class="reading" id="readingText">
+          Move slowly to comb the fog. Drag faster to send a pressure front
+          through the vanes and wake the lower choir into a brighter swell.
+        </p>
+      </section>
+    </div>
+    <script src="../../shared/study-notes.js"></script>
+
+    <script>
+      const canvas = document.getElementById("scene");
+      const ctx = canvas.getContext("2d");
+      const pressureValue = document.getElementById("pressureValue");
+      const opennessValue = document.getElementById("opennessValue");
+      const driftValue = document.getElementById("driftValue");
+      const readingText = document.getElementById("readingText");
+
+      const TAU = Math.PI * 2;
+      const vanes = [];
+      const fibers = [];
+      const motes = [];
+      const fronts = [];
+
+      let width = window.innerWidth;
+      let height = window.innerHeight;
+      let dpr = Math.min(window.devicePixelRatio || 1, 2);
+      let time = 0;
+
+      const pointer = {
+        x: 0.5,
+        y: 0.45,
+        tx: 0.5,
+        ty: 0.45,
+        active: false,
+        energy: 0.12,
+        speed: 0,
+        lastX: 0.5,
+        lastY: 0.45,
+        pulse: 0,
+      };
+
+      function rand(min, max) {
+        return min + Math.random() * (max - min);
+      }
+
+      function clamp(value, min, max) {
+        return Math.max(min, Math.min(max, value));
+      }
+
+      function mix(a, b, t) {
+        return a + (b - a) * t;
+      }
+
+      function createPalette(index) {
+        const palettes = [
+          ["#86d6d2", "#c7efda", "#f7d19d"],
+          ["#b8b4ff", "#86d6d2", "#ffffff"],
+          ["#efb1c4", "#f7d19d", "#c7efda"],
+          ["#b3d8ee", "#ffffff", "#b8b4ff"],
+        ];
+        return palettes[index % palettes.length];
+      }
+
+      function buildScene() {
+        vanes.length = 0;
+        fibers.length = 0;
+        motes.length = 0;
+
+        const vaneCount = Math.max(18, Math.round(width / 64));
+        const fiberCount = Math.max(72, Math.round(width / 20));
+        const moteCount = Math.max(90, Math.round(width / 10));
+
+        for (let i = 0; i < vaneCount; i += 1) {
+          vanes.push({
+            x: rand(0.08, 0.92),
+            y: rand(0.12, 0.84),
+            size: rand(0.05, 0.12),
+            stretch: rand(0.7, 1.45),
+            phase: rand(0, TAU),
+            sway: rand(0.4, 1.2),
+            openness: rand(0.3, 1),
+            hue: createPalette(i),
+            depth: rand(0.35, 1),
+          });
+        }
+
+        for (let i = 0; i < fiberCount; i += 1) {
+          fibers.push({
+            x: rand(0, 1),
+            y: rand(0.05, 0.98),
+            length: rand(0.08, 0.22),
+            slant: rand(-0.08, 0.08),
+            weight: rand(0.4, 1.4),
+            phase: rand(0, TAU),
+            depth: rand(0.2, 1),
+          });
+        }
+
+        for (let i = 0; i < moteCount; i += 1) {
+          motes.push({
+            x: rand(0, 1),
+            y: rand(0.02, 1),
+            radius: rand(0.8, 3.8),
+            drift: rand(0.2, 1.1),
+            phase: rand(0, TAU),
+            alpha: rand(0.18, 0.65),
+          });
+        }
+      }
+
+      function resize() {
+        width = window.innerWidth;
+        height = window.innerHeight;
+        dpr = Math.min(window.devicePixelRatio || 1, 2);
+        canvas.width = width * dpr;
+        canvas.height = height * dpr;
+        canvas.style.width = `${width}px`;
+        canvas.style.height = `${height}px`;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        buildScene();
+      }
+
+      function setPointer(clientX, clientY) {
+        const nx = clamp(clientX / width, 0, 1);
+        const ny = clamp(clientY / height, 0, 1);
+        const dx = nx - pointer.lastX;
+        const dy = ny - pointer.lastY;
+        pointer.speed = Math.min(1, Math.hypot(dx, dy) * 24);
+        pointer.lastX = nx;
+        pointer.lastY = ny;
+        pointer.tx = nx;
+        pointer.ty = ny;
+        pointer.active = true;
+      }
+
+      function releasePointer() {
+        pointer.active = false;
+      }
+
+      function pushFront(force = 1) {
+        fronts.push({
+          x: pointer.x,
+          y: pointer.y,
+          radius: Math.min(width, height) * 0.04,
+          speed: rand(3.2, 4.8) * force,
+          alpha: 0.34 * force,
+        });
+        pointer.pulse = 1;
+      }
+
+      function attachEvents() {
+        window.addEventListener("resize", resize);
+        window.addEventListener("pointermove", (event) => {
+          setPointer(event.clientX, event.clientY);
+        });
+        window.addEventListener("pointerdown", (event) => {
+          setPointer(event.clientX, event.clientY);
+          pushFront(1.18);
+        });
+        window.addEventListener("pointerleave", releasePointer);
+        window.addEventListener("pointerup", () => {
+          pointer.active = false;
+        });
+        window.addEventListener("touchend", () => {
+          pointer.active = false;
+        });
+        window.addEventListener("keydown", (event) => {
+          if (event.code === "Space") {
+            event.preventDefault();
+            pushFront(1.28);
+          }
+        });
+      }
+
+      function drawBackdrop() {
+        const sky = ctx.createLinearGradient(0, 0, 0, height);
+        sky.addColorStop(0, "#eef1f4");
+        sky.addColorStop(0.52, "#e4e8ee");
+        sky.addColorStop(1, "#d8dce3");
+        ctx.fillStyle = sky;
+        ctx.fillRect(0, 0, width, height);
+
+        const glow = ctx.createRadialGradient(
+          width * mix(0.24, 0.72, pointer.x),
+          height * mix(0.18, 0.36, pointer.y),
+          0,
+          width * mix(0.24, 0.72, pointer.x),
+          height * mix(0.18, 0.36, pointer.y),
+          width * 0.48,
+        );
+        glow.addColorStop(0, "rgba(255,255,255,0.46)");
+        glow.addColorStop(1, "rgba(255,255,255,0)");
+        ctx.fillStyle = glow;
+        ctx.fillRect(0, 0, width, height);
+
+        ctx.fillStyle = "rgba(255,255,255,0.16)";
+        ctx.fillRect(0, 0, width, height);
+      }
+
+      function drawMotes() {
+        for (const mote of motes) {
+          const x =
+            mote.x * width +
+            Math.sin(time * 0.00018 * mote.drift + mote.phase) * 24;
+          const y =
+            (mote.y * height +
+              time * 0.012 * mote.drift +
+              Math.cos(time * 0.0002 + mote.phase) * 8) %
+            (height + 30);
+          ctx.beginPath();
+          ctx.fillStyle = `rgba(255,255,255,${mote.alpha})`;
+          ctx.arc(x, y, mote.radius, 0, TAU);
+          ctx.fill();
+        }
+      }
+
+      function drawFronts() {
+        for (let i = fronts.length - 1; i >= 0; i -= 1) {
+          const front = fronts[i];
+          front.radius += front.speed;
+          front.alpha *= 0.972;
+
+          ctx.beginPath();
+          ctx.lineWidth = 1.1;
+          ctx.strokeStyle = `rgba(255,255,255,${front.alpha})`;
+          ctx.ellipse(
+            front.x * width,
+            front.y * height,
+            front.radius * 1.1,
+            front.radius * 0.6,
+            Math.sin(time * 0.0005 + front.x * 4) * 0.24,
+            0,
+            TAU,
+          );
+          ctx.stroke();
+
+          if (front.alpha < 0.015) {
+            fronts.splice(i, 1);
+          }
+        }
+      }
+
+      function drawFibers() {
+        ctx.lineCap = "round";
+
+        for (const fiber of fibers) {
+          const baseX = fiber.x * width;
+          const baseY = fiber.y * height;
+          const drift =
+            Math.sin(time * 0.0006 + fiber.phase) * 18 * fiber.depth +
+            (pointer.x - fiber.x) * 22 * pointer.energy * fiber.depth;
+          const lift =
+            Math.cos(time * 0.00045 + fiber.phase) * 8 +
+            (pointer.y - fiber.y) * 10 * pointer.energy;
+          const length = fiber.length * height;
+
+          ctx.beginPath();
+          ctx.lineWidth = fiber.weight;
+          ctx.strokeStyle = `rgba(255,255,255,${0.16 + fiber.depth * 0.18})`;
+          ctx.moveTo(baseX, baseY);
+          ctx.bezierCurveTo(
+            baseX + drift * 0.2,
+            baseY - length * 0.24 + lift,
+            baseX + drift * 0.7 + fiber.slant * width,
+            baseY + length * 0.32,
+            baseX + drift,
+            baseY + length,
+          );
+          ctx.stroke();
+        }
+      }
+
+      function drawVane(vane) {
+        const px = pointer.x;
+        const py = pointer.y;
+        const dx = px - vane.x;
+        const dy = py - vane.y;
+        const distance = Math.hypot(dx * 1.05, dy * 1.4);
+        const influence = Math.max(0, 1 - distance * 2.2);
+        const openness =
+          vane.openness +
+          Math.sin(time * 0.0012 * vane.sway + vane.phase) * 0.18 +
+          influence * (0.55 + pointer.speed * 0.4) +
+          pointer.pulse * 0.16;
+        const bend =
+          Math.sin(time * 0.001 + vane.phase) * 0.18 +
+          dx * 0.7 * pointer.energy +
+          influence * 0.16;
+        const cx = vane.x * width;
+        const cy = vane.y * height;
+        const size = vane.size * Math.min(width, height) * vane.depth;
+        const halfW = size * (0.42 + openness * 0.32);
+        const halfH = size * vane.stretch * (0.78 + openness * 0.3);
+        const angle = bend;
+
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(angle);
+
+        const fill = ctx.createLinearGradient(0, -halfH, 0, halfH);
+        fill.addColorStop(0, `${vane.hue[0]}88`);
+        fill.addColorStop(0.5, `${vane.hue[1]}a8`);
+        fill.addColorStop(1, `${vane.hue[2]}66`);
+
+        ctx.beginPath();
+        ctx.moveTo(0, -halfH);
+        ctx.bezierCurveTo(halfW, -halfH * 0.6, halfW, halfH * 0.36, 0, halfH);
+        ctx.bezierCurveTo(-halfW, halfH * 0.36, -halfW, -halfH * 0.6, 0, -halfH);
+        ctx.closePath();
+        ctx.fillStyle = fill;
+        ctx.shadowColor = "rgba(255,255,255,0.22)";
+        ctx.shadowBlur = 26 * vane.depth;
+        ctx.fill();
+
+        ctx.shadowBlur = 0;
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = `rgba(255,255,255,${0.42 + influence * 0.22})`;
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(0, -halfH * 0.88);
+        ctx.quadraticCurveTo(
+          halfW * 0.08,
+          0,
+          halfW * 0.05 + bend * 10,
+          halfH * 0.9,
+        );
+        ctx.strokeStyle = "rgba(255,255,255,0.42)";
+        ctx.stroke();
+
+        ctx.restore();
+      }
+
+      function drawChoir() {
+        ctx.globalCompositeOperation = "source-over";
+        for (const vane of vanes) {
+          drawVane(vane);
+        }
+      }
+
+      function updateReadout() {
+        const driftX = pointer.x - 0.5;
+        const driftY = pointer.y - 0.5;
+        const openness = clamp(0.34 + pointer.energy * 0.42 + pointer.speed * 0.26, 0, 1);
+
+        let pressure = "resting";
+        if (pointer.speed > 0.22) pressure = "advancing";
+        if (pointer.speed > 0.46) pressure = "gusting";
+        if (pointer.pulse > 0.48) pressure = "ringing";
+
+        let drift = "soft east";
+        if (driftX < -0.18) drift = "west pull";
+        else if (driftX > 0.18) drift = "east pull";
+        if (driftY < -0.18) drift = "updraft";
+        else if (driftY > 0.22) drift = "low sweep";
+
+        pressureValue.textContent = pressure;
+        opennessValue.textContent = openness.toFixed(2);
+        driftValue.textContent = drift;
+
+        if (pointer.pulse > 0.4) {
+          readingText.textContent =
+            "Pulse ring moving. The lower vanes have opened into a brighter oval while the far fibers keep their slower weather.";
+        } else if (pointer.speed > 0.3) {
+          readingText.textContent =
+            "Fast drag sends a shallow front through the choir. Nearby cells widen first, then the wake softens into loose fog.";
+        } else if (pointer.active) {
+          readingText.textContent =
+            "The field is following your hand as one pressure map: near vanes lean wider while the higher fog stays lazy and translucent.";
+        } else {
+          readingText.textContent =
+            "Move slowly to comb the fog. Drag faster to send a pressure front through the vanes and wake the lower choir into a brighter swell.";
+        }
+      }
+
+      function render() {
+        time += 16;
+
+        pointer.x = mix(pointer.x, pointer.tx, 0.06);
+        pointer.y = mix(pointer.y, pointer.ty, 0.06);
+        pointer.energy = mix(pointer.energy, pointer.active ? 0.34 + pointer.speed * 0.4 : 0.1, 0.05);
+        pointer.pulse *= 0.95;
+
+        drawBackdrop();
+        drawMotes();
+        drawFibers();
+        drawChoir();
+        drawFronts();
+        updateReadout();
+
+        requestAnimationFrame(render);
+      }
+
+      resize();
+      attachEvents();
+      render();
+    </script>
+  </body>
+</html>

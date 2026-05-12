@@ -1,0 +1,1183 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>#049 Signal Husk Dossier</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #05070a;
+        --panel: rgba(10, 14, 19, 0.82);
+        --panel-strong: rgba(11, 17, 23, 0.94);
+        --line: rgba(131, 187, 202, 0.24);
+        --line-strong: rgba(131, 187, 202, 0.46);
+        --text: #d6dde1;
+        --muted: #809099;
+        --cyan: #82d7ea;
+        --magenta: #ff6b97;
+        --amber: #efbb7f;
+        --acid: #d1ef62;
+        --ink-red: #7f2435;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        background:
+          radial-gradient(circle at 50% 16%, rgba(40, 58, 69, 0.42), transparent 26%),
+          radial-gradient(circle at 82% 30%, rgba(127, 36, 53, 0.24), transparent 24%),
+          radial-gradient(circle at 18% 82%, rgba(20, 71, 82, 0.2), transparent 26%),
+          linear-gradient(180deg, #0b0f13 0%, #05070a 44%, #020305 100%);
+        color: var(--text);
+        font-family: "Avenir Next Condensed", "Trebuchet MS", "Arial Narrow", sans-serif;
+      }
+
+      body {
+        overflow-x: hidden;
+      }
+
+      body::before,
+      body::after,
+      #particles {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+      }
+
+      body::before {
+        content: "";
+        opacity: 0.18;
+        background-image:
+          linear-gradient(rgba(124, 160, 171, 0.08) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(124, 160, 171, 0.08) 1px, transparent 1px);
+        background-size: min(4.6vw, 42px) min(4.6vw, 42px);
+        mask-image: radial-gradient(circle at 50% 50%, black 34%, transparent 92%);
+      }
+
+      body::after {
+        content: "";
+        opacity: 0.05;
+        background-image:
+          linear-gradient(rgba(255, 255, 255, 0.9) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.9) 1px, transparent 1px);
+        background-size: 3px 3px;
+        mix-blend-mode: screen;
+      }
+
+      #particles {
+        width: 100%;
+        height: 100%;
+      }
+
+      main {
+        position: relative;
+        z-index: 1;
+        width: min(1240px, calc(100% - 24px));
+        margin: 0 auto;
+        padding: 18px 0 28px;
+      }
+
+      .topline {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 0 6px 14px;
+        color: var(--muted);
+        font-size: 0.76rem;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+      }
+
+      .board {
+        display: grid;
+        grid-template-columns: minmax(0, 1.26fr) minmax(300px, 0.74fr);
+        gap: 16px;
+        min-height: 78vh;
+      }
+
+      .panel,
+      .stack,
+      .footer-card {
+        position: relative;
+        border: 1px solid rgba(123, 174, 188, 0.18);
+        border-radius: 28px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent 24%),
+          linear-gradient(180deg, rgba(8, 11, 15, 0.84), rgba(6, 9, 12, 0.96));
+        box-shadow:
+          0 26px 80px rgba(0, 0, 0, 0.42),
+          inset 0 0 0 1px rgba(255, 255, 255, 0.025);
+        overflow: hidden;
+      }
+
+      .panel::before,
+      .stack::before,
+      .footer-card::before {
+        content: "";
+        position: absolute;
+        inset: 12px;
+        border: 1px solid rgba(115, 157, 170, 0.12);
+        border-radius: 22px;
+        pointer-events: none;
+      }
+
+      .panel {
+        min-height: 78vh;
+      }
+
+      .stack {
+        display: grid;
+        gap: 16px;
+        align-content: start;
+        padding: 16px;
+      }
+
+      .stage-copy,
+      .card {
+        position: relative;
+        z-index: 1;
+      }
+
+      .stage-copy {
+        position: absolute;
+        inset: 20px 20px auto 20px;
+        display: flex;
+        justify-content: space-between;
+        gap: 14px;
+        pointer-events: none;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+
+      h1 {
+        max-width: 8ch;
+        font-size: clamp(1.6rem, 2.2vw, 2.4rem);
+        line-height: 0.95;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+      }
+
+      .eyebrow,
+      .tiny,
+      .label,
+      .chip,
+      .meter-value,
+      .back {
+        font-family: "Azeret Mono", "IBM Plex Mono", "SFMono-Regular", monospace;
+      }
+
+      .eyebrow,
+      .tiny,
+      .label {
+        font-size: 0.72rem;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      .stage-copy p {
+        max-width: 20rem;
+        color: #b3c0c6;
+        font-size: 0.84rem;
+        line-height: 1.46;
+        text-align: right;
+      }
+
+      .hero-svg {
+        display: block;
+        width: 100%;
+        height: 100%;
+        min-height: 78vh;
+      }
+
+      .card {
+        padding: 16px 16px 14px;
+        border: 1px solid rgba(115, 157, 170, 0.16);
+        border-radius: 22px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 24%),
+          var(--panel);
+        backdrop-filter: blur(12px);
+      }
+
+      .card h2,
+      .card h3 {
+        font-size: 0.8rem;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+      }
+
+      .card p {
+        margin-top: 10px;
+        color: #b7c0c5;
+        line-height: 1.5;
+        font-size: 0.94rem;
+      }
+
+      .meters,
+      .notes,
+      .swatches {
+        display: grid;
+        gap: 10px;
+      }
+
+      .meter {
+        display: grid;
+        grid-template-columns: 86px 1fr 40px;
+        gap: 10px;
+        align-items: center;
+      }
+
+      .bar {
+        height: 10px;
+        border-radius: 999px;
+        overflow: hidden;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(115, 157, 170, 0.14);
+      }
+
+      .fill {
+        height: 100%;
+        width: 40%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, rgba(130, 215, 234, 0.18), rgba(255, 107, 151, 0.68));
+        transform-origin: left center;
+      }
+
+      .meter-value {
+        font-size: 0.76rem;
+        color: #cad5d9;
+        text-align: right;
+      }
+
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .chip {
+        border: 1px solid rgba(123, 174, 188, 0.16);
+        border-radius: 999px;
+        padding: 10px 12px;
+        background: rgba(255, 255, 255, 0.03);
+        color: var(--text);
+        font-size: 0.72rem;
+        letter-spacing: 0.13em;
+        text-transform: uppercase;
+        cursor: pointer;
+        transition:
+          transform 180ms ease,
+          border-color 180ms ease,
+          background 180ms ease;
+      }
+
+      .chip:hover,
+      .chip:focus-visible {
+        outline: none;
+        transform: translateY(-1px);
+        border-color: rgba(123, 174, 188, 0.34);
+      }
+
+      .chip.active {
+        border-color: rgba(123, 174, 188, 0.38);
+        background:
+          linear-gradient(90deg, rgba(130, 215, 234, 0.1), rgba(255, 107, 151, 0.12)),
+          rgba(255, 255, 255, 0.05);
+      }
+
+      .swatch-row {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 10px;
+        align-items: center;
+        font-size: 0.84rem;
+        color: #b7c0c5;
+      }
+
+      .swatch {
+        width: 40px;
+        height: 10px;
+        border-radius: 999px;
+      }
+
+      .swatch.cyan {
+        background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+      }
+
+      .swatch.magenta {
+        background: linear-gradient(90deg, transparent, var(--magenta), transparent);
+      }
+
+      .swatch.amber {
+        background: linear-gradient(90deg, transparent, var(--amber), transparent);
+      }
+
+      .swatch.acid {
+        background: linear-gradient(90deg, transparent, var(--acid), transparent);
+      }
+
+      .footer {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 16px;
+        margin-top: 16px;
+      }
+
+      .footer-card {
+        padding: 16px;
+      }
+
+      .footer-card p {
+        margin-top: 10px;
+        color: #b7c0c5;
+        line-height: 1.52;
+      }
+
+      .back {
+        position: fixed;
+        right: 16px;
+        bottom: 16px;
+        z-index: 3;
+        border: 1px solid rgba(123, 174, 188, 0.18);
+        border-radius: 999px;
+        padding: 11px 14px;
+        color: var(--text);
+        text-decoration: none;
+        background: rgba(7, 10, 14, 0.8);
+        backdrop-filter: blur(14px);
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        font-size: 0.7rem;
+      }
+
+      @media (max-width: 1080px) {
+        .board,
+        .footer {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .panel {
+          min-height: 70vh;
+        }
+
+        .hero-svg {
+          min-height: 70vh;
+        }
+      }
+
+      @media (max-width: 760px) {
+        main {
+          width: min(100%, calc(100% - 12px));
+          padding-top: 12px;
+        }
+
+        .topline {
+          padding-inline: 4px;
+        }
+
+        .stage-copy {
+          inset: 16px 16px auto 16px;
+          flex-direction: column;
+        }
+
+        .stage-copy p {
+          max-width: none;
+          text-align: left;
+        }
+
+        .stack,
+        .footer-card {
+          padding: 14px;
+        }
+
+        .card {
+          padding: 14px;
+        }
+
+        .meter {
+          grid-template-columns: 78px 1fr 34px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="particles"></canvas>
+
+    <main>
+      <div class="topline">
+        <span>#049 generated animation</span>
+        <span>browser-native SVG + canvas dossier</span>
+      </div>
+
+      <section class="board">
+        <article class="panel">
+          <div class="stage-copy">
+            <div>
+              <p class="eyebrow">Code Animation Study #049</p>
+              <h1>Signal Husk Dossier</h1>
+            </div>
+            <p>
+              A darker illustrated control folio for one grounded three-dot
+              organism, with embedded seams, bead feelers, and clocked handoff
+              windows so the page reads like a usable specimen dossier instead
+              of another detached dashboard or pale greenhouse atlas.
+            </p>
+          </div>
+
+          <svg class="hero-svg" viewBox="0 0 960 820" aria-label="Animated signal husk dossier scene">
+            <defs>
+              <linearGradient id="spineGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#78d3e7" stop-opacity="0.1"></stop>
+                <stop offset="48%" stop-color="#ff6b97" stop-opacity="0.82"></stop>
+                <stop offset="100%" stop-color="#efbb7f" stop-opacity="0.16"></stop>
+              </linearGradient>
+              <linearGradient id="plateFade" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stop-color="#121922" stop-opacity="0.94"></stop>
+                <stop offset="100%" stop-color="#090d12" stop-opacity="0.98"></stop>
+              </linearGradient>
+              <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
+                <feGaussianBlur stdDeviation="7" result="blur"></feGaussianBlur>
+                <feMerge>
+                  <feMergeNode in="blur"></feMergeNode>
+                  <feMergeNode in="SourceGraphic"></feMergeNode>
+                </feMerge>
+              </filter>
+            </defs>
+
+            <rect x="28" y="26" width="904" height="768" rx="32" fill="url(#plateFade)" stroke="rgba(132,186,201,0.16)"></rect>
+
+            <g id="gridRings" opacity="0.54"></g>
+            <g id="annotationTrails" opacity="0.82"></g>
+
+            <g transform="translate(118 112)">
+              <rect x="0" y="0" width="476" height="572" rx="32" fill="rgba(10, 15, 20, 0.64)" stroke="rgba(129,187,202,0.16)"></rect>
+              <rect x="18" y="18" width="440" height="536" rx="26" fill="none" stroke="rgba(129,187,202,0.09)"></rect>
+
+              <g id="bodyGroup" transform="translate(72 46)">
+                <path id="bodyAura" d="" fill="rgba(255,107,151,0.07)" filter="url(#softGlow)"></path>
+                <path id="backPetal" d="" fill="rgba(130,215,234,0.08)" stroke="rgba(130,215,234,0.12)"></path>
+                <path id="bodyShell" d="" fill="rgba(13,19,25,0.9)" stroke="rgba(129,187,202,0.3)" stroke-width="2"></path>
+                <path id="bellySeam" d="" fill="none" stroke="rgba(255,107,151,0.42)" stroke-width="2.2" stroke-linecap="round"></path>
+                <path id="rootLeft" d="" fill="none" stroke="rgba(239,187,127,0.72)" stroke-width="5" stroke-linecap="round"></path>
+                <path id="rootRight" d="" fill="none" stroke="rgba(239,187,127,0.72)" stroke-width="5" stroke-linecap="round"></path>
+                <path id="spineTrace" d="" fill="none" stroke="url(#spineGlow)" stroke-width="14" stroke-linecap="round" filter="url(#softGlow)"></path>
+                <path id="spineLine" d="" fill="none" stroke="rgba(130,215,234,0.92)" stroke-width="2.4" stroke-linecap="round"></path>
+                <g id="beads"></g>
+                <g id="feelers"></g>
+                <g id="face">
+                  <circle id="eyeLeft" cx="0" cy="0" r="7" fill="#d7f5ff"></circle>
+                  <circle id="eyeMid" cx="0" cy="0" r="6.4" fill="#f8d5df"></circle>
+                  <circle id="eyeRight" cx="0" cy="0" r="7" fill="#d7f5ff"></circle>
+                  <path id="mouth" d="" fill="none" stroke="rgba(239,187,127,0.88)" stroke-width="2.4" stroke-linecap="round"></path>
+                </g>
+                <g id="ticks"></g>
+              </g>
+
+              <g id="stabilityRow"></g>
+            </g>
+
+            <g transform="translate(626 116)">
+              <rect x="0" y="0" width="210" height="164" rx="24" fill="rgba(8, 12, 18, 0.86)" stroke="rgba(129,187,202,0.16)"></rect>
+              <rect x="0" y="194" width="210" height="198" rx="24" fill="rgba(8, 12, 18, 0.82)" stroke="rgba(129,187,202,0.16)"></rect>
+              <rect x="0" y="420" width="210" height="170" rx="24" fill="rgba(8, 12, 18, 0.8)" stroke="rgba(129,187,202,0.16)"></rect>
+
+              <g id="microPanel"></g>
+              <g id="routePanel"></g>
+              <g id="ledgerPanel"></g>
+            </g>
+          </svg>
+        </article>
+
+        <aside class="stack">
+          <section class="card">
+            <p class="tiny">Phase overrides</p>
+            <div class="chips" id="chips"></div>
+            <p class="tiny" style="margin-top: 12px">
+              The page runs on a repeating relay cycle: hold, sift, then flare.
+              Move across the board to bias the current window locally. Press
+              or drag to make the husk brace harder during the active handoff.
+            </p>
+          </section>
+
+          <section class="card">
+            <h2>Field readouts</h2>
+            <div class="meters">
+              <div class="meter">
+                <span class="label">Bracing</span>
+                <div class="bar"><div class="fill" id="braceFill"></div></div>
+                <span class="meter-value" id="braceValue">0.32</span>
+              </div>
+              <div class="meter">
+                <span class="label">Drift</span>
+                <div class="bar"><div class="fill" id="driftFill"></div></div>
+                <span class="meter-value" id="driftValue">0.18</span>
+              </div>
+              <div class="meter">
+                <span class="label">Bloom</span>
+                <div class="bar"><div class="fill" id="bloomFill"></div></div>
+                <span class="meter-value" id="bloomValue">0.41</span>
+              </div>
+            </div>
+          </section>
+
+          <section class="card">
+            <h2>Channel palette</h2>
+            <div class="swatches">
+              <div class="swatch-row"><span class="swatch cyan"></span><span>Cold route memory and local seam drift.</span></div>
+              <div class="swatch-row"><span class="swatch magenta"></span><span>Inner pressure running through the husk spine.</span></div>
+              <div class="swatch-row"><span class="swatch amber"></span><span>Ground contact and plausible lower-body support.</span></div>
+              <div class="swatch-row"><span class="swatch acid"></span><span>Small calibration points, never a full green wash.</span></div>
+            </div>
+          </section>
+
+          <section class="card">
+            <h2>Why this branch</h2>
+            <p>
+              Recent feedback kept asking for something more design-usable and
+              closer to a real HTML interface image, while also rejecting
+              creature anatomy that feels implausible or decorative. This page
+              keeps a stronger dossier/interface language but anchors it in one
+              body with believable weight, mirrored support, and timed phase
+              handoffs instead of masks, extra limbs, or detached panels.
+            </p>
+          </section>
+        </aside>
+      </section>
+
+      <section class="footer">
+        <article class="footer-card">
+          <p class="eyebrow">Idea</p>
+          <p>
+            A dark browser-native dossier where one grounded signal husk sits in
+            a specimen plate, and the interface logic is embedded in its seams,
+            feelers, stability marks, and side ledgers, with scheduled release
+            windows instead of a separate dashboard.
+          </p>
+        </article>
+        <article class="footer-card">
+          <p class="eyebrow">Interaction</p>
+          <p>
+            A repeating relay cycle hands the body through hold, sift, and
+            flare phases. Pointer position only biases the active window
+            locally, while pressing the board adds a short brace pulse that
+            widens the stance and spikes the bead threads in place.
+          </p>
+        </article>
+        <article class="footer-card">
+          <p class="eyebrow">Next</p>
+          <p>
+            Push this dossier language into a larger field manual with a few
+            neighboring species, or keep the same single-body page and make the
+            relay timetable editable through text or live external events.
+          </p>
+        </article>
+      </section>
+    </main>
+
+    <a class="back" href="../../index.html">Back to index</a>
+
+    <script>
+      const svg = document.querySelector(".hero-svg");
+      const canvas = document.getElementById("particles");
+      const ctx = canvas.getContext("2d");
+      const bodyShell = document.getElementById("bodyShell");
+      const backPetal = document.getElementById("backPetal");
+      const bodyAura = document.getElementById("bodyAura");
+      const bellySeam = document.getElementById("bellySeam");
+      const rootLeft = document.getElementById("rootLeft");
+      const rootRight = document.getElementById("rootRight");
+      const spineTrace = document.getElementById("spineTrace");
+      const spineLine = document.getElementById("spineLine");
+      const beadsGroup = document.getElementById("beads");
+      const feelersGroup = document.getElementById("feelers");
+      const ticksGroup = document.getElementById("ticks");
+      const stabilityRow = document.getElementById("stabilityRow");
+      const gridRings = document.getElementById("gridRings");
+      const annotationTrails = document.getElementById("annotationTrails");
+      const microPanel = document.getElementById("microPanel");
+      const routePanel = document.getElementById("routePanel");
+      const ledgerPanel = document.getElementById("ledgerPanel");
+      const eyeLeft = document.getElementById("eyeLeft");
+      const eyeMid = document.getElementById("eyeMid");
+      const eyeRight = document.getElementById("eyeRight");
+      const mouth = document.getElementById("mouth");
+
+      const braceFill = document.getElementById("braceFill");
+      const driftFill = document.getElementById("driftFill");
+      const bloomFill = document.getElementById("bloomFill");
+      const braceValue = document.getElementById("braceValue");
+      const driftValue = document.getElementById("driftValue");
+      const bloomValue = document.getElementById("bloomValue");
+
+      const modes = [
+        { id: "brace", label: "Brace" },
+        { id: "sift", label: "Sift" },
+        { id: "flare", label: "Flare" },
+      ];
+
+      const state = {
+        pointerX: 0.5,
+        pointerY: 0.52,
+        press: 0,
+        pressTarget: 0,
+        drift: 0.18,
+        mode: "brace",
+        phase: 0,
+      };
+
+      const particles = [];
+
+      function resizeCanvas() {
+        const ratio = window.devicePixelRatio || 1;
+        canvas.width = Math.floor(window.innerWidth * ratio);
+        canvas.height = Math.floor(window.innerHeight * ratio);
+        canvas.style.width = `${window.innerWidth}px`;
+        canvas.style.height = `${window.innerHeight}px`;
+        ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+      }
+
+      function seededNoise(n) {
+        return Math.sin(n * 13.123 + 0.71) * 0.5 + 0.5;
+      }
+
+      function pathFrom(points) {
+        return points.map((point, index) => `${index === 0 ? "M" : "C"} ${point.join(" ")}`).join(" ");
+      }
+
+      function cubicPath(start, cp1, cp2, end) {
+        return `M ${start[0]} ${start[1]} C ${cp1[0]} ${cp1[1]} ${cp2[0]} ${cp2[1]} ${end[0]} ${end[1]}`;
+      }
+
+      function setupStaticGroups() {
+        for (let i = 0; i < 18; i += 1) {
+          const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+          circle.setAttribute("cx", String(144 + (i % 6) * 62 + (i / 6 | 0) * 8));
+          circle.setAttribute("cy", String(122 + (i / 6 | 0) * 122));
+          circle.setAttribute("r", String(i % 3 === 0 ? 34 : 18));
+          circle.setAttribute("fill", "none");
+          circle.setAttribute("stroke", i % 3 === 0 ? "rgba(130,215,234,0.12)" : "rgba(255,107,151,0.08)");
+          circle.setAttribute("stroke-width", i % 3 === 0 ? "1.2" : "1");
+          gridRings.appendChild(circle);
+        }
+
+        for (let i = 0; i < 16; i += 1) {
+          const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+          path.dataset.index = String(i);
+          path.setAttribute("fill", "none");
+          path.setAttribute("stroke-width", i % 2 === 0 ? "1.3" : "0.9");
+          path.setAttribute("stroke", i % 2 === 0 ? "rgba(130,215,234,0.28)" : "rgba(255,107,151,0.2)");
+          path.setAttribute("stroke-linecap", "round");
+          annotationTrails.appendChild(path);
+        }
+
+        for (let i = 0; i < 9; i += 1) {
+          const bead = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+          bead.dataset.index = String(i);
+          bead.setAttribute("r", i === 4 ? "6.5" : "5.2");
+          bead.setAttribute("fill", i % 2 === 0 ? "rgba(130,215,234,0.86)" : "rgba(239,187,127,0.78)");
+          bead.setAttribute("filter", "url(#softGlow)");
+          beadsGroup.appendChild(bead);
+        }
+
+        for (let i = 0; i < 5; i += 1) {
+          const feeler = document.createElementNS("http://www.w3.org/2000/svg", "path");
+          feeler.dataset.index = String(i);
+          feeler.setAttribute("fill", "none");
+          feeler.setAttribute("stroke", i % 2 === 0 ? "rgba(130,215,234,0.48)" : "rgba(239,187,127,0.44)");
+          feeler.setAttribute("stroke-width", i === 2 ? "2.1" : "1.5");
+          feeler.setAttribute("stroke-linecap", "round");
+          feelersGroup.appendChild(feeler);
+        }
+
+        for (let i = 0; i < 11; i += 1) {
+          const tick = document.createElementNS("http://www.w3.org/2000/svg", "path");
+          tick.dataset.index = String(i);
+          tick.setAttribute("fill", "none");
+          tick.setAttribute("stroke", "rgba(209,239,98,0.56)");
+          tick.setAttribute("stroke-width", i % 3 === 0 ? "1.5" : "1");
+          tick.setAttribute("stroke-linecap", "round");
+          ticksGroup.appendChild(tick);
+        }
+
+        for (let i = 0; i < 6; i += 1) {
+          const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
+          group.dataset.index = String(i);
+
+          const line = document.createElementNS("http://www.w3.org/2000/svg", "path");
+          line.setAttribute("fill", "none");
+          line.setAttribute("stroke", i % 2 === 0 ? "rgba(130,215,234,0.32)" : "rgba(255,107,151,0.28)");
+          line.setAttribute("stroke-width", "1.4");
+          line.setAttribute("stroke-linecap", "round");
+
+          const node = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+          node.setAttribute("r", i === 2 ? "4.6" : "3.3");
+          node.setAttribute("fill", i % 2 === 0 ? "rgba(130,215,234,0.9)" : "rgba(239,187,127,0.82)");
+
+          group.appendChild(line);
+          group.appendChild(node);
+          stabilityRow.appendChild(group);
+        }
+
+        {
+          const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+          label.setAttribute("x", "18");
+          label.setAttribute("y", "26");
+          label.setAttribute("fill", "#809099");
+          label.setAttribute("font-size", "11");
+          label.setAttribute("letter-spacing", "2.4");
+          label.textContent = "MICRO DRIFT";
+          microPanel.appendChild(label);
+
+          const frame = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+          frame.setAttribute("x", "18");
+          frame.setAttribute("y", "38");
+          frame.setAttribute("width", "174");
+          frame.setAttribute("height", "92");
+          frame.setAttribute("rx", "18");
+          frame.setAttribute("fill", "rgba(255,255,255,0.03)");
+          frame.setAttribute("stroke", "rgba(129,187,202,0.1)");
+          microPanel.appendChild(frame);
+        }
+
+        for (let i = 0; i < 10; i += 1) {
+          const dot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+          dot.dataset.index = String(i);
+          dot.setAttribute("r", i % 3 === 0 ? "2.8" : "2.2");
+          dot.setAttribute("fill", i % 2 === 0 ? "rgba(130,215,234,0.8)" : "rgba(209,239,98,0.7)");
+          microPanel.appendChild(dot);
+        }
+
+        {
+          const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+          label.setAttribute("x", "18");
+          label.setAttribute("y", "220");
+          label.setAttribute("fill", "#809099");
+          label.setAttribute("font-size", "11");
+          label.setAttribute("letter-spacing", "2.4");
+          label.textContent = "ROUTE GLASS";
+          routePanel.appendChild(label);
+
+          const frame = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+          frame.setAttribute("x", "18");
+          frame.setAttribute("y", "232");
+          frame.setAttribute("width", "174");
+          frame.setAttribute("height", "132");
+          frame.setAttribute("rx", "18");
+          frame.setAttribute("fill", "rgba(255,255,255,0.03)");
+          frame.setAttribute("stroke", "rgba(129,187,202,0.1)");
+          routePanel.appendChild(frame);
+        }
+
+        for (let i = 0; i < 5; i += 1) {
+          const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+          path.dataset.index = String(i);
+          path.setAttribute("fill", "none");
+          path.setAttribute("stroke", i === 2 ? "rgba(255,107,151,0.62)" : "rgba(130,215,234,0.34)");
+          path.setAttribute("stroke-width", i === 2 ? "2.2" : "1.2");
+          path.setAttribute("stroke-linecap", "round");
+          routePanel.appendChild(path);
+        }
+
+        {
+          const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+          label.setAttribute("x", "18");
+          label.setAttribute("y", "446");
+          label.setAttribute("fill", "#809099");
+          label.setAttribute("font-size", "11");
+          label.setAttribute("letter-spacing", "2.4");
+          label.textContent = "STANCE LEDGER";
+          ledgerPanel.appendChild(label);
+        }
+
+        for (let i = 0; i < 4; i += 1) {
+          const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
+          const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+          rect.setAttribute("x", "18");
+          rect.setAttribute("y", String(442 + i * 34));
+          rect.setAttribute("width", "174");
+          rect.setAttribute("height", "26");
+          rect.setAttribute("rx", "13");
+          rect.setAttribute("fill", "rgba(255,255,255,0.03)");
+          rect.setAttribute("stroke", "rgba(129,187,202,0.12)");
+
+          const fill = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+          fill.dataset.index = String(i);
+          fill.setAttribute("x", "18");
+          fill.setAttribute("y", String(442 + i * 34));
+          fill.setAttribute("height", "26");
+          fill.setAttribute("rx", "13");
+          fill.setAttribute("fill", i === 1 ? "rgba(255,107,151,0.3)" : "rgba(130,215,234,0.22)");
+
+          const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+          text.setAttribute("x", "28");
+          text.setAttribute("y", String(459 + i * 34));
+          text.setAttribute("fill", "#c7d0d5");
+          text.setAttribute("font-size", "11");
+          text.textContent = ["left root", "shell pitch", "lower trust", "bead wake"][i];
+
+          group.appendChild(rect);
+          group.appendChild(fill);
+          group.appendChild(text);
+          ledgerPanel.appendChild(group);
+        }
+      }
+
+      function spawnParticle() {
+        particles.push({
+          x: 100 + Math.random() * (window.innerWidth - 200),
+          y: 80 + Math.random() * (window.innerHeight - 160),
+          vx: (Math.random() - 0.5) * 0.3,
+          vy: -0.12 - Math.random() * 0.22,
+          r: 1 + Math.random() * 2.4,
+          alpha: 0.18 + Math.random() * 0.34,
+          hue: Math.random() < 0.5 ? "130,215,234" : "255,107,151",
+        });
+      }
+
+      for (let i = 0; i < 60; i += 1) {
+        spawnParticle();
+      }
+
+      function draw(time) {
+        const t = time * 0.001;
+        state.press += (state.pressTarget - state.press) * 0.14;
+        state.phase = (t / 2.8) % 3;
+        const phaseIndex = Math.floor(state.phase);
+        const phaseMix = state.phase - phaseIndex;
+
+        const modeBias =
+          state.mode === "brace" ? 0.18 :
+          state.mode === "sift" ? 0.42 :
+          0.66;
+        const phaseBrace = phaseIndex === 0 ? 0.82 - phaseMix * 0.34 : phaseIndex === 1 ? 0.42 - phaseMix * 0.12 : 0.28 + phaseMix * 0.5;
+        const phaseDrift = phaseIndex === 0 ? 0.18 + phaseMix * 0.16 : phaseIndex === 1 ? 0.42 + phaseMix * 0.3 : 0.78 - phaseMix * 0.54;
+        const phaseBloom = phaseIndex === 0 ? 0.24 + phaseMix * 0.12 : phaseIndex === 1 ? 0.34 + phaseMix * 0.18 : 0.52 + phaseMix * 0.26;
+        const brace = Math.min(1, phaseBrace + state.press * 0.34 + Math.abs(state.pointerX - 0.5) * 0.12 + (state.mode === "brace" ? 0.08 : 0));
+        const drift = Math.min(1, phaseDrift + Math.abs(state.pointerX - 0.5) * 0.22 + modeBias * 0.08 + (state.mode === "sift" ? 0.1 : 0));
+        const bloom = Math.min(1, phaseBloom + (1 - state.pointerY) * 0.16 + state.press * 0.18 + (state.mode === "flare" ? 0.12 : 0));
+
+        updateBody(t, brace, drift, bloom);
+        updatePanels(t, brace, drift, bloom, phaseIndex, phaseMix);
+        updateMeters(brace, drift, bloom);
+        drawParticles(t, drift, bloom);
+
+        requestAnimationFrame(draw);
+      }
+
+      function updateBody(t, brace, drift, bloom) {
+        const sway = (state.pointerX - 0.5) * 34;
+        const lift = (0.52 - state.pointerY) * 18;
+        const braceLift = state.press * 12;
+        const shellTop = 86 - lift - braceLift;
+        const shellBottom = 358 + brace * 12;
+        const bodyLeft = 118 + sway * 0.24;
+        const bodyRight = 250 + sway * 0.1;
+        const belly = 214 + Math.sin(t * 1.8) * 5 + bloom * 8;
+
+        bodyShell.setAttribute(
+          "d",
+          [
+            `M ${bodyLeft} ${shellTop}`,
+            `C ${90 + sway * 0.2} ${132 - lift}, ${84 + sway * 0.26} ${238}, ${130 + sway * 0.18} ${shellBottom}`,
+            `C ${155 + sway * 0.12} ${396 + brace * 10}, ${215 + sway * 0.12} ${398 + brace * 6}, ${bodyRight} ${shellBottom - 2}`,
+            `C ${302 + sway * 0.22} ${326}, ${306 + sway * 0.26} ${186 - lift * 0.4}, ${272 + sway * 0.18} ${120 - lift * 0.6}`,
+            `C ${242 + sway * 0.1} ${82 - lift * 0.5}, ${180 + sway * 0.08} ${64 - braceLift * 0.2}, ${bodyLeft} ${shellTop}`,
+          ].join(" ")
+        );
+
+        backPetal.setAttribute(
+          "d",
+          [
+            `M ${154 + sway * 0.16} ${122 - lift * 0.6}`,
+            `C ${96 + sway * 0.16} ${162 - lift * 0.4}, ${92 + sway * 0.18} ${264}, ${146 + sway * 0.14} ${316 + brace * 8}`,
+            `C ${192 + sway * 0.16} ${356 + brace * 12}, ${284 + sway * 0.14} ${350}, ${312 + sway * 0.1} ${266}`,
+            `C ${330 + sway * 0.1} ${204 - lift * 0.2}, ${290 + sway * 0.04} ${136 - lift * 0.42}, ${226 + sway * 0.04} ${110 - lift * 0.3}`,
+            `C ${198 + sway * 0.04} ${100}, ${178 + sway * 0.1} ${102}, ${154 + sway * 0.16} ${122 - lift * 0.6}`,
+          ].join(" ")
+        );
+
+        bodyAura.setAttribute(
+          "d",
+          [
+            `M ${114 + sway * 0.2} ${90 - lift}`,
+            `C ${62 + sway * 0.18} ${164}, ${58 + sway * 0.18} ${318}, ${138 + sway * 0.14} ${388}`,
+            `C ${220 + sway * 0.12} ${432}, ${322 + sway * 0.16} ${402}, ${344 + sway * 0.16} ${294}`,
+            `C ${360 + sway * 0.08} ${204 - lift * 0.2}, ${306 + sway * 0.04} ${92 - lift * 0.8}, ${214 + sway * 0.04} ${74 - lift * 0.3}`,
+            `C ${164 + sway * 0.08} ${66}, ${136 + sway * 0.12} ${72}, ${114 + sway * 0.2} ${90 - lift}`,
+          ].join(" ")
+        );
+
+        bellySeam.setAttribute(
+          "d",
+          cubicPath(
+            [150 + sway * 0.14, 134 - lift * 0.4],
+            [142 + sway * 0.16, 188],
+            [150 + sway * 0.12, 292],
+            [176 + sway * 0.08, shellBottom - 18]
+          )
+        );
+
+        rootLeft.setAttribute(
+          "d",
+          cubicPath(
+            [144 + sway * 0.1, shellBottom - 2],
+            [104 + sway * 0.2, 404 + brace * 10],
+            [80 + sway * 0.28, 446 + brace * 14],
+            [58 + sway * 0.32 - brace * 16, 494 + brace * 6]
+          )
+        );
+
+        rootRight.setAttribute(
+          "d",
+          cubicPath(
+            [230 + sway * 0.08, shellBottom - 4],
+            [250 + sway * 0.12, 398 + brace * 10],
+            [288 + sway * 0.12 + brace * 20, 440 + brace * 12],
+            [334 + sway * 0.08 + brace * 34, 496 + brace * 8]
+          )
+        );
+
+        const spinePoints = [
+          [186 + sway * 0.06, 120 - lift * 0.2],
+          [192 + sway * 0.08, 164],
+          [176 + sway * 0.1, 210 + Math.sin(t * 1.6) * 6],
+          [182 + sway * 0.1, 260],
+          [194 + sway * 0.08, 312 + bloom * 10],
+        ];
+        const spineD = `M ${spinePoints[0][0]} ${spinePoints[0][1]} C ${spinePoints[1][0]} ${spinePoints[1][1]}, ${spinePoints[2][0]} ${spinePoints[2][1]}, ${spinePoints[3][0]} ${spinePoints[3][1]} C ${spinePoints[3][0] + 4} ${spinePoints[3][1] + 14}, ${spinePoints[4][0]} ${spinePoints[4][1] - 20}, ${spinePoints[4][0]} ${spinePoints[4][1]}`;
+        spineTrace.setAttribute("d", spineD);
+        spineLine.setAttribute("d", spineD);
+
+        const beadNodes = [...beadsGroup.children];
+        beadNodes.forEach((bead, index) => {
+          const spread = 26 + Math.sin(t * 2 + index) * 6 + state.press * 12;
+          const side = index < 4 ? -1 : index > 4 ? 1 : 0;
+          const column = index === 4 ? 0 : Math.abs(index - 4);
+          const x = 188 + sway * 0.08 + side * spread * (0.78 + column * 0.08);
+          const y = 96 - column * 18 - state.press * 6 + Math.sin(t * 2.2 + index * 0.7) * 3;
+          bead.setAttribute("cx", x.toFixed(2));
+          bead.setAttribute("cy", y.toFixed(2));
+          bead.setAttribute("opacity", String(0.56 + bloom * 0.3 + seededNoise(index + t) * 0.12));
+        });
+
+        [...feelersGroup.children].forEach((feeler, index) => {
+          const shift = (index - 2) * 26;
+          const x0 = 186 + sway * 0.08;
+          const y0 = 112 - state.press * 4;
+          const x3 = 150 + shift + sway * 0.18 + (state.pointerX - 0.5) * 34;
+          const y3 = 36 + Math.sin(t * 1.5 + index) * 10 - bloom * 8;
+          feeler.setAttribute(
+            "d",
+            cubicPath(
+              [x0, y0],
+              [x0 + shift * 0.2, y0 - 20 - bloom * 8],
+              [x3 - shift * 0.12, y3 + 22],
+              [x3, y3]
+            )
+          );
+        });
+
+        [...ticksGroup.children].forEach((tick, index) => {
+          const x = 278 + sway * 0.1 + (index % 3) * 14;
+          const y = 124 + index * 22;
+          const len = 16 + (index % 3) * 6 + drift * 14;
+          tick.setAttribute("d", `M ${x} ${y} L ${x + len} ${y}`);
+          tick.setAttribute("opacity", String(0.3 + seededNoise(index + t * 0.4) * 0.44));
+        });
+
+        const faceX = 192 + sway * 0.08;
+        const faceY = 170 - lift * 0.2;
+        eyeLeft.setAttribute("cx", String(faceX - 18));
+        eyeLeft.setAttribute("cy", String(faceY + Math.sin(t * 2) * 1.5));
+        eyeMid.setAttribute("cx", String(faceX));
+        eyeMid.setAttribute("cy", String(faceY - 7 + Math.cos(t * 1.7) * 1.5));
+        eyeRight.setAttribute("cx", String(faceX + 18));
+        eyeRight.setAttribute("cy", String(faceY + Math.sin(t * 2 + 0.8) * 1.5));
+        mouth.setAttribute(
+          "d",
+          cubicPath(
+            [faceX - 14, faceY + 28],
+            [faceX - 6, faceY + 30 + brace * 6],
+            [faceX + 6, faceY + 30 + brace * 6],
+            [faceX + 14, faceY + 28]
+          )
+        );
+
+        [...stabilityRow.children].forEach((group, index) => {
+          const line = group.children[0];
+          const node = group.children[1];
+          const x = 38 + index * 72;
+          const y = 566 + Math.sin(t * 1.2 + index) * 4;
+          const endX = x + 40 + (index % 2 === 0 ? drift * 18 : -drift * 14);
+          const endY = y + (index % 2 === 0 ? -12 : 12) + Math.sin(t * 1.5 + index) * 6;
+          line.setAttribute("d", cubicPath([x, y], [x + 10, y], [endX - 12, endY], [endX, endY]));
+          node.setAttribute("cx", String(endX));
+          node.setAttribute("cy", String(endY));
+          node.setAttribute("opacity", String(0.42 + bloom * 0.3));
+        });
+
+        [...annotationTrails.children].forEach((path, index) => {
+          const left = 74 + (index % 4) * 148;
+          const right = 760 + (index % 3) * 18;
+          const top = 98 + Math.floor(index / 4) * 122;
+          const bend = (state.pointerX - 0.5) * 52 + Math.sin(t * 0.9 + index) * 18;
+          path.setAttribute(
+            "d",
+            cubicPath(
+              [left, top],
+              [left + 88, top + 12 + bend * 0.08],
+              [right - 64, top - 8 + bend * 0.16],
+              [right, top + bend * 0.18]
+            )
+          );
+        });
+      }
+
+      function updatePanels(t, brace, drift, bloom, phaseIndex, phaseMix) {
+        [...microPanel.querySelectorAll("circle")].forEach((dot, index) => {
+          const col = index % 5;
+          const row = Math.floor(index / 5);
+          dot.setAttribute("cx", String(42 + col * 32 + Math.sin(t * 1.5 + index) * 4 + drift * 10));
+          dot.setAttribute("cy", String(64 + row * 26 + Math.cos(t * 1.3 + index) * 5 - bloom * 4));
+          dot.setAttribute("opacity", String(0.46 + seededNoise(index + t) * 0.34));
+        });
+
+        [...routePanel.querySelectorAll("path")].forEach((path, index) => {
+          const y = 254 + index * 24;
+          const lift = (index - 2) * 8 + Math.sin(t * 1.1 + index) * 4;
+          const gate = phaseIndex === index % 3 ? 18 + phaseMix * 10 : -4;
+          path.setAttribute(
+            "d",
+            cubicPath(
+              [34, y],
+              [84, y - 10 + lift - gate * 0.3],
+              [120, y + 10 - lift + drift * 18 + gate],
+              [176, y + lift * 0.4 - gate * 0.22]
+            )
+          );
+          path.setAttribute("opacity", String(phaseIndex === index % 3 ? 0.94 : 0.42));
+        });
+
+        [...ledgerPanel.children].forEach((group, index) => {
+          if (group.tagName !== "g") {
+            return;
+          }
+          const fill = group.children[1];
+          const width = 62 + (index === 0 ? brace : index === 1 ? drift : index === 2 ? bloom : (brace + bloom) / 2) * 96;
+          fill.setAttribute("width", String(width));
+          fill.setAttribute("opacity", String(0.34 + index * 0.08));
+        });
+      }
+
+      function updateMeters(brace, drift, bloom) {
+        const data = [
+          [braceFill, braceValue, brace],
+          [driftFill, driftValue, drift],
+          [bloomFill, bloomValue, bloom],
+        ];
+        data.forEach(([fill, label, value]) => {
+          fill.style.transform = `scaleX(${value.toFixed(3)})`;
+          label.textContent = value.toFixed(2);
+        });
+      }
+
+      function drawParticles(t, drift, bloom) {
+        ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+        ctx.save();
+        ctx.globalCompositeOperation = "screen";
+
+        while (particles.length < 80) {
+          spawnParticle();
+        }
+
+        particles.forEach((particle, index) => {
+          particle.x += particle.vx + (state.pointerX - 0.5) * 0.18;
+          particle.y += particle.vy - drift * 0.18;
+          particle.alpha *= 0.998;
+
+          const dx = state.pointerX * window.innerWidth - particle.x;
+          const dy = state.pointerY * window.innerHeight - particle.y;
+          const dist = Math.hypot(dx, dy);
+          if (dist < 160) {
+            particle.x -= dx * 0.004;
+            particle.y -= dy * 0.004;
+          }
+
+          if (particle.y < -20 || particle.x < -40 || particle.x > window.innerWidth + 40 || particle.alpha < 0.06) {
+            particles[index] = {
+              x: 100 + Math.random() * (window.innerWidth - 200),
+              y: window.innerHeight + 10 + Math.random() * 40,
+              vx: (Math.random() - 0.5) * 0.4,
+              vy: -0.2 - Math.random() * 0.28,
+              r: 1 + Math.random() * 2.4,
+              alpha: 0.18 + Math.random() * 0.34,
+              hue: Math.random() < 0.65 ? "130,215,234" : "255,107,151",
+            };
+            return;
+          }
+
+          ctx.beginPath();
+          ctx.fillStyle = `rgba(${particle.hue}, ${particle.alpha + bloom * 0.08})`;
+          ctx.arc(particle.x, particle.y, particle.r + Math.sin(t * 2 + index) * 0.3, 0, Math.PI * 2);
+          ctx.fill();
+        });
+
+        ctx.restore();
+      }
+
+      function setPointer(clientX, clientY) {
+        state.pointerX = Math.max(0, Math.min(1, clientX / window.innerWidth));
+        state.pointerY = Math.max(0, Math.min(1, clientY / window.innerHeight));
+      }
+
+      window.addEventListener("pointermove", (event) => {
+        setPointer(event.clientX, event.clientY);
+      });
+
+      window.addEventListener("pointerdown", (event) => {
+        setPointer(event.clientX, event.clientY);
+        state.pressTarget = 1;
+      });
+
+      window.addEventListener("pointerup", () => {
+        state.pressTarget = 0;
+      });
+
+      window.addEventListener("pointerleave", () => {
+        state.pressTarget = 0;
+      });
+
+      setupStaticGroups();
+      resizeCanvas();
+      window.addEventListener("resize", resizeCanvas);
+
+      const chips = document.getElementById("chips");
+      modes.forEach((mode) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = `chip${mode.id === state.mode ? " active" : ""}`;
+        button.textContent = mode.label;
+        button.addEventListener("click", () => {
+          state.mode = mode.id;
+          [...chips.children].forEach((chip) => chip.classList.toggle("active", chip === button));
+        });
+        chips.appendChild(button);
+      });
+
+      requestAnimationFrame(draw);
+    </script>
+  </body>
+</html>

@@ -1,0 +1,1323 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>#048 Greenhouse Route Atlas</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #efe8da;
+        --paper: rgba(255, 252, 246, 0.82);
+        --paper-strong: rgba(251, 246, 238, 0.96);
+        --line: rgba(107, 98, 74, 0.22);
+        --line-soft: rgba(107, 98, 74, 0.11);
+        --ink: #3b362a;
+        --muted: rgba(59, 54, 42, 0.66);
+        --blue: #7ca7bc;
+        --green: #8baa87;
+        --amber: #d7a76d;
+        --rose: #c98d89;
+        --graphite: #94877a;
+        --shadow: 0 26px 80px rgba(116, 100, 69, 0.14);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        background:
+          radial-gradient(circle at 14% 10%, rgba(255, 255, 255, 0.92), transparent 18%),
+          radial-gradient(circle at 84% 16%, rgba(124, 167, 188, 0.1), transparent 24%),
+          radial-gradient(circle at 20% 84%, rgba(139, 170, 135, 0.12), transparent 24%),
+          radial-gradient(circle at 72% 86%, rgba(201, 141, 137, 0.1), transparent 20%),
+          linear-gradient(180deg, #f3ede4 0%, #e9dfcf 100%);
+        color: var(--ink);
+        font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", serif;
+      }
+
+      body::before,
+      body::after {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+      }
+
+      body::before {
+        opacity: 0.08;
+        background-image:
+          linear-gradient(rgba(74, 64, 44, 0.12) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(74, 64, 44, 0.12) 1px, transparent 1px);
+        background-size: 76px 76px;
+        mask-image: radial-gradient(circle at 50% 48%, black 38%, transparent 92%);
+      }
+
+      body::after {
+        opacity: 0.18;
+        background-image:
+          linear-gradient(rgba(255, 255, 255, 0.9) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.9) 1px, transparent 1px);
+        background-size: 4px 4px;
+        mix-blend-mode: soft-light;
+      }
+
+      .shell {
+        position: relative;
+        min-height: 100vh;
+        padding: 18px;
+        display: grid;
+        gap: 14px;
+        grid-template-columns: 268px minmax(0, 1fr) 276px;
+        grid-template-rows: auto minmax(0, 1fr) auto;
+      }
+
+      .panel {
+        position: relative;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 30px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.46), transparent 18%),
+          var(--paper);
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(16px);
+      }
+
+      .panel::after {
+        content: "";
+        position: absolute;
+        inset: 1px;
+        border: 1px solid rgba(255, 255, 255, 0.4);
+        border-radius: inherit;
+        pointer-events: none;
+      }
+
+      .header {
+        grid-column: 1 / -1;
+        display: grid;
+        grid-template-columns: minmax(0, 1.3fr) minmax(320px, 0.7fr);
+        gap: 14px;
+      }
+
+      .hero,
+      .overview,
+      .left-stack,
+      .stage,
+      .right-stack,
+      .footer {
+        padding: 16px 18px 18px;
+      }
+
+      .left-stack,
+      .right-stack {
+        display: grid;
+        gap: 14px;
+        align-content: start;
+      }
+
+      .left-stack {
+        grid-column: 1;
+        grid-row: 2;
+      }
+
+      .stage {
+        grid-column: 2;
+        grid-row: 2;
+        min-height: 760px;
+      }
+
+      .right-stack {
+        grid-column: 3;
+        grid-row: 2;
+      }
+
+      .footer {
+        grid-column: 1 / -1;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+
+      .eyebrow,
+      .tiny,
+      .label,
+      .chip,
+      .mini-value {
+        font-family: "Azeret Mono", "IBM Plex Mono", "SFMono-Regular", monospace;
+      }
+
+      .eyebrow,
+      .tiny,
+      .label {
+        font-size: 11px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      h1 {
+        margin-top: 0.56rem;
+        max-width: 12ch;
+        font-size: clamp(2.6rem, 5vw, 4.9rem);
+        line-height: 0.9;
+        letter-spacing: -0.06em;
+      }
+
+      .body,
+      .meta-copy {
+        margin-top: 0.86rem;
+        color: rgba(59, 54, 42, 0.76);
+        line-height: 1.55;
+      }
+
+      .readouts,
+      .metrics,
+      .footer-grid,
+      .legend-list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .readouts {
+        margin-top: 1rem;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .metric,
+      .card,
+      .footer-card,
+      .service-box,
+      .archive-entry {
+        border: 1px solid var(--line-soft);
+        border-radius: 20px;
+        background: rgba(255, 255, 255, 0.34);
+      }
+
+      .metric,
+      .card,
+      .footer-card,
+      .service-box,
+      .archive-entry {
+        padding: 12px 13px;
+      }
+
+      .metric strong,
+      .mini-value {
+        display: block;
+        margin-top: 0.34rem;
+        font-size: 1rem;
+        font-weight: 600;
+        letter-spacing: -0.05em;
+        color: var(--ink);
+      }
+
+      .overview {
+        display: grid;
+        gap: 14px;
+      }
+
+      .legend-item,
+      .row,
+      .archive-entry {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+
+      .legend-item {
+        color: rgba(59, 54, 42, 0.72);
+        font-size: 0.82rem;
+      }
+
+      .swatch {
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+        flex: 0 0 auto;
+      }
+
+      .blue {
+        background: var(--blue);
+      }
+
+      .green {
+        background: var(--green);
+      }
+
+      .amber {
+        background: var(--amber);
+      }
+
+      .rose {
+        background: var(--rose);
+      }
+
+      .graphite {
+        background: var(--graphite);
+      }
+
+      .stage-shell {
+        position: relative;
+        height: 100%;
+        min-height: 720px;
+        border: 1px solid var(--line-soft);
+        border-radius: 24px;
+        background:
+          radial-gradient(circle at 50% 14%, rgba(255, 255, 255, 0.88), transparent 18%),
+          radial-gradient(circle at 18% 78%, rgba(124, 167, 188, 0.12), transparent 22%),
+          radial-gradient(circle at 74% 80%, rgba(139, 170, 135, 0.12), transparent 24%),
+          linear-gradient(180deg, rgba(255, 255, 255, 0.52), rgba(248, 242, 234, 0.82));
+        overflow: hidden;
+      }
+
+      .stage-meta,
+      .footer-strip {
+        position: absolute;
+        left: 16px;
+        right: 16px;
+        display: flex;
+        justify-content: space-between;
+        gap: 14px;
+        pointer-events: none;
+      }
+
+      .stage-meta {
+        top: 14px;
+      }
+
+      .footer-strip {
+        bottom: 14px;
+        align-items: end;
+      }
+
+      .stage-label,
+      .footer-badge {
+        border: 1px solid rgba(107, 98, 74, 0.14);
+        border-radius: 999px;
+        padding: 8px 12px;
+        background: rgba(255, 255, 255, 0.52);
+      }
+
+      .canvas-wrap {
+        position: absolute;
+        inset: 0;
+      }
+
+      canvas {
+        position: absolute;
+        left: 0;
+        width: 100%;
+        display: block;
+      }
+
+      #mapCanvas {
+        top: 0;
+        height: 72%;
+      }
+
+      #latticeCanvas {
+        bottom: 0;
+        height: 28%;
+        border-top: 1px solid rgba(107, 98, 74, 0.12);
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(237, 227, 208, 0.22)),
+          rgba(251, 246, 238, 0.34);
+      }
+
+      .overlay {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+      }
+
+      .mode-strip {
+        position: absolute;
+        top: 70px;
+        right: 18px;
+        display: flex;
+        gap: 8px;
+        pointer-events: auto;
+      }
+
+      .chip {
+        border: 1px solid rgba(107, 98, 74, 0.18);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.55);
+        color: var(--ink);
+        padding: 9px 12px;
+        font-size: 0.72rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        cursor: pointer;
+        transition:
+          transform 160ms ease,
+          border-color 160ms ease,
+          background 160ms ease;
+      }
+
+      .chip:hover,
+      .chip:focus-visible,
+      .back:hover,
+      .back:focus-visible {
+        outline: none;
+        transform: translateY(-1px);
+        border-color: rgba(107, 98, 74, 0.34);
+        background: rgba(255, 255, 255, 0.75);
+      }
+
+      .chip.active {
+        border-color: rgba(107, 98, 74, 0.32);
+        background:
+          linear-gradient(90deg, rgba(124, 167, 188, 0.16), rgba(139, 170, 135, 0.16)),
+          rgba(255, 255, 255, 0.8);
+      }
+
+      .routes {
+        display: grid;
+        gap: 8px;
+        margin-top: 0.7rem;
+      }
+
+      .route {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .route-name,
+      .route-value,
+      .service-list,
+      .signal-list {
+        font-size: 0.83rem;
+        color: rgba(59, 54, 42, 0.74);
+      }
+
+      .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+      }
+
+      .trace {
+        margin-top: 0.92rem;
+        height: 118px;
+        border-radius: 16px;
+        border: 1px solid rgba(107, 98, 74, 0.12);
+        background: rgba(255, 255, 255, 0.34);
+      }
+
+      .dial {
+        margin-top: 0.92rem;
+        display: grid;
+        place-items: center;
+        height: 138px;
+        border-radius: 20px;
+        border: 1px solid rgba(107, 98, 74, 0.12);
+        background: rgba(255, 255, 255, 0.34);
+      }
+
+      .dial-ring {
+        width: 94px;
+        height: 94px;
+        border-radius: 50%;
+        border: 1px dashed rgba(107, 98, 74, 0.28);
+        display: grid;
+        place-items: center;
+        position: relative;
+      }
+
+      .dial-ring::before {
+        content: "";
+        position: absolute;
+        inset: 10px;
+        border-radius: 50%;
+        border: 1px solid rgba(107, 98, 74, 0.15);
+      }
+
+      .dial-center {
+        text-align: center;
+      }
+
+      .dial-center strong {
+        display: block;
+        font-size: 2rem;
+        line-height: 0.9;
+      }
+
+      .service-list,
+      .signal-list {
+        margin-top: 0.68rem;
+        display: grid;
+        gap: 6px;
+      }
+
+      .archive-list,
+      .micro-list {
+        display: grid;
+        gap: 8px;
+        margin-top: 0.72rem;
+      }
+
+      .mini-plot {
+        height: 86px;
+        border-radius: 16px;
+        border: 1px solid rgba(107, 98, 74, 0.12);
+        background: rgba(255, 255, 255, 0.34);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .mini-plot svg {
+        width: 100%;
+        height: 100%;
+        display: block;
+      }
+
+      .status-grid {
+        margin-top: 0.8rem;
+        display: grid;
+        gap: 10px;
+      }
+
+      .status-row {
+        display: grid;
+        gap: 4px;
+      }
+
+      .bar {
+        height: 8px;
+        border-radius: 999px;
+        background: rgba(107, 98, 74, 0.12);
+        overflow: hidden;
+      }
+
+      .bar > span {
+        display: block;
+        height: 100%;
+        border-radius: inherit;
+        background: currentColor;
+      }
+
+      .footer {
+        display: grid;
+        gap: 12px;
+      }
+
+      .footer-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .back {
+        justify-self: start;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        border: 1px solid rgba(107, 98, 74, 0.18);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.58);
+        color: var(--ink);
+        text-decoration: none;
+        padding: 11px 14px;
+        font-family: "Azeret Mono", "IBM Plex Mono", "SFMono-Regular", monospace;
+        font-size: 0.74rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        transition:
+          transform 160ms ease,
+          border-color 160ms ease,
+          background 160ms ease;
+      }
+
+      @media (max-width: 1220px) {
+        .shell {
+          grid-template-columns: 1fr;
+          grid-template-rows: auto auto auto auto auto;
+        }
+
+        .header,
+        .left-stack,
+        .stage,
+        .right-stack,
+        .footer {
+          grid-column: 1;
+          grid-row: auto;
+        }
+
+        .header {
+          grid-template-columns: 1fr;
+        }
+
+        .stage {
+          min-height: 880px;
+        }
+      }
+
+      @media (max-width: 720px) {
+        .shell {
+          padding: 12px;
+          gap: 12px;
+        }
+
+        .hero,
+        .overview,
+        .left-stack,
+        .stage,
+        .right-stack,
+        .footer {
+          padding: 14px;
+        }
+
+        .panel {
+          border-radius: 22px;
+        }
+
+        h1 {
+          font-size: clamp(2rem, 10vw, 3.1rem);
+        }
+
+        .readouts,
+        .footer-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .mode-strip {
+          top: auto;
+          left: 14px;
+          right: 14px;
+          bottom: 148px;
+          flex-wrap: wrap;
+        }
+
+        .stage-shell {
+          min-height: 900px;
+        }
+
+        #mapCanvas {
+          height: 68%;
+        }
+
+        #latticeCanvas {
+          height: 32%;
+        }
+
+        .stage-meta,
+        .footer-strip {
+          left: 12px;
+          right: 12px;
+          gap: 8px;
+          flex-wrap: wrap;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <section class="header">
+        <article class="panel hero">
+          <p class="eyebrow">Code Animation Study #048</p>
+          <h1>Greenhouse Route Atlas</h1>
+          <p class="body">
+            A pale browser-native service page where translucent route membranes,
+            inset traces, and a lower creeper lattice all belong to one shared
+            greenhouse organism instead of another detached dashboard or hero
+            specimen.
+          </p>
+          <div class="readouts">
+            <div class="metric">
+              <p class="tiny">Primary mode</p>
+              <strong id="modeReadout">layered</strong>
+            </div>
+            <div class="metric">
+              <p class="tiny">Humidity</p>
+              <strong><span id="humidityReadout">76</span>%</strong>
+            </div>
+            <div class="metric">
+              <p class="tiny">Lattice stability</p>
+              <strong><span id="stabilityReadout">83</span>%</strong>
+            </div>
+          </div>
+        </article>
+
+        <aside class="panel overview">
+          <div>
+            <p class="eyebrow">Route legend</p>
+            <div class="legend-list" style="margin-top: 0.7rem">
+              <div class="legend-item"><span class="swatch blue"></span><span>H1 humid spine</span></div>
+              <div class="legend-item"><span class="swatch green"></span><span>M2 mosswalk</span></div>
+              <div class="legend-item"><span class="swatch amber"></span><span>C3 canopy edge</span></div>
+              <div class="legend-item"><span class="swatch rose"></span><span>R4 root loop</span></div>
+              <div class="legend-item"><span class="swatch graphite"></span><span>S5 sporeway</span></div>
+            </div>
+          </div>
+          <div class="card">
+            <p class="tiny">How to use</p>
+            <p class="meta-copy">
+              Move across the atlas to bend the nearest membrane and send local
+              pressure through the routes. Click or tap to seed a pulse. Switch
+              the page between layered, signal, and structure so the same field
+              can read as soft habitat, service map, or creeper scaffold.
+            </p>
+          </div>
+        </aside>
+      </section>
+
+      <aside class="panel left-stack">
+        <div class="service-box">
+          <p class="eyebrow">Route overview</p>
+          <div class="routes" id="routeList"></div>
+          <div class="trace">
+            <svg viewBox="0 0 220 118" preserveAspectRatio="none" aria-hidden="true">
+              <rect width="220" height="118" fill="none" stroke="rgba(107,98,74,0.08)" />
+              <path d="M0 82 C22 74, 36 90, 54 54 S88 32, 110 72 154 98, 178 52 204 44, 220 68" fill="none" stroke="#7ca7bc" stroke-width="1.5" opacity="0.84" />
+              <path d="M0 92 C20 96, 40 74, 56 78 S96 110, 120 68 168 42, 220 76" fill="none" stroke="#8baa87" stroke-width="1.5" opacity="0.82" />
+              <path d="M0 70 C18 48, 42 90, 64 38 S110 48, 136 78 174 56, 220 40" fill="none" stroke="#d7a76d" stroke-width="1.5" opacity="0.82" />
+              <path d="M0 86 C22 92, 34 60, 58 74 S104 88, 126 58 168 64, 220 84" fill="none" stroke="#c98d89" stroke-width="1.5" opacity="0.8" />
+              <path d="M0 98 C24 90, 46 102, 72 82 S120 88, 142 92 186 74, 220 88" fill="none" stroke="#94877a" stroke-width="1.5" opacity="0.82" />
+            </svg>
+          </div>
+          <div class="dial">
+            <div class="dial-ring">
+              <div class="dial-center">
+                <strong id="dialValue">76</strong>
+                <span class="tiny">humidity</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="service-box">
+          <p class="eyebrow">Service notes</p>
+          <div class="service-list">
+            <div>Translucent membranes pulse with route change.</div>
+            <div>Root lattice stabilizing lower field.</div>
+            <div>No human face. System is the subject.</div>
+            <div>Pointer pressure should stay local, not global.</div>
+          </div>
+        </div>
+
+        <div class="service-box">
+          <p class="eyebrow">Archive plates</p>
+          <div class="archive-list">
+            <div class="archive-entry"><span>H1-02 Moss Tendril</span><span class="tiny">12 May 2025</span></div>
+            <div class="archive-entry"><span>C3-11 Vesicle Net</span><span class="tiny">03 May 2025</span></div>
+            <div class="archive-entry"><span>R4-07 Root Hair</span><span class="tiny">28 Apr 2025</span></div>
+          </div>
+        </div>
+      </aside>
+
+      <section class="panel stage">
+        <div class="stage-shell">
+          <div class="stage-meta">
+            <div class="stage-label tiny">Membrane map</div>
+            <div class="stage-label tiny">10 May 2026 · local service page</div>
+          </div>
+
+          <div class="mode-strip" id="modeStrip">
+            <button class="chip active" data-mode="layered" type="button">Layered</button>
+            <button class="chip" data-mode="signal" type="button">Signal</button>
+            <button class="chip" data-mode="structure" type="button">Structure</button>
+          </div>
+
+          <div class="canvas-wrap">
+            <canvas id="mapCanvas"></canvas>
+            <canvas id="latticeCanvas"></canvas>
+          </div>
+
+          <div class="footer-strip">
+            <div class="footer-badge tiny">Move, click, or tap to reroute local flow</div>
+            <div class="footer-badge tiny">Creeper lattice field: stability <span id="stabilityInline">83</span>%</div>
+          </div>
+        </div>
+      </section>
+
+      <aside class="panel right-stack">
+        <div class="service-box">
+          <p class="eyebrow">Specimen insets</p>
+          <div class="micro-list">
+            <div class="mini-plot">
+              <svg viewBox="0 0 240 86" preserveAspectRatio="none" aria-hidden="true">
+                <rect width="240" height="86" fill="rgba(255,255,255,0.18)" />
+                <path d="M16 68 C44 30, 56 18, 84 50 S126 82, 152 40 194 16, 224 50" fill="none" stroke="#c98d89" stroke-width="1.8" opacity="0.78" />
+                <path d="M26 66 C58 62, 74 16, 98 24 S142 56, 168 22 206 18, 224 42" fill="none" stroke="#94877a" stroke-width="1.2" opacity="0.72" />
+                <circle cx="96" cy="28" r="4" fill="#7ca7bc" opacity="0.8" />
+                <circle cx="162" cy="38" r="4" fill="#d7a76d" opacity="0.8" />
+              </svg>
+            </div>
+            <div class="mini-plot">
+              <svg viewBox="0 0 240 86" preserveAspectRatio="none" aria-hidden="true">
+                <rect width="240" height="86" fill="rgba(255,255,255,0.18)" />
+                <path d="M24 70 C52 14, 88 16, 116 54 S160 68, 188 24 214 18, 226 34" fill="none" stroke="#8baa87" stroke-width="1.8" opacity="0.78" />
+                <path d="M16 60 C42 74, 86 64, 112 28 S168 22, 194 46 214 64, 224 56" fill="none" stroke="#7ca7bc" stroke-width="1.2" opacity="0.72" />
+                <circle cx="72" cy="24" r="4" fill="#8baa87" opacity="0.82" />
+                <circle cx="176" cy="30" r="4" fill="#c98d89" opacity="0.76" />
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <div class="service-box">
+          <p class="eyebrow">Microclimate</p>
+          <div class="status-grid">
+            <div class="status-row" style="color: var(--blue)">
+              <div class="row"><span class="label">Humidity</span><span class="mini-value" id="humidityMini">76%</span></div>
+              <div class="bar"><span id="humidityBar" style="width: 76%"></span></div>
+            </div>
+            <div class="status-row" style="color: var(--green)">
+              <div class="row"><span class="label">Canopy ease</span><span class="mini-value" id="canopyMini">61%</span></div>
+              <div class="bar"><span id="canopyBar" style="width: 61%"></span></div>
+            </div>
+            <div class="status-row" style="color: var(--amber)">
+              <div class="row"><span class="label">Signal clarity</span><span class="mini-value" id="signalMini">58%</span></div>
+              <div class="bar"><span id="signalBar" style="width: 58%"></span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="service-box">
+          <p class="eyebrow">Signal feed</p>
+          <div class="signal-list" id="signalList"></div>
+        </div>
+
+        <div class="service-box">
+          <p class="eyebrow">Status summary</p>
+          <p class="meta-copy">
+            All five routes stay active. The lower lattice thickens when pointer
+            pressure drops into the floor band, while the central map softens or
+            sharpens according to the active mode. The system should feel like a
+            breathing page, not a fixed screenshot.
+          </p>
+        </div>
+      </aside>
+
+      <footer class="panel footer">
+        <div class="footer-grid">
+          <div class="footer-card">
+            <p class="eyebrow">Idea</p>
+            <p class="meta-copy">
+              Translate the strongest pale route-console image logic into a
+              code-native page where map, insets, climate readouts, and creeper
+              growth all describe one organismal infrastructure.
+            </p>
+          </div>
+          <div class="footer-card">
+            <p class="eyebrow">Interaction</p>
+            <p class="meta-copy">
+              Pointer motion only bends nearby membranes and reroutes local
+              current. Clicks plant short-lived pulses that travel through the
+              named routes and briefly wake the lower lattice.
+            </p>
+          </div>
+          <div class="footer-card">
+            <p class="eyebrow">Next</p>
+            <p class="meta-copy">
+              A future variant could add typed service notes or live text events
+              that grow new route names and specimen cards without turning the
+              page into generic UI chrome.
+            </p>
+          </div>
+        </div>
+        <a class="back" href="../../index.html">Back to index</a>
+      </footer>
+    </main>
+
+    <script>
+      const mapCanvas = document.getElementById("mapCanvas");
+      const latticeCanvas = document.getElementById("latticeCanvas");
+      const mapCtx = mapCanvas.getContext("2d");
+      const latticeCtx = latticeCanvas.getContext("2d");
+
+      const routeList = document.getElementById("routeList");
+      const signalList = document.getElementById("signalList");
+      const modeReadout = document.getElementById("modeReadout");
+      const humidityReadout = document.getElementById("humidityReadout");
+      const dialValue = document.getElementById("dialValue");
+      const humidityMini = document.getElementById("humidityMini");
+      const canopyMini = document.getElementById("canopyMini");
+      const signalMini = document.getElementById("signalMini");
+      const stabilityReadout = document.getElementById("stabilityReadout");
+      const stabilityInline = document.getElementById("stabilityInline");
+      const humidityBar = document.getElementById("humidityBar");
+      const canopyBar = document.getElementById("canopyBar");
+      const signalBar = document.getElementById("signalBar");
+      const modeStrip = document.getElementById("modeStrip");
+
+      const routes = [
+        { id: "H1", name: "humid spine", color: "#7ca7bc", phase: 0.3, x: 0.22, y: 0.28, value: 0.76 },
+        { id: "M2", name: "mosswalk", color: "#8baa87", phase: 1.2, x: 0.72, y: 0.34, value: 0.61 },
+        { id: "C3", name: "canopy edge", color: "#d7a76d", phase: 2.1, x: 0.62, y: 0.54, value: 0.58 },
+        { id: "R4", name: "root loop", color: "#c98d89", phase: 2.9, x: 0.26, y: 0.67, value: 0.52 },
+        { id: "S5", name: "sporeway", color: "#94877a", phase: 3.8, x: 0.43, y: 0.79, value: 0.48 }
+      ];
+
+      const pulses = [];
+      const pointer = { x: 0.5, y: 0.48, active: false, down: false };
+      const state = {
+        mode: "layered",
+        time: 0,
+        humidity: 76,
+        canopy: 61,
+        signal: 58,
+        stability: 83
+      };
+
+      function buildLists() {
+        routeList.innerHTML = routes
+          .map(
+            (route) => `
+            <div class="route">
+              <span class="dot" style="background:${route.color}"></span>
+              <span class="route-name">${route.id} ${route.name}</span>
+              <span class="route-value" id="route-${route.id}">${Math.round(route.value * 100)}%</span>
+            </div>`
+          )
+          .join("");
+
+        signalList.innerHTML = routes
+          .map(
+            (route) => `
+            <div class="row">
+              <span class="label" style="color:${route.color}">${route.id}</span>
+              <span class="route-value" id="feed-${route.id}">${(0.2 + route.value * 0.9).toFixed(2)} kPa</span>
+            </div>`
+          )
+          .join("");
+      }
+
+      function resizeCanvas(canvas) {
+        const rect = canvas.getBoundingClientRect();
+        const ratio = window.devicePixelRatio || 1;
+        canvas.width = Math.max(1, Math.round(rect.width * ratio));
+        canvas.height = Math.max(1, Math.round(rect.height * ratio));
+        const ctx = canvas.getContext("2d");
+        ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+        return rect;
+      }
+
+      function resize() {
+        resizeCanvas(mapCanvas);
+        resizeCanvas(latticeCanvas);
+      }
+
+      function updateModeButtons() {
+        modeStrip.querySelectorAll(".chip").forEach((button) => {
+          button.classList.toggle("active", button.dataset.mode === state.mode);
+        });
+        modeReadout.textContent = state.mode;
+      }
+
+      function updateReadouts() {
+        humidityReadout.textContent = String(Math.round(state.humidity));
+        dialValue.textContent = String(Math.round(state.humidity));
+        humidityMini.textContent = `${Math.round(state.humidity)}%`;
+        canopyMini.textContent = `${Math.round(state.canopy)}%`;
+        signalMini.textContent = `${Math.round(state.signal)}%`;
+        stabilityReadout.textContent = String(Math.round(state.stability));
+        stabilityInline.textContent = String(Math.round(state.stability));
+        humidityBar.style.width = `${state.humidity}%`;
+        canopyBar.style.width = `${state.canopy}%`;
+        signalBar.style.width = `${state.signal}%`;
+
+        routes.forEach((route, index) => {
+          const routeValue = Math.round(route.value * 100);
+          const routeCell = document.getElementById(`route-${route.id}`);
+          const feedCell = document.getElementById(`feed-${route.id}`);
+          if (routeCell) routeCell.textContent = `${routeValue}%`;
+          if (feedCell) {
+            const feed = 0.18 + route.value * 0.92 + Math.sin(state.time * 0.0015 + index) * 0.03;
+            feedCell.textContent = `${feed.toFixed(2)} kPa`;
+          }
+        });
+      }
+
+      function curveBetween(a, b, bend, t) {
+        const dx = b.x - a.x;
+        const dy = b.y - a.y;
+        const mx = (a.x + b.x) / 2;
+        const my = (a.y + b.y) / 2;
+        const nx = -dy;
+        const ny = dx;
+        const length = Math.hypot(dx, dy) || 1;
+        const amplitude = bend * length;
+        return {
+          c1x: mx + (nx / length) * amplitude * (0.6 + 0.1 * Math.sin(t)),
+          c1y: my + (ny / length) * amplitude * (0.6 + 0.1 * Math.cos(t)),
+          c2x: mx - (nx / length) * amplitude * (0.6 + 0.1 * Math.cos(t * 1.1)),
+          c2y: my - (ny / length) * amplitude * (0.6 + 0.1 * Math.sin(t * 1.2))
+        };
+      }
+
+      function drawMap() {
+        const width = mapCanvas.clientWidth;
+        const height = mapCanvas.clientHeight;
+        mapCtx.clearRect(0, 0, width, height);
+
+        const localTime = state.time * 0.001;
+        const pointerBoost = pointer.active ? 1 : 0;
+        const centerX = width * (0.5 + (pointer.x - 0.5) * 0.08);
+        const centerY = height * (0.46 + (pointer.y - 0.48) * 0.06);
+        const radius = Math.min(width, height) * 0.32;
+
+        mapCtx.save();
+        mapCtx.strokeStyle = "rgba(107, 98, 74, 0.12)";
+        mapCtx.lineWidth = 1;
+        for (let x = 24; x < width; x += 96) {
+          mapCtx.beginPath();
+          mapCtx.moveTo(x, 0);
+          mapCtx.lineTo(x, height);
+          mapCtx.stroke();
+        }
+        for (let y = 24; y < height; y += 96) {
+          mapCtx.beginPath();
+          mapCtx.moveTo(0, y);
+          mapCtx.lineTo(width, y);
+          mapCtx.stroke();
+        }
+        mapCtx.restore();
+
+        for (let layer = 0; layer < 6; layer += 1) {
+          const depth = layer / 5;
+          const phase = localTime * (0.55 + depth * 0.18);
+          mapCtx.beginPath();
+          for (let step = 0; step <= 160; step += 1) {
+            const angle = (step / 160) * Math.PI * 2;
+            const wobble =
+              Math.sin(angle * 2.2 + phase) * 0.09 +
+              Math.cos(angle * 3.3 - phase * 1.2) * 0.06 +
+              Math.sin(angle * 5.1 + pointer.x * 4 + depth) * 0.035;
+            const shear =
+              pointerBoost * Math.exp(-Math.abs(angle - (pointer.x * Math.PI * 2)) * 0.7) * 0.045;
+            const r = radius * (0.74 + depth * 0.11 + wobble + shear);
+            const x = centerX + Math.cos(angle) * r * (1.04 + depth * 0.06);
+            const y = centerY + Math.sin(angle) * r * (0.88 + depth * 0.04);
+            if (step === 0) {
+              mapCtx.moveTo(x, y);
+            } else {
+              mapCtx.lineTo(x, y);
+            }
+          }
+          const alpha = state.mode === "structure" ? 0.26 - depth * 0.02 : 0.12 - depth * 0.012;
+          mapCtx.closePath();
+          mapCtx.fillStyle = `rgba(255, 255, 255, ${0.08 - depth * 0.008})`;
+          mapCtx.fill();
+          mapCtx.strokeStyle =
+            state.mode === "signal"
+              ? `rgba(124, 167, 188, ${0.24 - depth * 0.02})`
+              : `rgba(141, 130, 106, ${Math.max(0.06, alpha)})`;
+          mapCtx.lineWidth = 1.1 + depth * 0.12;
+          mapCtx.stroke();
+        }
+
+        const points = routes.map((route, index) => {
+          const orbit = 0.05 + Math.sin(localTime * 0.8 + route.phase) * 0.02;
+          const px = centerX + (route.x - 0.5) * radius * 1.7 + Math.sin(localTime + index) * width * 0.008;
+          const py = centerY + (route.y - 0.5) * radius * 1.46 + Math.cos(localTime * 1.1 + index) * height * 0.01;
+          const distance = Math.hypot(pointer.x * width - px, pointer.y * height - py);
+          const influence = Math.max(0, 1 - distance / 220);
+          route.value = 0.42 + orbit + influence * 0.2 + (state.mode === "signal" ? 0.04 : 0);
+          return { ...route, px, py, influence };
+        });
+
+        const network = [
+          [0, 1, 0.18],
+          [1, 2, -0.16],
+          [0, 3, -0.12],
+          [3, 4, 0.2],
+          [2, 4, -0.14],
+          [1, 4, 0.06],
+          [0, 2, -0.04]
+        ];
+
+        network.forEach(([aIndex, bIndex, bend], edgeIndex) => {
+          const a = points[aIndex];
+          const b = points[bIndex];
+          const control = curveBetween(
+            { x: a.px, y: a.py },
+            { x: b.px, y: b.py },
+            bend + Math.sin(localTime * 0.7 + edgeIndex) * 0.03,
+            localTime + edgeIndex
+          );
+
+          mapCtx.beginPath();
+          mapCtx.moveTo(a.px, a.py);
+          mapCtx.bezierCurveTo(control.c1x, control.c1y, control.c2x, control.c2y, b.px, b.py);
+          mapCtx.strokeStyle =
+            state.mode === "signal"
+              ? a.color
+              : "rgba(122, 113, 92, 0.22)";
+          mapCtx.lineWidth = state.mode === "structure" ? 1.2 : 2.2;
+          mapCtx.globalAlpha = state.mode === "signal" ? 0.7 : 0.34;
+          mapCtx.stroke();
+
+          mapCtx.globalAlpha = 0.18;
+          mapCtx.lineWidth = 8;
+          mapCtx.strokeStyle = a.color;
+          mapCtx.stroke();
+          mapCtx.globalAlpha = 1;
+        });
+
+        pulses.forEach((pulse) => {
+          pulse.life -= 0.016;
+          pulse.progress += 0.015;
+        });
+        while (pulses.length && pulses[0].life <= 0) {
+          pulses.shift();
+        }
+
+        pulses.forEach((pulse, index) => {
+          const from = points[pulse.from];
+          const to = points[pulse.to];
+          const mid = curveBetween(
+            { x: from.px, y: from.py },
+            { x: to.px, y: to.py },
+            pulse.bend,
+            localTime + index
+          );
+          const t = pulse.progress % 1;
+          const x =
+            Math.pow(1 - t, 3) * from.px +
+            3 * Math.pow(1 - t, 2) * t * mid.c1x +
+            3 * (1 - t) * Math.pow(t, 2) * mid.c2x +
+            Math.pow(t, 3) * to.px;
+          const y =
+            Math.pow(1 - t, 3) * from.py +
+            3 * Math.pow(1 - t, 2) * t * mid.c1y +
+            3 * (1 - t) * Math.pow(t, 2) * mid.c2y +
+            Math.pow(t, 3) * to.py;
+
+          mapCtx.beginPath();
+          mapCtx.fillStyle = pulse.color;
+          mapCtx.globalAlpha = Math.max(0, pulse.life);
+          mapCtx.arc(x, y, 5 + pulse.life * 4, 0, Math.PI * 2);
+          mapCtx.fill();
+          mapCtx.globalAlpha = 1;
+        });
+
+        points.forEach((point, index) => {
+          const glow = 14 + point.influence * 20;
+          const gradient = mapCtx.createRadialGradient(point.px, point.py, 0, point.px, point.py, glow);
+          gradient.addColorStop(0, `${point.color}cc`);
+          gradient.addColorStop(1, "rgba(255,255,255,0)");
+          mapCtx.fillStyle = gradient;
+          mapCtx.beginPath();
+          mapCtx.arc(point.px, point.py, glow, 0, Math.PI * 2);
+          mapCtx.fill();
+
+          mapCtx.beginPath();
+          mapCtx.fillStyle = point.color;
+          mapCtx.arc(point.px, point.py, 4.2 + point.influence * 2.6, 0, Math.PI * 2);
+          mapCtx.fill();
+
+          mapCtx.strokeStyle = "rgba(107, 98, 74, 0.36)";
+          mapCtx.lineWidth = 1;
+          mapCtx.beginPath();
+          mapCtx.arc(point.px, point.py, 12 + index * 1.2, 0, Math.PI * 2);
+          mapCtx.stroke();
+
+          mapCtx.fillStyle = "rgba(59, 54, 42, 0.82)";
+          mapCtx.font = '12px "Azeret Mono", monospace';
+          mapCtx.fillText(point.id, point.px - 8, point.py - 16);
+          mapCtx.font = '15px "Iowan Old Style", serif';
+          mapCtx.fillText(point.name, point.px - 18, point.py + 30);
+        });
+
+        mapCtx.strokeStyle = "rgba(107, 98, 74, 0.22)";
+        mapCtx.lineWidth = 1;
+        mapCtx.beginPath();
+        mapCtx.rect(20, 20, width - 40, height - 40);
+        mapCtx.stroke();
+
+        mapCtx.fillStyle = "rgba(59, 54, 42, 0.74)";
+        mapCtx.font = '12px "Azeret Mono", monospace';
+        mapCtx.fillText("0", 28, height - 24);
+        mapCtx.fillText("50", 88, height - 24);
+        mapCtx.fillText("100", 148, height - 24);
+        mapCtx.fillText("150 m", 208, height - 24);
+      }
+
+      function drawLattice() {
+        const width = latticeCanvas.clientWidth;
+        const height = latticeCanvas.clientHeight;
+        latticeCtx.clearRect(0, 0, width, height);
+
+        const localTime = state.time * 0.001;
+        const density = state.mode === "structure" ? 9 : 7;
+        const baseY = height - 18;
+        const columns = [];
+
+        latticeCtx.strokeStyle = "rgba(107, 98, 74, 0.2)";
+        latticeCtx.lineWidth = 1;
+        for (let y = 22; y < height; y += 32) {
+          latticeCtx.beginPath();
+          latticeCtx.moveTo(0, y);
+          latticeCtx.lineTo(width, y);
+          latticeCtx.stroke();
+        }
+
+        for (let i = 0; i < density; i += 1) {
+          const x = width * (0.08 + (i / (density - 1)) * 0.84);
+          const sway = Math.sin(localTime * 0.9 + i * 0.8 + pointer.x * 3) * 16;
+          const top = 22 + (i % 3) * 10 + Math.sin(localTime + i) * 8;
+          columns.push({ x, top, sway });
+
+          latticeCtx.beginPath();
+          latticeCtx.moveTo(x, baseY);
+          latticeCtx.bezierCurveTo(
+            x - 10 + sway * 0.2,
+            baseY - 48,
+            x + sway,
+            height * 0.44,
+            x + sway * 0.36,
+            top
+          );
+          latticeCtx.strokeStyle = "rgba(124, 111, 85, 0.48)";
+          latticeCtx.lineWidth = 2.2;
+          latticeCtx.stroke();
+
+          for (let bead = 0; bead < 6; bead += 1) {
+            const t = bead / 5;
+            const bx = x + sway * 0.2 + Math.sin(localTime * 1.3 + bead + i) * 6;
+            const by = baseY - t * (baseY - top);
+            latticeCtx.beginPath();
+            latticeCtx.fillStyle = bead % 3 === 0 ? "#d7a76d" : bead % 2 === 0 ? "#8baa87" : "#94877a";
+            latticeCtx.globalAlpha = 0.55 + Math.sin(localTime * 2 + bead + i) * 0.08;
+            latticeCtx.arc(bx, by, 3 + (1 - t) * 2.2, 0, Math.PI * 2);
+            latticeCtx.fill();
+          }
+          latticeCtx.globalAlpha = 1;
+        }
+
+        for (let i = 0; i < columns.length - 1; i += 1) {
+          const a = columns[i];
+          const b = columns[i + 1];
+          const midpointY = height * (0.48 + Math.sin(localTime + i) * 0.06);
+          const influence = pointer.active ? Math.max(0, 1 - Math.abs(pointer.y - 0.82) * 3) : 0.2;
+          latticeCtx.beginPath();
+          latticeCtx.moveTo(a.x, baseY - 24 - i * 4);
+          latticeCtx.bezierCurveTo(
+            a.x + 36,
+            midpointY + influence * 18,
+            b.x - 36,
+            midpointY - influence * 22,
+            b.x,
+            baseY - 18 - (i % 2) * 8
+          );
+          latticeCtx.strokeStyle =
+            state.mode === "signal" ? "rgba(124, 167, 188, 0.48)" : "rgba(128, 118, 92, 0.34)";
+          latticeCtx.lineWidth = 2;
+          latticeCtx.stroke();
+        }
+
+        for (let i = 0; i < 28; i += 1) {
+          const px = (i / 27) * width;
+          const py =
+            baseY -
+            10 -
+            Math.sin(localTime * 0.8 + i * 0.6) * 10 -
+            Math.max(0, 1 - Math.abs(pointer.x - i / 27) * 4) * 16;
+          latticeCtx.beginPath();
+          latticeCtx.fillStyle = i % 5 === 0 ? "#c98d89" : "#8baa87";
+          latticeCtx.globalAlpha = 0.28;
+          latticeCtx.arc(px, py, 1.8 + (i % 3), 0, Math.PI * 2);
+          latticeCtx.fill();
+        }
+        latticeCtx.globalAlpha = 1;
+      }
+
+      function tick(now) {
+        if (!state.start) state.start = now;
+        state.time = now - state.start;
+
+        const sway = Math.sin(state.time * 0.0012);
+        state.humidity = 74 + sway * 3 + (pointer.active ? (0.5 - pointer.y) * 6 : 0);
+        state.canopy = 58 + Math.cos(state.time * 0.0009 + 0.7) * 5 + (state.mode === "layered" ? 4 : 0);
+        state.signal = 54 + Math.sin(state.time * 0.0014 + 2) * 7 + (state.mode === "signal" ? 8 : 0);
+        state.stability = 80 + Math.cos(state.time * 0.001 + 0.9) * 4 + (pointer.down ? 3 : 0);
+
+        drawMap();
+        drawLattice();
+        updateReadouts();
+        requestAnimationFrame(tick);
+      }
+
+      function setPointer(event) {
+        const stageRect = mapCanvas.getBoundingClientRect();
+        const clientX = event.touches ? event.touches[0].clientX : event.clientX;
+        const clientY = event.touches ? event.touches[0].clientY : event.clientY;
+        pointer.x = Math.min(1, Math.max(0, (clientX - stageRect.left) / stageRect.width));
+        pointer.y = Math.min(1, Math.max(0, (clientY - stageRect.top) / stageRect.height));
+        pointer.active = true;
+      }
+
+      function seedPulse() {
+        const from = Math.floor(pointer.x * routes.length) % routes.length;
+        const to = (from + 1 + Math.floor(pointer.y * 3)) % routes.length;
+        pulses.push({
+          from,
+          to,
+          bend: (pointer.y - 0.5) * 0.3,
+          progress: 0,
+          life: 1,
+          color: routes[from].color
+        });
+      }
+
+      modeStrip.addEventListener("click", (event) => {
+        const button = event.target.closest("[data-mode]");
+        if (!button) return;
+        state.mode = button.dataset.mode;
+        updateModeButtons();
+      });
+
+      ["mousemove", "touchmove"].forEach((type) => {
+        window.addEventListener(
+          type,
+          (event) => {
+            setPointer(event);
+          },
+          { passive: true }
+        );
+      });
+
+      ["mousedown", "touchstart"].forEach((type) => {
+        window.addEventListener(
+          type,
+          (event) => {
+            setPointer(event);
+            pointer.down = true;
+            seedPulse();
+          },
+          { passive: true }
+        );
+      });
+
+      ["mouseup", "touchend"].forEach((type) => {
+        window.addEventListener(type, () => {
+          pointer.down = false;
+        });
+      });
+
+      window.addEventListener("mouseleave", () => {
+        pointer.active = false;
+        pointer.down = false;
+      });
+
+      window.addEventListener("resize", resize);
+
+      buildLists();
+      updateModeButtons();
+      resize();
+      requestAnimationFrame(tick);
+    </script>
+  </body>
+</html>

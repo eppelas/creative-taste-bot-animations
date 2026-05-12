@@ -1,0 +1,674 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>#028 Phrase Bloom Orchard</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #090b11;
+        --panel: rgba(12, 15, 24, 0.76);
+        --line: rgba(241, 234, 223, 0.12);
+        --text: #f4eee4;
+        --muted: rgba(244, 238, 228, 0.66);
+        --rose: #f6a7bc;
+        --cyan: #88d9e1;
+        --mint: #b6e2bc;
+        --gold: #f2c979;
+        --violet: #a69dff;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background:
+          radial-gradient(circle at 18% 18%, rgba(136, 217, 225, 0.11), transparent 23%),
+          radial-gradient(circle at 78% 16%, rgba(246, 167, 188, 0.09), transparent 26%),
+          radial-gradient(circle at 50% 86%, rgba(166, 157, 255, 0.1), transparent 24%),
+          linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 22%),
+          var(--bg);
+        color: var(--text);
+        font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+      }
+
+      canvas {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        display: block;
+      }
+
+      .ui {
+        position: fixed;
+        inset: 16px;
+        display: grid;
+        grid-template-columns: minmax(18rem, 27rem) 1fr;
+        gap: 16px;
+        align-items: start;
+        pointer-events: none;
+      }
+
+      .panel,
+      .readout,
+      .back {
+        border: 1px solid var(--line);
+        background: var(--panel);
+        backdrop-filter: blur(18px);
+        box-shadow: 0 24px 84px rgba(0, 0, 0, 0.34);
+      }
+
+      .panel,
+      .readout,
+      .back,
+      textarea,
+      button {
+        pointer-events: auto;
+      }
+
+      .panel,
+      .readout {
+        border-radius: 24px;
+      }
+
+      .panel {
+        padding: 16px 16px 14px;
+        display: grid;
+        gap: 12px;
+      }
+
+      .back {
+        position: fixed;
+        right: 16px;
+        top: 16px;
+        padding: 10px 14px;
+        border-radius: 999px;
+        color: var(--text);
+        text-decoration: none;
+      }
+
+      .readout {
+        justify-self: end;
+        align-self: end;
+        width: min(26rem, 100%);
+        padding: 14px 15px;
+      }
+
+      .eyebrow,
+      .hint,
+      .mini,
+      .reading,
+      .label,
+      .value {
+        margin: 0;
+      }
+
+      .eyebrow,
+      .mini,
+      .label {
+        font-size: 11px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: rgba(244, 238, 228, 0.5);
+      }
+
+      h1 {
+        margin: 0;
+        font-size: clamp(2rem, 4vw, 3.2rem);
+        line-height: 0.92;
+      }
+
+      .hint,
+      .reading {
+        color: var(--muted);
+        line-height: 1.48;
+      }
+
+      .hint {
+        font-size: 0.95rem;
+      }
+
+      textarea {
+        width: 100%;
+        min-height: 152px;
+        padding: 13px 14px;
+        border-radius: 18px;
+        border: 1px solid rgba(244, 238, 228, 0.14);
+        background: rgba(255, 255, 255, 0.035);
+        color: var(--text);
+        font: inherit;
+        line-height: 1.48;
+        resize: none;
+        outline: none;
+      }
+
+      textarea:focus {
+        border-color: rgba(136, 217, 225, 0.36);
+        box-shadow: 0 0 0 1px rgba(136, 217, 225, 0.18);
+      }
+
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+      }
+
+      button {
+        appearance: none;
+        border: 1px solid rgba(244, 238, 228, 0.14);
+        border-radius: 999px;
+        background: rgba(9, 11, 17, 0.8);
+        color: var(--text);
+        padding: 10px 14px;
+        font: inherit;
+        font-size: 0.82rem;
+        cursor: pointer;
+      }
+
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px 16px;
+        margin-bottom: 10px;
+      }
+
+      .value {
+        margin-top: 0.22rem;
+        font-size: 1rem;
+        font-weight: 600;
+      }
+
+      .reading {
+        font-size: 0.9rem;
+      }
+
+      @media (max-width: 980px) {
+        .ui {
+          grid-template-columns: 1fr;
+          align-items: start;
+        }
+
+        .readout {
+          justify-self: stretch;
+          width: auto;
+        }
+
+        .back {
+          top: auto;
+          bottom: 16px;
+        }
+      }
+
+      @media (max-width: 720px) {
+        .ui {
+          inset: 12px;
+          gap: 12px;
+        }
+
+        .panel,
+        .readout {
+          border-radius: 20px;
+        }
+
+        h1 {
+          font-size: clamp(1.8rem, 9vw, 2.7rem);
+        }
+
+        textarea {
+          min-height: 132px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="scene"></canvas>
+
+    <div class="ui">
+      <section class="panel">
+        <p class="eyebrow">Code Animation Study #028</p>
+        <h1>Phrase Bloom Orchard</h1>
+        <p class="hint">
+          Each sentence grows into one suspended organism with its own trunk,
+          seed halo, and side buds. Edit the text, then move through the field
+          to bend the local canopy instead of driving a detached dashboard.
+        </p>
+        <textarea id="seed">A shy idea hangs low and keeps a warm shell around it.
+One brighter sentence sends cyan spores upward like a weather report.
+The most certain phrase grows a long spine and several listening buds.
+An uncertain afterthought stays small but keeps glowing at the edge.</textarea>
+        <div class="controls">
+          <button id="reseed" type="button">Load another orchard</button>
+          <button id="shuffle" type="button">Shuffle this structure</button>
+          <p class="mini">Semantic size, warmth, and confidence become anatomy.</p>
+        </div>
+      </section>
+
+      <section class="readout" aria-label="Orchard readings">
+        <div class="stats">
+          <div>
+            <p class="label">Organisms</p>
+            <p class="value" id="organismValue">4</p>
+          </div>
+          <div>
+            <p class="label">Novelty spread</p>
+            <p class="value" id="noveltyValue">0.61</p>
+          </div>
+          <div>
+            <p class="label">Pointer field</p>
+            <p class="value" id="pointerValue">resting</p>
+          </div>
+          <div>
+            <p class="label">Canopy mood</p>
+            <p class="value" id="moodValue">warm hush</p>
+          </div>
+        </div>
+        <p class="reading" id="readingText">
+          Shorter lines stay bead-like and clustered. Longer or more unusual
+          phrases build taller trunks, wider halos, and denser side colonies.
+        </p>
+      </section>
+    </div>
+
+    <a class="back" href="../../index.html">Index</a>
+    <script src="../../shared/study-notes.js"></script>
+
+    <script>
+      const canvas = document.getElementById("scene");
+      const ctx = canvas.getContext("2d");
+      const textarea = document.getElementById("seed");
+      const reseedButton = document.getElementById("reseed");
+      const shuffleButton = document.getElementById("shuffle");
+      const organismValue = document.getElementById("organismValue");
+      const noveltyValue = document.getElementById("noveltyValue");
+      const pointerValue = document.getElementById("pointerValue");
+      const moodValue = document.getElementById("moodValue");
+      const readingText = document.getElementById("readingText");
+
+      const pointer = { x: 0, y: 0, active: false, strength: 0 };
+      const dust = [];
+      const pulseBursts = [];
+      const orchards = [];
+      const TAU = Math.PI * 2;
+
+      const seedTexts = [
+        `A pale warning drifts through the tallest branch and wakes its cyan fruit.
+The first complete thought opens a slow membrane over the center.
+One private joke stays tiny but drops gold seeds into the lower fog.
+The whole paragraph keeps listening after the speaker has stopped.`,
+        `A direct statement grows heavy roots and a disciplined vertical trunk.
+Something tender arrives late and curls three pink buds around itself.
+The strangest phrase becomes a violet lantern with a long nervous spine.
+One quiet correction spreads sideways until the orchard changes shape.`,
+        `An excited riff produces extra pollen and several fast side satellites.
+The most fragile line keeps a translucent shell and a thin heartbeat.
+One factual note becomes a ladder of amber ribs near the floor.
+The last sentence hovers apart like a small creature waiting to join.`
+      ];
+
+      function resize() {
+        const ratio = window.devicePixelRatio || 1;
+        canvas.width = Math.floor(window.innerWidth * ratio);
+        canvas.height = Math.floor(window.innerHeight * ratio);
+        canvas.style.width = `${window.innerWidth}px`;
+        canvas.style.height = `${window.innerHeight}px`;
+        ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+      }
+
+      function hashWord(word) {
+        let hash = 0;
+        for (let i = 0; i < word.length; i += 1) {
+          hash = (hash * 31 + word.charCodeAt(i)) % 1000003;
+        }
+        return hash;
+      }
+
+      function moodName(warmth, confidence) {
+        if (warmth > 0.66 && confidence > 0.62) return "lucent vow";
+        if (warmth > 0.6) return "warm hush";
+        if (confidence > 0.7) return "signal spine";
+        if (confidence < 0.38) return "soft drift";
+        return "listening field";
+      }
+
+      function parseSentences(text) {
+        return text
+          .split(/\n+/)
+          .map((line) => line.trim())
+          .filter(Boolean)
+          .slice(0, 7);
+      }
+
+      function metrics(sentence) {
+        const words = sentence.toLowerCase().match(/[a-zа-я0-9']+/gi) || [];
+        const unique = new Set(words);
+        const chars = sentence.replace(/\s+/g, "");
+        const vowels = (sentence.match(/[aeiouyаеёиоуыэюя]/gi) || []).length;
+        const punctuation = (sentence.match(/[!?]/g) || []).length;
+        const commas = (sentence.match(/[,;:]/g) || []).length;
+        const warmth = Math.min(1, 0.24 + vowels / Math.max(8, chars.length) * 2.4 + commas * 0.06);
+        const novelty = unique.size / Math.max(1, words.length);
+        const confidence = Math.min(1, 0.18 + punctuation * 0.22 + sentence.length / 170);
+        const complexity = Math.min(1, 0.12 + words.length / 18 + commas * 0.08);
+        return { words, uniqueCount: unique.size, warmth, novelty, confidence, complexity };
+      }
+
+      function colorSet(index, warmth, confidence) {
+        const palettes = [
+          ["#88d9e1", "#b6e2bc", "#f2c979"],
+          ["#f6a7bc", "#a69dff", "#88d9e1"],
+          ["#b6e2bc", "#f6a7bc", "#f2c979"],
+          ["#a69dff", "#88d9e1", "#f6a7bc"]
+        ];
+        const [primary, secondary, accent] = palettes[index % palettes.length];
+        return {
+          primary,
+          secondary,
+          accent,
+          glow: confidence > 0.66 ? accent : primary,
+          core: warmth > 0.62 ? secondary : primary
+        };
+      }
+
+      function createOrchard(forceShuffle = false) {
+        const lines = parseSentences(textarea.value);
+        orchards.length = 0;
+        const centerX = window.innerWidth * 0.52;
+        const spacing = Math.min(124, window.innerHeight / Math.max(5, lines.length + 1));
+
+        lines.forEach((line, index) => {
+          const data = metrics(line);
+          const colors = colorSet(index, data.warmth, data.confidence);
+          const baseSeed = forceShuffle ? Math.random() * 10000 : hashWord(line);
+          const bodyRadius = 28 + data.complexity * 36 + data.novelty * 16;
+          const trunkHeight = 90 + data.words.length * 5 + data.confidence * 70;
+          const budCount = 4 + Math.round(data.uniqueCount * 0.24 + data.complexity * 6);
+          const haloCount = 14 + Math.round(data.novelty * 16 + data.words.length * 0.6);
+          const x = centerX + Math.sin(index * 1.57 + baseSeed * 0.001) * (window.innerWidth * 0.18);
+          const y = 128 + spacing * (index + 1);
+
+          const buds = Array.from({ length: budCount }, (_, budIndex) => {
+            const angle = (budIndex / budCount) * TAU + baseSeed * 0.0008;
+            return {
+              angle,
+              orbit: bodyRadius * (1.1 + (budIndex % 3) * 0.24) + (budIndex % 2) * 14,
+              size: 6 + ((baseSeed + budIndex * 19) % 17) / 3 + data.warmth * 7,
+              sway: 0.6 + ((baseSeed + budIndex * 31) % 100) / 200
+            };
+          });
+
+          const halo = Array.from({ length: haloCount }, (_, haloIndex) => ({
+            angle: (haloIndex / haloCount) * TAU,
+            radius: bodyRadius * (1.5 + ((baseSeed + haloIndex * 11) % 100) / 180),
+            speed: 0.2 + ((baseSeed + haloIndex * 17) % 100) / 220
+          }));
+
+          orchards.push({
+            line,
+            x,
+            y,
+            baseX: x,
+            baseY: y,
+            bodyRadius,
+            trunkHeight,
+            trunkWidth: 8 + data.confidence * 10,
+            budCount,
+            haloCount,
+            data,
+            colors,
+            buds,
+            halo,
+            seed: baseSeed,
+            phase: Math.random() * TAU
+          });
+        });
+
+        const noveltyAverage = orchards.reduce((sum, item) => sum + item.data.novelty, 0) / Math.max(1, orchards.length);
+        const warmthAverage = orchards.reduce((sum, item) => sum + item.data.warmth, 0) / Math.max(1, orchards.length);
+        const confidenceAverage = orchards.reduce((sum, item) => sum + item.data.confidence, 0) / Math.max(1, orchards.length);
+
+        organismValue.textContent = String(orchards.length);
+        noveltyValue.textContent = noveltyAverage.toFixed(2);
+        moodValue.textContent = moodName(warmthAverage, confidenceAverage);
+        readingText.textContent =
+          orchards.length > 0
+            ? `${orchards[0].line.slice(0, 72)}${orchards[0].line.length > 72 ? "..." : ""} leads the upper canopy. Higher novelty produces wider seed halos; stronger confidence produces taller spines.`
+            : "Add a few lines to grow the orchard.";
+
+        for (let i = dust.length; i < 140; i += 1) {
+          dust.push({
+            x: Math.random() * window.innerWidth,
+            y: Math.random() * window.innerHeight,
+            size: 0.8 + Math.random() * 2.4,
+            speed: 0.2 + Math.random() * 0.6,
+            drift: Math.random() * TAU
+          });
+        }
+      }
+
+      function drawBackground(time) {
+        const gradient = ctx.createLinearGradient(0, 0, 0, window.innerHeight);
+        gradient.addColorStop(0, "#0d1119");
+        gradient.addColorStop(0.5, "#090b11");
+        gradient.addColorStop(1, "#06070c");
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
+
+        for (const mote of dust) {
+          mote.y -= mote.speed;
+          mote.x += Math.sin(time * 0.00018 + mote.drift) * 0.24;
+          if (mote.y < -10) {
+            mote.y = window.innerHeight + 10;
+            mote.x = Math.random() * window.innerWidth;
+          }
+          ctx.fillStyle = "rgba(240, 235, 226, 0.08)";
+          ctx.beginPath();
+          ctx.arc(mote.x, mote.y, mote.size, 0, TAU);
+          ctx.fill();
+        }
+
+        for (let i = 0; i < 8; i += 1) {
+          const y = window.innerHeight * (0.12 + i * 0.1);
+          ctx.strokeStyle = `rgba(255,255,255,${0.018 + i * 0.003})`;
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          for (let x = -40; x <= window.innerWidth + 40; x += 24) {
+            const wave = Math.sin(time * 0.0002 + x * 0.008 + i * 0.6) * (5 + i * 1.4);
+            if (x === -40) ctx.moveTo(x, y + wave);
+            else ctx.lineTo(x, y + wave);
+          }
+          ctx.stroke();
+        }
+      }
+
+      function drawOrchard(item, time) {
+        const dx = pointer.x - item.x;
+        const dy = pointer.y - item.y;
+        const distance = Math.hypot(dx, dy);
+        const pointerInfluence = pointer.active ? Math.max(0, 1 - distance / 220) : 0;
+        const sway = Math.sin(time * 0.001 + item.phase) * 10 + pointerInfluence * 22;
+        const lean = Math.sin(time * 0.0008 + item.seed * 0.002) * 10 + dx * 0.04 * pointerInfluence;
+        const topX = item.x + lean;
+        const topY = item.y - item.trunkHeight - sway * 0.25;
+
+        ctx.strokeStyle = `rgba(240, 235, 226, ${0.08 + item.data.confidence * 0.16})`;
+        ctx.lineWidth = item.trunkWidth;
+        ctx.lineCap = "round";
+        ctx.beginPath();
+        ctx.moveTo(item.x, item.y + item.bodyRadius * 0.6);
+        ctx.bezierCurveTo(
+          item.x + lean * 0.18,
+          item.y - item.trunkHeight * 0.28,
+          topX - sway * 0.3,
+          item.y - item.trunkHeight * 0.76,
+          topX,
+          topY
+        );
+        ctx.stroke();
+
+        const trunkGlow = ctx.createRadialGradient(topX, topY, 0, topX, topY, item.bodyRadius * 2.1);
+        trunkGlow.addColorStop(0, `${item.colors.glow}44`);
+        trunkGlow.addColorStop(1, "rgba(0,0,0,0)");
+        ctx.fillStyle = trunkGlow;
+        ctx.beginPath();
+        ctx.arc(topX, topY, item.bodyRadius * 2.1, 0, TAU);
+        ctx.fill();
+
+        const bodyGradient = ctx.createRadialGradient(
+          topX - item.bodyRadius * 0.32,
+          topY - item.bodyRadius * 0.4,
+          item.bodyRadius * 0.2,
+          topX,
+          topY,
+          item.bodyRadius * 1.2
+        );
+        bodyGradient.addColorStop(0, `${item.colors.core}ee`);
+        bodyGradient.addColorStop(0.5, `${item.colors.primary}92`);
+        bodyGradient.addColorStop(1, "rgba(8, 10, 15, 0.18)");
+        ctx.fillStyle = bodyGradient;
+        ctx.beginPath();
+        ctx.ellipse(topX, topY, item.bodyRadius, item.bodyRadius * 1.2, sway * 0.01, 0, TAU);
+        ctx.fill();
+
+        ctx.strokeStyle = "rgba(255,255,255,0.16)";
+        ctx.lineWidth = 1.2;
+        for (let rib = -2; rib <= 2; rib += 1) {
+          ctx.beginPath();
+          ctx.moveTo(topX - item.bodyRadius * 0.6, topY + rib * item.bodyRadius * 0.2);
+          ctx.quadraticCurveTo(
+            topX,
+            topY + Math.sin(time * 0.001 + rib + item.phase) * 6,
+            topX + item.bodyRadius * 0.6,
+            topY + rib * item.bodyRadius * 0.2
+          );
+          ctx.stroke();
+        }
+
+        for (const bud of item.buds) {
+          const angle = bud.angle + time * 0.00035 * bud.sway + pointerInfluence * 0.7;
+          const radius = bud.orbit + Math.sin(time * 0.001 + bud.angle * 2 + item.phase) * 8;
+          const bx = topX + Math.cos(angle) * radius;
+          const by = topY + Math.sin(angle) * radius * 0.6;
+
+          ctx.strokeStyle = `${item.colors.secondary}44`;
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(topX, topY);
+          ctx.lineTo(bx, by);
+          ctx.stroke();
+
+          ctx.fillStyle = `${item.colors.secondary}aa`;
+          ctx.beginPath();
+          ctx.ellipse(bx, by, bud.size, bud.size * 0.7, angle, 0, TAU);
+          ctx.fill();
+        }
+
+        for (const ring of item.halo) {
+          const angle = ring.angle + time * 0.00025 * ring.speed;
+          const hx = topX + Math.cos(angle) * ring.radius;
+          const hy = topY + Math.sin(angle) * ring.radius * 0.62;
+          const dotSize = 1.8 + item.data.novelty * 2.6;
+          ctx.fillStyle = `${item.colors.accent}c0`;
+          ctx.beginPath();
+          ctx.arc(hx, hy, dotSize, 0, TAU);
+          ctx.fill();
+        }
+
+        ctx.fillStyle = "rgba(255,255,255,0.12)";
+        ctx.font = "11px IBM Plex Sans, sans-serif";
+        ctx.textAlign = "left";
+        const tag = item.line.slice(0, 28).toUpperCase();
+        ctx.fillText(tag, topX - item.bodyRadius, topY + item.bodyRadius * 1.85);
+
+        if (pointerInfluence > 0.18) {
+          pulseBursts.push({
+            x: topX,
+            y: topY,
+            radius: item.bodyRadius * 0.9,
+            life: 1,
+            color: item.colors.accent
+          });
+        }
+      }
+
+      function drawBursts() {
+        for (let i = pulseBursts.length - 1; i >= 0; i -= 1) {
+          const burst = pulseBursts[i];
+          burst.radius += 1.4;
+          burst.life -= 0.02;
+          if (burst.life <= 0) {
+            pulseBursts.splice(i, 1);
+            continue;
+          }
+          ctx.strokeStyle = `${burst.color}${Math.max(0, Math.floor(burst.life * 180)).toString(16).padStart(2, "0")}`;
+          ctx.lineWidth = 1.2;
+          ctx.beginPath();
+          ctx.arc(burst.x, burst.y, burst.radius, 0, TAU);
+          ctx.stroke();
+        }
+      }
+
+      function updatePointerReadout() {
+        if (!pointer.active || pointer.strength < 0.08) {
+          pointerValue.textContent = "resting";
+          return;
+        }
+        if (pointer.strength > 0.58) pointerValue.textContent = "deep bend";
+        else if (pointer.strength > 0.28) pointerValue.textContent = "near field";
+        else pointerValue.textContent = "soft wake";
+      }
+
+      function animate(time) {
+        drawBackground(time);
+        pointer.strength *= 0.94;
+
+        for (const item of orchards) {
+          drawOrchard(item, time);
+        }
+
+        drawBursts();
+        updatePointerReadout();
+        requestAnimationFrame(animate);
+      }
+
+      function queueRebuild(shuffle = false) {
+        createOrchard(shuffle);
+      }
+
+      textarea.addEventListener("input", () => queueRebuild(false));
+      reseedButton.addEventListener("click", () => {
+        textarea.value = seedTexts[Math.floor(Math.random() * seedTexts.length)];
+        queueRebuild(true);
+      });
+      shuffleButton.addEventListener("click", () => queueRebuild(true));
+
+      window.addEventListener("pointermove", (event) => {
+        pointer.x = event.clientX;
+        pointer.y = event.clientY;
+        pointer.active = true;
+        pointer.strength = Math.min(1, pointer.strength + 0.22);
+      });
+
+      window.addEventListener("pointerleave", () => {
+        pointer.active = false;
+      });
+
+      window.addEventListener("resize", () => {
+        resize();
+        createOrchard(false);
+      });
+
+      resize();
+      createOrchard(false);
+      requestAnimationFrame(animate);
+    </script>
+  </body>
+</html>

@@ -1,0 +1,936 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>#074 Obsidian Glass Relay</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #06070b;
+        --bg-soft: #0c1018;
+        --panel: rgba(13, 16, 24, 0.76);
+        --line: rgba(210, 225, 255, 0.12);
+        --line-strong: rgba(210, 225, 255, 0.22);
+        --text: #f1f3fb;
+        --muted: rgba(231, 236, 255, 0.66);
+        --blue: #84b6df;
+        --amber: #f1bb83;
+        --red: #dd5956;
+        --violet: #5968aa;
+        --shadow: 0 28px 90px rgba(0, 0, 0, 0.46);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        background:
+          radial-gradient(circle at 18% 16%, rgba(89, 104, 170, 0.18), transparent 20%),
+          radial-gradient(circle at 82% 18%, rgba(132, 182, 223, 0.12), transparent 20%),
+          linear-gradient(180deg, #090c13 0%, #04050a 100%);
+        color: var(--text);
+        font-family: "Baskerville", "Iowan Old Style", "Palatino Linotype", serif;
+      }
+
+      body {
+        overflow: hidden;
+      }
+
+      body::before,
+      body::after {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+      }
+
+      body::before {
+        opacity: 0.08;
+        background-image:
+          linear-gradient(rgba(255, 255, 255, 0.44) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.44) 1px, transparent 1px);
+        background-size: 92px 92px;
+        mask-image: radial-gradient(circle at 52% 44%, black 26%, transparent 88%);
+      }
+
+      body::after {
+        opacity: 0.09;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 24%),
+          repeating-linear-gradient(
+            180deg,
+            rgba(255, 255, 255, 0.018) 0,
+            rgba(255, 255, 255, 0.018) 1px,
+            transparent 1px,
+            transparent 4px
+          );
+        mix-blend-mode: screen;
+      }
+
+      canvas {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        display: block;
+      }
+
+      a {
+        color: inherit;
+      }
+
+      .shell {
+        position: fixed;
+        inset: 16px;
+        display: grid;
+        grid-template-columns: minmax(280px, 332px) minmax(0, 1fr);
+        grid-template-rows: auto 1fr auto;
+        gap: 14px;
+        pointer-events: none;
+      }
+
+      .panel,
+      .scene-card,
+      .notes,
+      .back {
+        pointer-events: auto;
+        border: 1px solid var(--line);
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02)),
+          var(--panel);
+        backdrop-filter: blur(18px);
+        box-shadow: var(--shadow);
+      }
+
+      .panel,
+      .scene-card,
+      .notes {
+        position: relative;
+        overflow: hidden;
+        border-radius: 28px;
+      }
+
+      .panel::after,
+      .scene-card::after,
+      .notes::after {
+        content: "";
+        position: absolute;
+        inset: 1px;
+        border-radius: inherit;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        pointer-events: none;
+      }
+
+      .panel {
+        grid-column: 1;
+        grid-row: 1 / span 2;
+        padding: 16px;
+        display: grid;
+        gap: 12px;
+        align-content: start;
+      }
+
+      .scene-card {
+        grid-column: 2;
+        grid-row: 1 / span 2;
+        min-height: min(79vh, 920px);
+        padding: 18px;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(220px, 264px);
+        grid-template-rows: auto 1fr auto;
+        gap: 12px;
+      }
+
+      .notes {
+        grid-column: 1 / -1;
+        grid-row: 3;
+        padding: 14px;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .scene-head,
+      .ledger,
+      .prompt-card,
+      .timeline,
+      .note-card,
+      .chip,
+      .meter,
+      button {
+        border: 1px solid rgba(210, 225, 255, 0.12);
+        border-radius: 24px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02)),
+          rgba(255, 255, 255, 0.02);
+      }
+
+      .scene-head,
+      .ledger,
+      .prompt-card,
+      .timeline,
+      .note-card {
+        backdrop-filter: blur(10px);
+      }
+
+      .scene-head {
+        grid-column: 1 / -1;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 12px;
+        align-items: end;
+        padding: 14px 15px;
+      }
+
+      .ledger,
+      .prompt-card {
+        display: grid;
+        gap: 10px;
+        padding: 13px 14px 14px;
+      }
+
+      .timeline {
+        grid-column: 1 / -1;
+        padding: 12px 14px 14px;
+        display: grid;
+        gap: 10px;
+      }
+
+      .note-card {
+        padding: 12px 13px;
+      }
+
+      .chip-row,
+      .meter-stack,
+      .legend-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .chip,
+      button {
+        padding: 8px 10px;
+      }
+
+      .eyebrow,
+      .small,
+      .chip,
+      .value,
+      .meter-label,
+      button {
+        font-family: "Azeret Mono", "IBM Plex Mono", "SFMono-Regular", monospace;
+        text-transform: uppercase;
+        letter-spacing: 0.15em;
+        font-size: 0.68rem;
+      }
+
+      .eyebrow,
+      .small {
+        color: var(--muted);
+      }
+
+      h1,
+      h2,
+      p {
+        margin: 0;
+      }
+
+      h1 {
+        max-width: 8ch;
+        font-size: clamp(2rem, 4vw, 4.3rem);
+        line-height: 0.9;
+        letter-spacing: -0.05em;
+      }
+
+      h2 {
+        font-size: 0.98rem;
+        line-height: 1.1;
+      }
+
+      .body,
+      .note-card p,
+      .ledger p,
+      .prompt-card p,
+      .timeline p {
+        color: rgba(241, 243, 251, 0.78);
+        line-height: 1.45;
+      }
+
+      .panel-copy {
+        display: grid;
+        gap: 10px;
+      }
+
+      .swatch {
+        width: 11px;
+        height: 11px;
+        border-radius: 999px;
+        box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12);
+      }
+
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        color: rgba(236, 239, 250, 0.86);
+      }
+
+      .meter-stack {
+        display: grid;
+      }
+
+      .meter {
+        padding: 10px 12px;
+        display: grid;
+        gap: 6px;
+      }
+
+      .meter-track {
+        height: 8px;
+        border-radius: 999px;
+        overflow: hidden;
+        background: rgba(255, 255, 255, 0.08);
+      }
+
+      .meter-fill {
+        height: 100%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, var(--blue), var(--amber), var(--red));
+        transform-origin: left center;
+      }
+
+      .legend-line {
+        width: 22px;
+        height: 2px;
+        border-radius: 999px;
+      }
+
+      .control-grid {
+        display: grid;
+        gap: 8px;
+      }
+
+      button {
+        color: var(--text);
+        text-align: left;
+        cursor: pointer;
+        transition:
+          border-color 180ms ease,
+          transform 180ms ease,
+          background 180ms ease;
+      }
+
+      button:hover,
+      button:focus-visible {
+        transform: translateY(-1px);
+        border-color: rgba(241, 187, 131, 0.42);
+        outline: none;
+      }
+
+      button.active {
+        background:
+          linear-gradient(180deg, rgba(241, 187, 131, 0.16), rgba(132, 182, 223, 0.08)),
+          rgba(255, 255, 255, 0.06);
+        border-color: rgba(241, 187, 131, 0.42);
+      }
+
+      .back {
+        position: fixed;
+        left: 16px;
+        bottom: 16px;
+        padding: 10px 14px;
+        border-radius: 999px;
+        text-decoration: none;
+        font-family: "Azeret Mono", "IBM Plex Mono", monospace;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        font-size: 0.7rem;
+      }
+
+      @media (max-width: 980px) {
+        body {
+          overflow: auto;
+        }
+
+        canvas {
+          position: absolute;
+          height: 1180px;
+        }
+
+        .shell {
+          position: relative;
+          inset: auto;
+          min-height: 1180px;
+          padding: 16px;
+          grid-template-columns: 1fr;
+          grid-template-rows: auto auto auto;
+        }
+
+        .panel,
+        .scene-card,
+        .notes {
+          grid-column: 1;
+          grid-row: auto;
+        }
+
+        .scene-card {
+          min-height: 700px;
+          grid-template-columns: 1fr;
+        }
+
+        .notes {
+          grid-template-columns: 1fr;
+          margin-bottom: 72px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="scene" aria-hidden="true"></canvas>
+
+    <main class="shell">
+      <section class="panel">
+        <div class="panel-copy">
+          <p class="eyebrow">Code animation study</p>
+          <h1>Obsidian Glass Relay</h1>
+          <p class="body">
+            A nocturnal human editorial scene built to break the current run of
+            pale districts, cute settlements, and pure systems maps. One figure
+            stands behind wet glass while reflected signage, distant city lanes,
+            and brief shutter sweeps share the same frame.
+          </p>
+        </div>
+
+        <div class="ledger">
+          <p class="eyebrow">Cinematic rules</p>
+          <div class="chip-row">
+            <span class="chip"><span class="swatch" style="background: var(--blue)"></span> blue-black city</span>
+            <span class="chip"><span class="swatch" style="background: var(--amber)"></span> sodium interior glow</span>
+            <span class="chip"><span class="swatch" style="background: var(--red)"></span> single surgical accent</span>
+          </div>
+          <p>
+            The composition is asymmetrical on purpose: partial body crop,
+            layered reflections, dutch-angle drift, and no dashboard framing
+            inside the scene.
+          </p>
+        </div>
+
+        <div class="prompt-card">
+          <p class="eyebrow">Scene tuning</p>
+          <div class="control-grid">
+            <button class="mode active" data-mode="reflection" type="button">Reflection hold</button>
+            <button class="mode" data-mode="figure" type="button">Figure focus</button>
+            <button class="mode" data-mode="shutter" type="button">Shutter drag</button>
+          </div>
+          <p class="small">
+            Move to shift sharpness between glass, figure, and city. Click to
+            send a brief shutter sweep across the frame.
+          </p>
+        </div>
+
+        <div class="meter-stack">
+          <div class="meter">
+            <div class="chip-row">
+              <span class="meter-label">glass focus</span>
+              <span class="value" id="glassValue">68%</span>
+            </div>
+            <div class="meter-track"><div class="meter-fill" id="glassFill"></div></div>
+          </div>
+          <div class="meter">
+            <div class="chip-row">
+              <span class="meter-label">figure hold</span>
+              <span class="value" id="figureValue">44%</span>
+            </div>
+            <div class="meter-track"><div class="meter-fill" id="figureFill"></div></div>
+          </div>
+          <div class="meter">
+            <div class="chip-row">
+              <span class="meter-label">trail density</span>
+              <span class="value" id="trailValue">52%</span>
+            </div>
+            <div class="meter-track"><div class="meter-fill" id="trailFill"></div></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="scene-card">
+        <div class="scene-head">
+          <div>
+            <p class="eyebrow">Human editorial counterweight</p>
+            <h2>Glass, focus drift, and long-exposure sweeps replace the repeated map and creature grammar.</h2>
+          </div>
+          <div class="chip-row">
+            <span class="chip"><span class="legend-line" style="background: var(--blue)"></span> reflected city</span>
+            <span class="chip"><span class="legend-line" style="background: var(--amber)"></span> interior warmth</span>
+          </div>
+        </div>
+
+        <div class="timeline">
+          <p class="eyebrow">Motion logic</p>
+          <p>
+            Pointer movement does not push particles around. It behaves like a
+            rack-focus bias, quietly weighting one layer over another. Click
+            injects a diagonal shutter sweep that leaves a short afterimage like
+            passing scooter light on wet glass.
+          </p>
+        </div>
+
+        <div class="prompt-card">
+          <p class="eyebrow">Branch correction</p>
+          <p>
+            This answers the repeated request for more editorial, cinematic, and
+            human scenes with reflections, focus changes, and long-exposure
+            traces, instead of more detached infographic cards or generalized
+            creature noise.
+          </p>
+        </div>
+
+        <div class="ledger">
+          <p class="eyebrow">Frame discipline</p>
+          <p>
+            The readouts stay outside the scene. Inside the picture there are
+            only glass decals, receipt strips, rain marks, and urban glow, so
+            the page still feels like an image being made rather than a tool
+            being demonstrated.
+          </p>
+        </div>
+      </section>
+
+      <section class="notes">
+        <article class="note-card">
+          <p class="eyebrow">Idea</p>
+          <p>
+            A blue-black city seen through rain-dark glass, with one cropped
+            interior figure and several reflective layers fighting for attention
+            in the same nocturnal frame.
+          </p>
+        </article>
+        <article class="note-card">
+          <p class="eyebrow">Interaction</p>
+          <p>
+            Hover changes which layer feels sharpest: reflected lettering,
+            figure silhouette, or distant city bands. Click adds one brief
+            shutter-light sweep with a fading afterimage.
+          </p>
+        </article>
+        <article class="note-card">
+          <p class="eyebrow">Next</p>
+          <p>
+            A later pass could introduce a second reflected inset or a more
+            explicit scooter streak crossing outside the window without turning
+            the scene into literal animation storyboards.
+          </p>
+        </article>
+      </section>
+    </main>
+
+    <a class="back" href="../../index.html">Back to index</a>
+
+    <script>
+      const canvas = document.getElementById("scene");
+      const ctx = canvas.getContext("2d");
+      const modeButtons = [...document.querySelectorAll(".mode")];
+      const glassFill = document.getElementById("glassFill");
+      const figureFill = document.getElementById("figureFill");
+      const trailFill = document.getElementById("trailFill");
+      const glassValue = document.getElementById("glassValue");
+      const figureValue = document.getElementById("figureValue");
+      const trailValue = document.getElementById("trailValue");
+
+      const state = {
+        width: 0,
+        height: 0,
+        dpr: Math.min(window.devicePixelRatio || 1, 2),
+        pointer: { x: 0.52, y: 0.48 },
+        focus: { x: 0.52, y: 0.48 },
+        mode: "reflection",
+        sweeps: [],
+        time: 0
+      };
+
+      const skyline = Array.from({ length: 28 }, (_, index) => ({
+        x: index / 27,
+        w: 40 + Math.random() * 70,
+        h: 0.18 + Math.random() * 0.42,
+        light: Math.random(),
+        phase: Math.random() * Math.PI * 2
+      }));
+
+      const windows = Array.from({ length: 130 }, () => ({
+        x: Math.random(),
+        y: Math.random() * 0.62 + 0.18,
+        size: 1 + Math.random() * 3.2,
+        warm: Math.random(),
+        blink: Math.random() * Math.PI * 2
+      }));
+
+      const rain = Array.from({ length: 120 }, () => ({
+        x: Math.random(),
+        y: Math.random(),
+        len: 18 + Math.random() * 52,
+        speed: 0.2 + Math.random() * 0.8,
+        tilt: 0.2 + Math.random() * 0.2
+      }));
+
+      const decals = Array.from({ length: 9 }, (_, index) => ({
+        x: 0.08 + (index % 3) * 0.2 + Math.random() * 0.03,
+        y: 0.12 + Math.floor(index / 3) * 0.16 + Math.random() * 0.03,
+        w: 0.11 + Math.random() * 0.06,
+        h: 0.024 + Math.random() * 0.018
+      }));
+
+      function resize() {
+        state.dpr = Math.min(window.devicePixelRatio || 1, 2);
+        state.width = window.innerWidth;
+        state.height = window.innerHeight;
+        canvas.width = Math.round(state.width * state.dpr);
+        canvas.height = Math.round(state.height * state.dpr);
+        ctx.setTransform(state.dpr, 0, 0, state.dpr, 0, 0);
+      }
+
+      function clamp(value, min, max) {
+        return Math.max(min, Math.min(max, value));
+      }
+
+      function ease(current, target, factor) {
+        return current + (target - current) * factor;
+      }
+
+      function addSweep(x, y) {
+        state.sweeps.push({
+          x,
+          y,
+          progress: 0,
+          strength: 0.7 + Math.random() * 0.3
+        });
+        if (state.sweeps.length > 6) {
+          state.sweeps.shift();
+        }
+      }
+
+      function focusWeights() {
+        const pointerGlass = clamp(1 - state.focus.x * 1.12 + (0.45 - state.focus.y) * 0.18, 0.08, 1);
+        const pointerFigure = clamp(1 - Math.abs(state.focus.x - 0.72) * 2.5 - Math.abs(state.focus.y - 0.56) * 1.7, 0.08, 1);
+        const pointerCity = clamp(state.focus.x * 0.92 + (state.focus.y - 0.28) * 0.22, 0.08, 1);
+
+        let glass = pointerGlass;
+        let figure = pointerFigure;
+        let city = pointerCity;
+        if (state.mode === "figure") {
+          figure += 0.32;
+        } else if (state.mode === "shutter") {
+          city += 0.2;
+        } else {
+          glass += 0.24;
+        }
+
+        const total = glass + figure + city;
+        return { glass: glass / total, figure: figure / total, city: city / total };
+      }
+
+      function drawBackground(time) {
+        const gradient = ctx.createLinearGradient(0, 0, 0, state.height);
+        gradient.addColorStop(0, "#0a0d15");
+        gradient.addColorStop(0.45, "#070910");
+        gradient.addColorStop(1, "#04050a");
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, state.width, state.height);
+
+        const cityGlow = ctx.createRadialGradient(
+          state.width * 0.72,
+          state.height * 0.42,
+          0,
+          state.width * 0.72,
+          state.height * 0.42,
+          state.width * 0.34
+        );
+        cityGlow.addColorStop(0, "rgba(132, 182, 223, 0.12)");
+        cityGlow.addColorStop(1, "rgba(132, 182, 223, 0)");
+        ctx.fillStyle = cityGlow;
+        ctx.fillRect(0, 0, state.width, state.height);
+
+        const warmGlow = ctx.createRadialGradient(
+          state.width * 0.26,
+          state.height * 0.72,
+          0,
+          state.width * 0.26,
+          state.height * 0.72,
+          state.width * 0.24
+        );
+        warmGlow.addColorStop(0, "rgba(241, 187, 131, 0.08)");
+        warmGlow.addColorStop(1, "rgba(241, 187, 131, 0)");
+        ctx.fillStyle = warmGlow;
+        ctx.fillRect(0, 0, state.width, state.height);
+      }
+
+      function drawSkyline(time, cityFocus) {
+        const horizon = state.height * 0.62;
+        skyline.forEach((tower) => {
+          const x = tower.x * state.width - tower.w / 2;
+          const sway = Math.sin(time * 0.08 + tower.phase) * 8;
+          const h = tower.h * state.height;
+          ctx.fillStyle = `rgba(12, 15, 24, ${0.78 + cityFocus * 0.12})`;
+          ctx.fillRect(x + sway, horizon - h, tower.w, h + 160);
+
+          const edge = ctx.createLinearGradient(x, 0, x + tower.w, 0);
+          edge.addColorStop(0, `rgba(132, 182, 223, ${0.02 + cityFocus * 0.05})`);
+          edge.addColorStop(1, "rgba(255, 255, 255, 0)");
+          ctx.fillStyle = edge;
+          ctx.fillRect(x + sway, horizon - h, tower.w, h + 40);
+        });
+
+        windows.forEach((windowLight) => {
+          const y = state.height * (0.24 + windowLight.y * 0.46);
+          const x = state.width * windowLight.x;
+          const twinkle = 0.5 + Math.sin(time * 0.8 + windowLight.blink) * 0.5;
+          const alpha = (0.08 + cityFocus * 0.3) * twinkle;
+          ctx.fillStyle =
+            windowLight.warm > 0.66
+              ? `rgba(241, 187, 131, ${alpha})`
+              : windowLight.warm > 0.33
+                ? `rgba(221, 89, 86, ${alpha * 0.72})`
+                : `rgba(132, 182, 223, ${alpha})`;
+          ctx.fillRect(x, y, windowLight.size * 1.8, windowLight.size);
+        });
+
+        ctx.strokeStyle = `rgba(132, 182, 223, ${0.08 + cityFocus * 0.14})`;
+        ctx.lineWidth = 2;
+        for (let i = 0; i < 5; i += 1) {
+          const y = state.height * (0.48 + i * 0.06);
+          ctx.beginPath();
+          ctx.moveTo(-40, y + Math.sin(time * 0.6 + i) * 6);
+          ctx.lineTo(state.width + 40, y + 20 + Math.cos(time * 0.5 + i) * 10);
+          ctx.stroke();
+        }
+      }
+
+      function drawFigure(time, figureFocus) {
+        const x = state.width * 0.66;
+        const y = state.height * 0.9;
+        const shoulderShift = Math.sin(time * 0.6) * 4;
+
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(-0.12);
+
+        const coat = ctx.createLinearGradient(-140, -420, 160, 80);
+        coat.addColorStop(0, `rgba(12, 14, 22, ${0.94 - figureFocus * 0.08})`);
+        coat.addColorStop(0.65, `rgba(23, 28, 40, ${0.88 + figureFocus * 0.1})`);
+        coat.addColorStop(1, `rgba(78, 92, 130, ${0.22 + figureFocus * 0.08})`);
+        ctx.fillStyle = coat;
+        ctx.beginPath();
+        ctx.moveTo(-120, 0);
+        ctx.quadraticCurveTo(-130, -170, -70, -320);
+        ctx.quadraticCurveTo(-20, -440, 70, -390);
+        ctx.quadraticCurveTo(150, -328, 125, -132);
+        ctx.quadraticCurveTo(116, -20, 74, 40);
+        ctx.lineTo(-78, 44);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.fillStyle = `rgba(17, 21, 30, ${0.96 - figureFocus * 0.08})`;
+        ctx.beginPath();
+        ctx.ellipse(32 + shoulderShift, -334, 58, 84, -0.26, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = `rgba(241, 187, 131, ${0.08 + figureFocus * 0.12})`;
+        ctx.beginPath();
+        ctx.ellipse(26 + shoulderShift, -330, 46, 66, -0.26, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = `rgba(132, 182, 223, ${0.08 + figureFocus * 0.14})`;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(48, -280);
+        ctx.lineTo(92, -166);
+        ctx.lineTo(110, -72);
+        ctx.stroke();
+
+        ctx.fillStyle = `rgba(221, 89, 86, ${0.06 + figureFocus * 0.16})`;
+        ctx.fillRect(42, -276, 16, 52);
+        ctx.restore();
+      }
+
+      function drawGlass(time, glassFocus) {
+        decals.forEach((decal, index) => {
+          const x = decal.x * state.width;
+          const y = decal.y * state.height;
+          const w = decal.w * state.width;
+          const h = decal.h * state.height;
+          const skew = Math.sin(time * 0.4 + index) * 8;
+          ctx.fillStyle = `rgba(255, 255, 255, ${0.03 + glassFocus * 0.06})`;
+          ctx.fillRect(x + skew, y, w, h);
+          ctx.fillStyle =
+            index % 4 === 0
+              ? `rgba(221, 89, 86, ${0.04 + glassFocus * 0.08})`
+              : `rgba(132, 182, 223, ${0.03 + glassFocus * 0.06})`;
+          ctx.fillRect(x + skew + 10, y + h + 4, w * 0.68, 2);
+        });
+
+        rain.forEach((drop, index) => {
+          const y = ((drop.y + time * 0.05 * drop.speed) % 1) * state.height;
+          const x = drop.x * state.width + Math.sin(time * 0.3 + index) * 8;
+          ctx.strokeStyle =
+            index % 8 === 0
+              ? `rgba(241, 187, 131, ${0.04 + glassFocus * 0.1})`
+              : `rgba(255, 255, 255, ${0.04 + glassFocus * 0.12})`;
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(x, y);
+          ctx.lineTo(x - drop.len * drop.tilt, y + drop.len);
+          ctx.stroke();
+        });
+
+        ctx.strokeStyle = `rgba(255, 255, 255, ${0.07 + glassFocus * 0.12})`;
+        ctx.lineWidth = 1.4;
+        for (let i = 0; i < 8; i += 1) {
+          const y = state.height * (0.1 + i * 0.11);
+          ctx.beginPath();
+          ctx.moveTo(state.width * 0.04, y + Math.sin(time * 0.3 + i) * 10);
+          ctx.lineTo(state.width * 0.94, y - 20 + Math.cos(time * 0.2 + i) * 12);
+          ctx.stroke();
+        }
+
+        ctx.fillStyle = `rgba(255, 255, 255, ${0.04 + glassFocus * 0.08})`;
+        ctx.fillRect(state.width * 0.12, state.height * 0.2, state.width * 0.18, 1.5);
+        ctx.fillRect(state.width * 0.18, state.height * 0.78, state.width * 0.23, 1.5);
+      }
+
+      function drawSweeps(time) {
+        state.sweeps = state.sweeps.filter((sweep) => sweep.progress < 1.1);
+        state.sweeps.forEach((sweep) => {
+          sweep.progress += 0.018 + sweep.strength * 0.01;
+          const x = sweep.x * state.width + sweep.progress * state.width * 0.52;
+          const y = sweep.y * state.height - sweep.progress * state.height * 0.16;
+          const alpha = Math.max(0, 0.24 * (1 - sweep.progress));
+
+          ctx.save();
+          ctx.translate(x, y);
+          ctx.rotate(-0.28);
+          const sweepGradient = ctx.createLinearGradient(-180, 0, 180, 0);
+          sweepGradient.addColorStop(0, "rgba(0, 0, 0, 0)");
+          sweepGradient.addColorStop(0.4, `rgba(132, 182, 223, ${alpha})`);
+          sweepGradient.addColorStop(0.52, `rgba(255, 255, 255, ${alpha * 0.9})`);
+          sweepGradient.addColorStop(0.7, `rgba(241, 187, 131, ${alpha})`);
+          sweepGradient.addColorStop(1, "rgba(0, 0, 0, 0)");
+          ctx.fillStyle = sweepGradient;
+          ctx.fillRect(-220, -18, 440, 36);
+
+          ctx.strokeStyle = `rgba(221, 89, 86, ${alpha * 0.8})`;
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(-220, 10);
+          ctx.lineTo(220, 10);
+          ctx.stroke();
+          ctx.restore();
+        });
+      }
+
+      function drawAura(glassFocus, figureFocus, cityFocus) {
+        const city = ctx.createRadialGradient(
+          state.width * 0.76,
+          state.height * 0.42,
+          0,
+          state.width * 0.76,
+          state.height * 0.42,
+          state.width * 0.24
+        );
+        city.addColorStop(0, `rgba(132, 182, 223, ${0.04 + cityFocus * 0.08})`);
+        city.addColorStop(1, "rgba(132, 182, 223, 0)");
+        ctx.fillStyle = city;
+        ctx.fillRect(0, 0, state.width, state.height);
+
+        const figure = ctx.createRadialGradient(
+          state.width * 0.68,
+          state.height * 0.58,
+          0,
+          state.width * 0.68,
+          state.height * 0.58,
+          state.width * 0.18
+        );
+        figure.addColorStop(0, `rgba(241, 187, 131, ${0.03 + figureFocus * 0.09})`);
+        figure.addColorStop(1, "rgba(241, 187, 131, 0)");
+        ctx.fillStyle = figure;
+        ctx.fillRect(0, 0, state.width, state.height);
+
+        const glass = ctx.createRadialGradient(
+          state.focus.x * state.width,
+          state.focus.y * state.height,
+          0,
+          state.focus.x * state.width,
+          state.focus.y * state.height,
+          state.width * 0.16
+        );
+        glass.addColorStop(0, `rgba(255, 255, 255, ${0.03 + glassFocus * 0.06})`);
+        glass.addColorStop(1, "rgba(255, 255, 255, 0)");
+        ctx.fillStyle = glass;
+        ctx.fillRect(0, 0, state.width, state.height);
+      }
+
+      function updateMeters(weights, time) {
+        const trail = clamp(0.38 + weights.city * 0.26 + state.sweeps.length * 0.1 + Math.sin(time * 0.7) * 0.06, 0.12, 0.96);
+        glassFill.style.transform = `scaleX(${weights.glass})`;
+        figureFill.style.transform = `scaleX(${weights.figure})`;
+        trailFill.style.transform = `scaleX(${trail})`;
+        glassValue.textContent = `${Math.round(weights.glass * 100)}%`;
+        figureValue.textContent = `${Math.round(weights.figure * 100)}%`;
+        trailValue.textContent = `${Math.round(trail * 100)}%`;
+      }
+
+      function draw(timeMs) {
+        state.time = timeMs * 0.001;
+        const time = state.time;
+        state.focus.x = ease(state.focus.x, state.pointer.x, 0.035);
+        state.focus.y = ease(state.focus.y, state.pointer.y, 0.035);
+        const weights = focusWeights();
+
+        drawBackground(time);
+        drawSkyline(time, weights.city);
+        drawFigure(time, weights.figure);
+        drawGlass(time, weights.glass);
+        drawSweeps(time);
+        drawAura(weights.glass, weights.figure, weights.city);
+        updateMeters(weights, time);
+        requestAnimationFrame(draw);
+      }
+
+      function setMode(mode) {
+        state.mode = mode;
+        modeButtons.forEach((button) => {
+          button.classList.toggle("active", button.dataset.mode === mode);
+        });
+        if (mode === "shutter") {
+          addSweep(0.08, 0.78);
+        }
+      }
+
+      window.addEventListener("resize", resize);
+      window.addEventListener("pointermove", (event) => {
+        state.pointer.x = clamp(event.clientX / state.width, 0, 1);
+        state.pointer.y = clamp(event.clientY / state.height, 0, 1);
+      });
+      window.addEventListener("pointerleave", () => {
+        state.pointer.x = 0.52;
+        state.pointer.y = 0.48;
+      });
+      window.addEventListener("click", (event) => {
+        addSweep(clamp(event.clientX / state.width, 0.02, 0.8), clamp(event.clientY / state.height, 0.18, 0.9));
+      });
+
+      modeButtons.forEach((button) => {
+        button.addEventListener("click", () => setMode(button.dataset.mode));
+      });
+
+      resize();
+      setMode("reflection");
+      addSweep(0.08, 0.74);
+      requestAnimationFrame(draw);
+    </script>
+  </body>
+</html>

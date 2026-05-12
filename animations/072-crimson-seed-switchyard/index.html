@@ -1,0 +1,887 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>#072 Crimson Seed Switchyard</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #08060b;
+        --bg-deep: #12060a;
+        --panel: rgba(13, 8, 14, 0.78);
+        --panel-soft: rgba(26, 12, 18, 0.56);
+        --line: rgba(255, 222, 208, 0.12);
+        --line-strong: rgba(255, 222, 208, 0.22);
+        --cream: #f3e7da;
+        --fog: rgba(243, 231, 218, 0.7);
+        --crimson: #ef4a58;
+        --ember: #ff8868;
+        --marrow: #f6c6a2;
+        --violet: #7f5f8f;
+        --cyan: #88bbc7;
+        --shadow: 0 28px 90px rgba(0, 0, 0, 0.4);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        background:
+          radial-gradient(circle at 18% 18%, rgba(136, 187, 199, 0.14), transparent 20%),
+          radial-gradient(circle at 76% 16%, rgba(239, 74, 88, 0.14), transparent 24%),
+          radial-gradient(circle at 50% 80%, rgba(255, 136, 104, 0.12), transparent 28%),
+          linear-gradient(180deg, #150a12 0%, #0c080e 46%, #08060b 100%);
+        color: var(--cream);
+        font-family: Georgia, "Iowan Old Style", "Palatino Linotype", serif;
+      }
+
+      body {
+        overflow: hidden;
+      }
+
+      body::before,
+      body::after {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+      }
+
+      body::before {
+        opacity: 0.08;
+        background-image:
+          linear-gradient(rgba(255, 255, 255, 0.2) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.2) 1px, transparent 1px);
+        background-size: 72px 72px;
+        mask-image: radial-gradient(circle at 52% 48%, black 32%, transparent 86%);
+      }
+
+      body::after {
+        opacity: 0.06;
+        background-image:
+          linear-gradient(rgba(255, 255, 255, 0.42) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.42) 1px, transparent 1px);
+        background-size: 4px 4px;
+        mix-blend-mode: soft-light;
+      }
+
+      canvas {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        display: block;
+      }
+
+      a {
+        color: inherit;
+      }
+
+      .shell {
+        position: fixed;
+        inset: 16px;
+        display: grid;
+        grid-template-columns: minmax(280px, 320px) minmax(0, 1fr);
+        grid-template-rows: auto 1fr auto;
+        gap: 14px;
+        pointer-events: none;
+      }
+
+      .panel,
+      .scene-card,
+      .notes,
+      .back {
+        pointer-events: auto;
+        border: 1px solid var(--line);
+        background:
+          linear-gradient(180deg, rgba(23, 10, 16, 0.9), rgba(9, 8, 12, 0.76)),
+          rgba(7, 8, 12, 0.76);
+        backdrop-filter: blur(18px);
+        box-shadow: var(--shadow);
+      }
+
+      .panel,
+      .scene-card,
+      .notes {
+        position: relative;
+        overflow: hidden;
+        border-radius: 30px;
+      }
+
+      .panel::after,
+      .scene-card::after,
+      .notes::after {
+        content: "";
+        position: absolute;
+        inset: 1px;
+        border-radius: inherit;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        pointer-events: none;
+      }
+
+      .panel {
+        grid-column: 1;
+        grid-row: 1 / span 2;
+        align-self: start;
+        padding: 16px;
+        display: grid;
+        gap: 12px;
+        align-content: start;
+      }
+
+      .scene-card {
+        grid-column: 2;
+        grid-row: 1 / span 2;
+        min-height: min(79vh, 920px);
+        padding: 18px;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(220px, 270px);
+        grid-template-rows: auto 1fr auto;
+        gap: 12px;
+      }
+
+      .notes {
+        grid-column: 1 / -1;
+        grid-row: 3;
+        padding: 14px;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .scene-head,
+      .legend,
+      .prompt-card,
+      .timeline,
+      .note-card,
+      .chip,
+      .mode-button {
+        border: 1px solid rgba(255, 238, 230, 0.1);
+        border-radius: 24px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03)),
+          rgba(255, 255, 255, 0.02);
+      }
+
+      .scene-head,
+      .legend,
+      .prompt-card,
+      .timeline,
+      .note-card {
+        backdrop-filter: blur(12px);
+      }
+
+      .scene-head {
+        grid-column: 1 / -1;
+        padding: 14px 15px;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 12px;
+        align-items: end;
+      }
+
+      .legend,
+      .prompt-card {
+        padding: 13px 14px 14px;
+        display: grid;
+        gap: 10px;
+      }
+
+      .timeline {
+        grid-column: 1 / -1;
+        padding: 12px 14px 14px;
+        display: grid;
+        gap: 10px;
+      }
+
+      .note-card {
+        padding: 12px 13px;
+      }
+
+      .chip-row,
+      .legend-list,
+      .control-list,
+      .beat-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .chip {
+        padding: 8px 10px;
+      }
+
+      .eyebrow,
+      .small,
+      .chip,
+      .mode-button,
+      .value,
+      .beat {
+        text-transform: uppercase;
+        letter-spacing: 0.16em;
+        font-family: "Trebuchet MS", "Gill Sans", sans-serif;
+        font-size: 0.66rem;
+      }
+
+      .eyebrow,
+      .small {
+        color: var(--fog);
+      }
+
+      h1,
+      h2,
+      p {
+        margin: 0;
+      }
+
+      h1 {
+        font-size: clamp(1.8rem, 2.3vw, 2.8rem);
+        line-height: 0.95;
+      }
+
+      h2 {
+        font-size: 0.96rem;
+        font-weight: 600;
+        line-height: 1.1;
+      }
+
+      .lede,
+      .note-card p,
+      .legend p,
+      .prompt-card p,
+      .timeline p {
+        color: rgba(243, 231, 218, 0.84);
+        font-size: 0.93rem;
+        line-height: 1.45;
+      }
+
+      .value {
+        color: var(--marrow);
+      }
+
+      .meter {
+        position: relative;
+        height: 10px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.08);
+      }
+
+      .meter::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        width: var(--fill, 50%);
+        border-radius: inherit;
+        background: linear-gradient(90deg, var(--crimson), var(--ember), var(--marrow));
+      }
+
+      .control-list {
+        display: grid;
+      }
+
+      .mode-button {
+        appearance: none;
+        width: 100%;
+        padding: 12px 13px;
+        color: inherit;
+        text-align: left;
+        cursor: pointer;
+        transition:
+          transform 180ms ease,
+          border-color 180ms ease,
+          background 180ms ease;
+      }
+
+      .mode-button:hover,
+      .mode-button:focus-visible {
+        transform: translateX(3px);
+        border-color: rgba(255, 199, 176, 0.34);
+        outline: none;
+      }
+
+      .mode-button.active {
+        background:
+          linear-gradient(180deg, rgba(239, 74, 88, 0.22), rgba(255, 136, 104, 0.08)),
+          rgba(255, 255, 255, 0.03);
+        border-color: rgba(255, 174, 152, 0.38);
+      }
+
+      .mode-button span {
+        display: block;
+      }
+
+      .mode-title {
+        color: var(--cream);
+        margin-bottom: 6px;
+      }
+
+      .mode-copy {
+        color: rgba(243, 231, 218, 0.72);
+        font-family: Georgia, "Iowan Old Style", "Palatino Linotype", serif;
+        font-size: 0.84rem;
+        letter-spacing: 0;
+        text-transform: none;
+        line-height: 1.35;
+      }
+
+      .beat {
+        padding: 8px 10px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.05);
+      }
+
+      .back {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        justify-self: start;
+        padding: 10px 14px;
+        border-radius: 999px;
+        text-decoration: none;
+      }
+
+      .back:hover,
+      .back:focus-visible {
+        border-color: var(--line-strong);
+        outline: none;
+      }
+
+      @media (max-width: 980px) {
+        body {
+          overflow: auto;
+        }
+
+        .shell {
+          position: relative;
+          inset: auto;
+          min-height: 100vh;
+          padding: 16px;
+          grid-template-columns: 1fr;
+          grid-template-rows: auto auto auto auto;
+        }
+
+        .panel,
+        .scene-card,
+        .notes {
+          grid-column: 1;
+          grid-row: auto;
+        }
+
+        .scene-card {
+          min-height: 620px;
+          grid-template-columns: 1fr;
+        }
+
+        .notes {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="scene" aria-hidden="true"></canvas>
+
+    <main class="shell">
+      <section class="panel">
+        <p class="eyebrow">Code Animation 072</p>
+        <div>
+          <h1>Crimson Seed Switchyard</h1>
+          <p class="lede">
+            A living crimson nursery stretched across a dark void: ribbed
+            membranes hold seed lanterns, tiny caretakers patrol soft catwalks,
+            and the controls only matter because they alter the same world.
+          </p>
+        </div>
+
+        <div class="chip-row" aria-label="Key traits">
+          <span class="chip">Organic field</span>
+          <span class="chip">Tiny workers</span>
+          <span class="chip">Visible control effect</span>
+        </div>
+
+        <div class="legend">
+          <p class="eyebrow">Field Readout</p>
+          <p>Pointer warmth opens nearby pods and pulls the nearest caretakers into attention.</p>
+          <div class="small">Membrane strain</div>
+          <div class="meter" id="strainMeter" style="--fill: 52%"></div>
+          <div class="small">Seed ignition</div>
+          <div class="meter" id="seedMeter" style="--fill: 44%"></div>
+          <div class="small">Route signal</div>
+          <div class="meter" id="routeMeter" style="--fill: 36%"></div>
+        </div>
+
+        <div class="prompt-card">
+          <p class="eyebrow">Switch Modes</p>
+          <div class="control-list">
+            <button class="mode-button active" data-mode="ember">
+              <span class="mode-title">Ember Nursery</span>
+              <span class="mode-copy">Warm red seed lights and calm tissue breathing.</span>
+            </button>
+            <button class="mode-button" data-mode="white">
+              <span class="mode-title">Pale Audit</span>
+              <span class="mode-copy">Shift white markers through the whole rib network.</span>
+            </button>
+            <button class="mode-button" data-mode="cyan">
+              <span class="mode-title">Cool Relay</span>
+              <span class="mode-copy">Flood the channels with cyan inspection current.</span>
+            </button>
+          </div>
+        </div>
+
+        <a class="back" href="../../index.html">Back to index</a>
+      </section>
+
+      <section class="scene-card">
+        <div class="scene-head">
+          <div>
+            <p class="eyebrow">Inhabited crimson world</p>
+            <h2>Seed rails, membrane arches, and one shared pulse lane</h2>
+          </div>
+          <div class="value" id="modeReadout">Mode: ember nursery</div>
+        </div>
+
+        <div class="timeline">
+          <p class="eyebrow">Interaction</p>
+          <div class="beat-row">
+            <span class="beat">Move pointer: local opening</span>
+            <span class="beat">Click: send one pulse convoy</span>
+            <span class="beat">Buttons: recolor whole world</span>
+          </div>
+        </div>
+
+        <div class="legend">
+          <p class="eyebrow">World Logic</p>
+          <p>
+            The right rail is not decorative UI. Each mode changes every seed
+            lamp, catwalk reflection, and worker beacon inside the world.
+          </p>
+          <div class="legend-list">
+            <span class="chip">No detached dashboard</span>
+            <span class="chip">Scene-first motion</span>
+            <span class="chip">Semi-transparent body</span>
+          </div>
+        </div>
+
+        <div class="prompt-card">
+          <p class="eyebrow">Current cue</p>
+          <p id="cueCopy">
+            Ember nursery keeps the field warm and inhabited while the pulse
+            rail stays latent until you trigger it.
+          </p>
+        </div>
+      </section>
+
+      <section class="notes">
+        <article class="note-card">
+          <p class="eyebrow">Idea</p>
+          <p>
+            Translate the requested crimson HTML direction into a believable
+            living system with awkward workers and huge soft anatomy, not an
+            abstract particle poster or a floating control panel.
+          </p>
+        </article>
+        <article class="note-card">
+          <p class="eyebrow">Interaction</p>
+          <p>
+            Pointer proximity locally opens pods and wakes workers. Click sends
+            one visible convoy pulse across the bridge chain. The rail switches
+            recolor the same tissue and seed lights in place.
+          </p>
+        </article>
+        <article class="note-card">
+          <p class="eyebrow">Next</p>
+          <p>
+            This branch could widen into a larger crimson habitat with more
+            task scenes, or stay compact and become a sharper print-native
+            world with flatter stencil edges.
+          </p>
+        </article>
+      </section>
+    </main>
+
+    <script>
+      const canvas = document.getElementById("scene");
+      const ctx = canvas.getContext("2d");
+
+      const strainMeter = document.getElementById("strainMeter");
+      const seedMeter = document.getElementById("seedMeter");
+      const routeMeter = document.getElementById("routeMeter");
+      const modeReadout = document.getElementById("modeReadout");
+      const cueCopy = document.getElementById("cueCopy");
+      const buttons = [...document.querySelectorAll(".mode-button")];
+
+      const pointer = {
+        x: window.innerWidth * 0.58,
+        y: window.innerHeight * 0.52,
+        tx: window.innerWidth * 0.58,
+        ty: window.innerHeight * 0.52,
+        active: false,
+      };
+
+      const modes = {
+        ember: {
+          name: "ember nursery",
+          tint: [239, 74, 88],
+          glow: [255, 136, 104],
+          accent: [246, 198, 162],
+          cue: "Ember nursery keeps the field warm and inhabited while the pulse rail stays latent until you trigger it.",
+        },
+        white: {
+          name: "pale audit",
+          tint: [243, 231, 218],
+          glow: [255, 212, 186],
+          accent: [236, 156, 140],
+          cue: "Pale audit sends white markers through the arches so the world reads like exposed tissue under inspection.",
+        },
+        cyan: {
+          name: "cool relay",
+          tint: [136, 187, 199],
+          glow: [162, 227, 239],
+          accent: [239, 74, 88],
+          cue: "Cool relay turns the nursery into an inspection current where cyan channels overtake the crimson body.",
+        },
+      };
+
+      let currentMode = "ember";
+      let pulseAt = -10;
+      let time = 0;
+
+      const arches = [];
+      const workers = [];
+      const sparks = [];
+
+      function lerp(a, b, t) {
+        return a + (b - a) * t;
+      }
+
+      function clamp(value, min, max) {
+        return Math.max(min, Math.min(max, value));
+      }
+
+      function rgba(rgb, alpha) {
+        return `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${alpha})`;
+      }
+
+      function resize() {
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = Math.floor(window.innerWidth * dpr);
+        canvas.height = Math.floor(window.innerHeight * dpr);
+        canvas.style.width = `${window.innerWidth}px`;
+        canvas.style.height = `${window.innerHeight}px`;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        buildScene();
+      }
+
+      function buildScene() {
+        arches.length = 0;
+        workers.length = 0;
+        sparks.length = 0;
+
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+
+        for (let i = 0; i < 5; i += 1) {
+          const startX = width * (0.06 + i * 0.16);
+          const endX = startX + width * (0.2 + (i % 2) * 0.03);
+          arches.push({
+            startX,
+            endX,
+            baseY: height * (0.42 + (i % 3) * 0.08),
+            arc: height * (0.08 + (i % 2) * 0.05),
+            thickness: width * (0.038 + (i % 2) * 0.008),
+            seedCount: 7 + (i % 3),
+            phase: i * 1.3,
+          });
+        }
+
+        for (let i = 0; i < 9; i += 1) {
+          workers.push({
+            lane: i % arches.length,
+            along: 0.08 + (i * 0.1) % 0.84,
+            sway: i * 0.8,
+            size: 11 + (i % 3) * 2,
+            tint: i % 2 === 0 ? "cream" : "accent",
+          });
+        }
+
+        for (let i = 0; i < 90; i += 1) {
+          sparks.push({
+            x: Math.random(),
+            y: Math.random(),
+            size: 1 + Math.random() * 3,
+            drift: 0.2 + Math.random() * 0.8,
+            phase: Math.random() * Math.PI * 2,
+          });
+        }
+      }
+
+      function pointOnArch(arch, t) {
+        const x = lerp(arch.startX, arch.endX, t);
+        const y = arch.baseY - Math.sin(t * Math.PI) * arch.arc;
+        return { x, y };
+      }
+
+      function drawGlow(x, y, radius, color, alpha) {
+        const gradient = ctx.createRadialGradient(x, y, 0, x, y, radius);
+        gradient.addColorStop(0, rgba(color, alpha));
+        gradient.addColorStop(0.4, rgba(color, alpha * 0.45));
+        gradient.addColorStop(1, rgba(color, 0));
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      function drawBackground(width, height) {
+        const gradient = ctx.createLinearGradient(0, 0, 0, height);
+        gradient.addColorStop(0, "#170910");
+        gradient.addColorStop(0.5, "#0d090f");
+        gradient.addColorStop(1, "#08060b");
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, width, height);
+
+        drawGlow(width * 0.16, height * 0.22, width * 0.2, [136, 187, 199], 0.12);
+        drawGlow(width * 0.82, height * 0.2, width * 0.18, modes[currentMode].tint, 0.12);
+        drawGlow(width * 0.54, height * 0.78, width * 0.28, modes[currentMode].glow, 0.08);
+
+        ctx.strokeStyle = "rgba(255,255,255,0.03)";
+        ctx.lineWidth = 1;
+        for (let i = 0; i < 8; i += 1) {
+          const y = height * (0.14 + i * 0.1);
+          ctx.beginPath();
+          ctx.moveTo(width * 0.04, y);
+          ctx.bezierCurveTo(width * 0.24, y - 18, width * 0.68, y + 12, width * 0.96, y - 6);
+          ctx.stroke();
+        }
+      }
+
+      function drawArches(width, height) {
+        const mode = modes[currentMode];
+        arches.forEach((arch, index) => {
+          const archGlow = 0.18 + 0.08 * Math.sin(time * 0.7 + arch.phase);
+          const path = new Path2D();
+          const first = pointOnArch(arch, 0);
+          path.moveTo(first.x, first.y);
+          for (let i = 1; i <= 80; i += 1) {
+            const point = pointOnArch(arch, i / 80);
+            path.lineTo(point.x, point.y);
+          }
+
+          ctx.save();
+          ctx.lineCap = "round";
+          ctx.strokeStyle = rgba(mode.tint, 0.14 + archGlow * 0.1);
+          ctx.lineWidth = arch.thickness + 12;
+          ctx.stroke(path);
+          ctx.strokeStyle = rgba(mode.glow, 0.22 + archGlow * 0.14);
+          ctx.lineWidth = arch.thickness;
+          ctx.stroke(path);
+          ctx.strokeStyle = rgba(mode.accent, 0.34);
+          ctx.lineWidth = 1.6;
+          ctx.setLineDash([7, 12]);
+          ctx.stroke(path);
+          ctx.restore();
+
+          for (let s = 0; s < arch.seedCount; s += 1) {
+            const t = (s + 1) / (arch.seedCount + 1);
+            const point = pointOnArch(arch, t);
+            const dx = point.x - pointer.x;
+            const dy = point.y - pointer.y;
+            const dist = Math.hypot(dx, dy);
+            const open = clamp(1 - dist / 180, 0, 1);
+            const pulse = pulseAt > 0 ? Math.max(0, 1 - Math.abs((time - pulseAt) * 0.52 - (index * 0.16 + t * 1.2)) * 1.8) : 0;
+            const breath = 0.5 + 0.5 * Math.sin(time * 1.6 + arch.phase + t * 8);
+            const radius = 7 + open * 5 + pulse * 8 + breath * 2;
+            const seedColor = pulse > 0.04 ? mode.glow : mode.tint;
+            drawGlow(point.x, point.y, 24 + pulse * 26 + open * 10, seedColor, 0.22 + open * 0.14 + pulse * 0.18);
+            ctx.fillStyle = rgba(seedColor, 0.9);
+            ctx.beginPath();
+            ctx.ellipse(point.x, point.y, radius, radius * (1.1 + open * 0.2), 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.strokeStyle = rgba(mode.accent, 0.18 + open * 0.18);
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(point.x, point.y + radius + 4);
+            ctx.lineTo(point.x, point.y + radius + 16 + open * 8);
+            ctx.stroke();
+          }
+        });
+
+        const floor = ctx.createLinearGradient(0, height * 0.68, 0, height);
+        floor.addColorStop(0, "rgba(37, 12, 18, 0)");
+        floor.addColorStop(0.25, "rgba(43, 10, 17, 0.32)");
+        floor.addColorStop(1, "rgba(7, 8, 11, 0.94)");
+        ctx.fillStyle = floor;
+        ctx.fillRect(0, height * 0.64, width, height * 0.36);
+      }
+
+      function drawCatwalks() {
+        const mode = modes[currentMode];
+        ctx.save();
+        ctx.strokeStyle = rgba(mode.accent, 0.26);
+        ctx.lineWidth = 2;
+        arches.forEach((arch, index) => {
+          const a = pointOnArch(arch, 0.18);
+          const b = pointOnArch(arch, 0.82);
+          ctx.beginPath();
+          ctx.moveTo(a.x, a.y + arch.thickness * 0.44);
+          ctx.lineTo(b.x, b.y + arch.thickness * 0.44);
+          ctx.stroke();
+
+          for (let i = 0; i < 6; i += 1) {
+            const t = 0.18 + i * 0.128;
+            const p = pointOnArch(arch, t);
+            ctx.beginPath();
+            ctx.moveTo(p.x, p.y + arch.thickness * 0.38);
+            ctx.lineTo(p.x, p.y + arch.thickness * 0.64);
+            ctx.stroke();
+          }
+
+          if (index < arches.length - 1) {
+            const c = pointOnArch(arch, 0.88);
+            const d = pointOnArch(arches[index + 1], 0.12);
+            ctx.beginPath();
+            ctx.moveTo(c.x, c.y + arch.thickness * 0.3);
+            ctx.quadraticCurveTo((c.x + d.x) / 2, Math.min(c.y, d.y) + 30, d.x, d.y + arches[index + 1].thickness * 0.3);
+            ctx.stroke();
+          }
+        });
+        ctx.restore();
+      }
+
+      function drawWorkers() {
+        const mode = modes[currentMode];
+        workers.forEach((worker, index) => {
+          const arch = arches[worker.lane];
+          const along = (worker.along + time * 0.006 * (index % 2 === 0 ? 1 : -1) + 1) % 1;
+          const anchor = pointOnArch(arch, along);
+          const x = anchor.x;
+          const y = anchor.y + arch.thickness * 0.46 - 4;
+          const attention = clamp(1 - Math.hypot(x - pointer.x, y - pointer.y) / 160, 0, 1);
+          const blink = 0.5 + 0.5 * Math.sin(time * 2.4 + worker.sway);
+          const bodyColor = worker.tint === "cream" ? [243, 231, 218] : mode.accent;
+          drawGlow(x, y - worker.size * 0.8, 18 + attention * 10, bodyColor, 0.16 + attention * 0.14);
+
+          ctx.fillStyle = rgba(bodyColor, 0.9);
+          ctx.beginPath();
+          ctx.ellipse(x, y - worker.size * 0.5, worker.size * 0.56, worker.size * 0.9, 0, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.fillStyle = "rgba(255,255,255,0.92)";
+          ctx.beginPath();
+          ctx.arc(x - worker.size * 0.16, y - worker.size * 0.74, worker.size * 0.12, 0, Math.PI * 2);
+          ctx.arc(x + worker.size * 0.16, y - worker.size * 0.7, worker.size * 0.12, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.fillStyle = `rgba(18, 16, 20, ${0.78 + blink * 0.14})`;
+          ctx.beginPath();
+          ctx.arc(x - worker.size * 0.16, y - worker.size * 0.74, worker.size * 0.05, 0, Math.PI * 2);
+          ctx.arc(x + worker.size * 0.16, y - worker.size * 0.7, worker.size * 0.05, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.strokeStyle = "rgba(60, 34, 32, 0.8)";
+          ctx.lineWidth = 1.2;
+          ctx.beginPath();
+          ctx.arc(x, y - worker.size * 0.44, worker.size * 0.16, 0.18, Math.PI - 0.14);
+          ctx.stroke();
+
+          ctx.strokeStyle = rgba(mode.glow, 0.34 + attention * 0.3);
+          ctx.beginPath();
+          ctx.moveTo(x + worker.size * 0.48, y - worker.size * 0.48);
+          ctx.lineTo(x + worker.size * (0.9 + attention * 0.3), y - worker.size * (1.1 + attention * 0.15));
+          ctx.stroke();
+          ctx.fillStyle = rgba(mode.glow, 0.88);
+          ctx.beginPath();
+          ctx.arc(x + worker.size * (0.96 + attention * 0.3), y - worker.size * (1.14 + attention * 0.15), worker.size * 0.13, 0, Math.PI * 2);
+          ctx.fill();
+        });
+      }
+
+      function drawSparks(width, height) {
+        const mode = modes[currentMode];
+        sparks.forEach((spark) => {
+          const x = spark.x * width + Math.sin(time * 0.18 + spark.phase) * 12;
+          const y = spark.y * height + Math.cos(time * 0.22 + spark.phase) * 9 - time * spark.drift * 2;
+          const wrappedY = ((y % height) + height) % height;
+          ctx.fillStyle = rgba(mode.glow, 0.16 + spark.size * 0.04);
+          ctx.beginPath();
+          ctx.arc(x, wrappedY, spark.size, 0, Math.PI * 2);
+          ctx.fill();
+        });
+      }
+
+      function updateMeters() {
+        const dx = pointer.x - window.innerWidth * 0.58;
+        const dy = pointer.y - window.innerHeight * 0.5;
+        const localHeat = clamp(1 - Math.hypot(dx, dy) / 420, 0, 1);
+        const pulse = pulseAt > 0 ? clamp(1 - (time - pulseAt) / 2.4, 0, 1) : 0;
+        const modeBoost = currentMode === "white" ? 0.08 : currentMode === "cyan" ? 0.12 : 0;
+        strainMeter.style.setProperty("--fill", `${Math.round((0.42 + localHeat * 0.42 + pulse * 0.08) * 100)}%`);
+        seedMeter.style.setProperty("--fill", `${Math.round((0.34 + pulse * 0.44 + modeBoost) * 100)}%`);
+        routeMeter.style.setProperty("--fill", `${Math.round((0.28 + pulse * 0.36 + (currentMode === "cyan" ? 0.24 : 0.12)) * 100)}%`);
+      }
+
+      function render() {
+        time += 0.016;
+        pointer.x = lerp(pointer.x, pointer.tx, 0.08);
+        pointer.y = lerp(pointer.y, pointer.ty, 0.08);
+
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+        ctx.clearRect(0, 0, width, height);
+
+        drawBackground(width, height);
+        drawSparks(width, height);
+        drawArches(width, height);
+        drawCatwalks();
+        drawWorkers();
+
+        updateMeters();
+        requestAnimationFrame(render);
+      }
+
+      function setMode(mode) {
+        currentMode = mode;
+        modeReadout.textContent = `Mode: ${modes[mode].name}`;
+        cueCopy.textContent = modes[mode].cue;
+        buttons.forEach((button) => {
+          button.classList.toggle("active", button.dataset.mode === mode);
+        });
+      }
+
+      window.addEventListener("pointermove", (event) => {
+        pointer.tx = event.clientX;
+        pointer.ty = event.clientY;
+        pointer.active = true;
+      });
+
+      window.addEventListener("pointerleave", () => {
+        pointer.active = false;
+        pointer.tx = window.innerWidth * 0.58;
+        pointer.ty = window.innerHeight * 0.52;
+      });
+
+      window.addEventListener("click", () => {
+        pulseAt = time;
+      });
+
+      buttons.forEach((button) => {
+        button.addEventListener("click", (event) => {
+          event.stopPropagation();
+          setMode(button.dataset.mode);
+          pulseAt = time;
+        });
+      });
+
+      window.addEventListener("resize", resize);
+      resize();
+      render();
+    </script>
+  </body>
+</html>

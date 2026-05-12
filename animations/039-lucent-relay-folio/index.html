@@ -1,0 +1,622 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>#039 Lucent Relay Folio</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --paper: #f4efe6;
+        --paper-deep: #dcd1c3;
+        --ink: #182029;
+        --muted: rgba(24, 32, 41, 0.56);
+        --line: rgba(24, 32, 41, 0.12);
+        --panel: rgba(255, 251, 245, 0.42);
+        --cyan: #7bcbdf;
+        --mint: #abdec3;
+        --pearl: #ffffff;
+        --clay: #d69174;
+        --gold: #d8b76a;
+        --shadow: 0 24px 60px rgba(86, 72, 55, 0.12);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background:
+          radial-gradient(circle at 16% 14%, rgba(123, 203, 223, 0.22), transparent 24%),
+          radial-gradient(circle at 80% 18%, rgba(214, 145, 116, 0.14), transparent 24%),
+          radial-gradient(circle at 56% 84%, rgba(171, 222, 195, 0.16), transparent 28%),
+          linear-gradient(180deg, #faf6f0 0%, var(--paper) 56%, var(--paper-deep) 100%);
+        color: var(--ink);
+        font-family: "Azeret Mono", "IBM Plex Mono", "SFMono-Regular", monospace;
+      }
+
+      canvas {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        display: block;
+      }
+
+      .overlay {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+      }
+
+      .panel,
+      .back {
+        position: absolute;
+        border: 1px solid var(--line);
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.56), transparent 24%),
+          var(--panel);
+        backdrop-filter: blur(18px);
+        box-shadow: var(--shadow);
+        pointer-events: auto;
+      }
+
+      .note {
+        left: 18px;
+        top: 18px;
+        width: min(29rem, calc(100vw - 36px));
+        padding: 15px 16px 16px;
+        border-radius: 26px;
+      }
+
+      .eyebrow,
+      .body,
+      .meta,
+      .label,
+      .value {
+        margin: 0;
+      }
+
+      .eyebrow,
+      .label {
+        font-size: 11px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      h1,
+      h2 {
+        margin: 0;
+      }
+
+      h1 {
+        margin-top: 0.45rem;
+        font-size: clamp(2rem, 4.8vw, 3.8rem);
+        line-height: 0.88;
+        letter-spacing: -0.06em;
+      }
+
+      .body,
+      .meta {
+        margin-top: 0.72rem;
+        line-height: 1.52;
+        color: rgba(24, 32, 41, 0.74);
+      }
+
+      .meta {
+        font-size: 0.8rem;
+        color: var(--muted);
+      }
+
+      .readout-row {
+        margin-top: 0.92rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.95rem;
+      }
+
+      .value {
+        display: block;
+        margin-top: 0.22rem;
+        font-size: 0.94rem;
+        color: var(--ink);
+      }
+
+      .film {
+        right: 18px;
+        top: 18px;
+        width: min(15rem, calc(100vw - 36px));
+        padding: 13px 14px 14px;
+        border-radius: 22px;
+      }
+
+      .film-list {
+        margin-top: 0.9rem;
+        display: grid;
+        gap: 10px;
+      }
+
+      .film-cell {
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        padding: 10px 11px 11px;
+        background: rgba(255, 255, 255, 0.28);
+      }
+
+      .film-cell p {
+        margin: 0.42rem 0 0;
+        font-size: 0.78rem;
+        line-height: 1.4;
+        color: rgba(24, 32, 41, 0.68);
+      }
+
+      .swatch {
+        height: 0.52rem;
+        border-radius: 999px;
+        background: linear-gradient(90deg, var(--cyan), rgba(255, 255, 255, 0.88), var(--mint), var(--clay));
+        opacity: 0.76;
+      }
+
+      .footer {
+        left: 18px;
+        bottom: 18px;
+        width: min(36rem, calc(100vw - 118px));
+        padding: 14px 15px 15px;
+        border-radius: 24px;
+      }
+
+      .meter-grid {
+        margin-top: 0.9rem;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .meter-card {
+        border: 1px solid var(--line);
+        border-radius: 17px;
+        padding: 10px 11px 12px;
+        background: rgba(255, 255, 255, 0.3);
+      }
+
+      .meter {
+        height: 8px;
+        margin-top: 0.62rem;
+        border-radius: 999px;
+        overflow: hidden;
+        background: rgba(24, 32, 41, 0.08);
+      }
+
+      .fill {
+        height: 100%;
+        width: 50%;
+        border-radius: inherit;
+        transform-origin: left center;
+        background: linear-gradient(90deg, var(--cyan), var(--pearl), var(--mint), var(--gold), var(--clay));
+      }
+
+      .meter-card .value {
+        margin-top: 0.5rem;
+        font-size: 1.04rem;
+        letter-spacing: -0.05em;
+      }
+
+      .small {
+        margin-top: 0.32rem;
+        font-size: 0.72rem;
+        line-height: 1.4;
+        color: var(--muted);
+      }
+
+      .back {
+        right: 18px;
+        bottom: 18px;
+        padding: 10px 14px;
+        border-radius: 999px;
+        color: inherit;
+        text-decoration: none;
+      }
+
+      @media (max-width: 900px) {
+        html,
+        body {
+          overflow: auto;
+          min-height: 100%;
+        }
+
+        .overlay {
+          position: relative;
+          min-height: 100vh;
+          padding: 18px 18px 96px;
+          display: grid;
+          gap: 14px;
+          align-content: start;
+        }
+
+        .panel,
+        .back {
+          position: relative;
+          inset: auto;
+          width: 100%;
+        }
+
+        .footer {
+          width: 100%;
+        }
+
+        .meter-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="field" aria-hidden="true"></canvas>
+
+    <div class="overlay">
+      <section class="panel note">
+        <p class="eyebrow">Animation 039 / Optical Translucent Habitat</p>
+        <h1>Lucent Relay Folio</h1>
+        <p class="body">
+          A vertical reflective valve conservatory built as a browser-native
+          folio. Pointer movement racks focus between near glass echoes and far
+          hanging membranes, while local current wakes open the nearest valves
+          and stir a soft signal weather through the chamber.
+        </p>
+        <div class="readout-row">
+          <p class="label">Branch <span class="value">optical translucent world</span></p>
+          <p class="label">Input <span class="value">focus-rack + current wake</span></p>
+          <p class="label">Rule <span class="value">field-based, no console</span></p>
+        </div>
+        <p class="meta">
+          This deliberately steps away from the recent rooted plates and
+          switchboards. The body is distributed across one tall chamber, and
+          the page only annotates the world instead of controlling it.
+        </p>
+      </section>
+
+      <aside class="panel film">
+        <p class="eyebrow">Focus Planes</p>
+        <h2>Reflective slices</h2>
+        <div class="film-list">
+          <article class="film-cell">
+            <div class="swatch"></div>
+            <p>Near plane: wet glass glare and soft double-image drag.</p>
+          </article>
+          <article class="film-cell">
+            <div class="swatch"></div>
+            <p>Middle plane: hanging valves breathe open under local pressure.</p>
+          </article>
+          <article class="film-cell">
+            <div class="swatch"></div>
+            <p>Far plane: pale pollen and relay sparks drift through the nave.</p>
+          </article>
+        </div>
+      </aside>
+
+      <section class="panel footer">
+        <p class="eyebrow">Field Notes</p>
+        <div class="meter-grid">
+          <article class="meter-card">
+            <p class="label">Focus Split</p>
+            <div class="meter"><div class="fill" data-meter="focus"></div></div>
+            <p class="value" data-value="focus">63%</p>
+            <p class="small">difference between near reflections and far body</p>
+          </article>
+          <article class="meter-card">
+            <p class="label">Valve Lift</p>
+            <div class="meter"><div class="fill" data-meter="lift"></div></div>
+            <p class="value" data-value="lift">46%</p>
+            <p class="small">aperture response around the current wake</p>
+          </article>
+          <article class="meter-card">
+            <p class="label">Weather Calm</p>
+            <div class="meter"><div class="fill" data-meter="calm"></div></div>
+            <p class="value" data-value="calm">78%</p>
+            <p class="small">how softly the conservatory keeps breathing</p>
+          </article>
+        </div>
+      </section>
+
+      <a class="back" href="../../index.html">Back to index</a>
+    <script src="../../shared/study-notes.js"></script>
+    </div>
+
+    <script>
+      const canvas = document.getElementById("field");
+      const ctx = canvas.getContext("2d");
+      const meters = {
+        focus: document.querySelector('[data-meter="focus"]'),
+        lift: document.querySelector('[data-meter="lift"]'),
+        calm: document.querySelector('[data-meter="calm"]'),
+      };
+      const values = {
+        focus: document.querySelector('[data-value="focus"]'),
+        lift: document.querySelector('[data-value="lift"]'),
+        calm: document.querySelector('[data-value="calm"]'),
+      };
+
+      const pointer = { x: 0.5, y: 0.5, tx: 0.5, ty: 0.5, active: 0.2 };
+      const state = { time: 0 };
+      const valves = [];
+      const pollen = [];
+
+      function createScene() {
+        valves.length = 0;
+        pollen.length = 0;
+
+        const columns = [0.28, 0.42, 0.58, 0.72];
+        columns.forEach((column, columnIndex) => {
+          for (let i = 0; i < 4; i += 1) {
+            const y = 0.2 + i * 0.16 + (columnIndex % 2) * 0.03;
+            valves.push({
+              x: column + (Math.random() - 0.5) * 0.05,
+              y,
+              scale: 0.72 + Math.random() * 0.5,
+              phase: Math.random() * Math.PI * 2,
+            });
+          }
+        });
+
+        for (let i = 0; i < 140; i += 1) {
+          pollen.push({
+            x: Math.random(),
+            y: Math.random(),
+            z: 0.3 + Math.random() * 0.7,
+            drift: Math.random() * Math.PI * 2,
+            speed: 0.2 + Math.random() * 0.8,
+          });
+        }
+      }
+
+      function resize() {
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = Math.round(window.innerWidth * dpr);
+        canvas.height = Math.round(window.innerHeight * dpr);
+        canvas.style.width = `${window.innerWidth}px`;
+        canvas.style.height = `${window.innerHeight}px`;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+
+      function lerp(a, b, t) {
+        return a + (b - a) * t;
+      }
+
+      function roundedCapsule(x, y, rx, ry, angle, start, end) {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(angle);
+        ctx.beginPath();
+        ctx.ellipse(0, 0, rx, ry, 0, start, end);
+        ctx.restore();
+      }
+
+      function paintBackdrop() {
+        ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+
+        const wash = ctx.createLinearGradient(0, 0, 0, window.innerHeight);
+        wash.addColorStop(0, "rgba(250, 246, 240, 0.84)");
+        wash.addColorStop(1, "rgba(220, 209, 195, 0.82)");
+        ctx.fillStyle = wash;
+        ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
+
+        for (let i = 0; i < 6; i += 1) {
+          const t = state.time * 0.00022 + i * 0.7;
+          const x = window.innerWidth * (0.2 + (i % 3) * 0.26);
+          const y = window.innerHeight * (0.18 + Math.floor(i / 3) * 0.36);
+          const gradient = ctx.createRadialGradient(x, y, 0, x, y, 220);
+          gradient.addColorStop(0, i % 2 ? "rgba(123, 203, 223, 0.12)" : "rgba(214, 145, 116, 0.08)");
+          gradient.addColorStop(1, "rgba(255,255,255,0)");
+          ctx.fillStyle = gradient;
+          ctx.beginPath();
+          ctx.ellipse(x + Math.sin(t) * 18, y + Math.cos(t * 1.1) * 18, 150, 92, Math.sin(t * 0.7) * 0.5, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      function paintArchitecture() {
+        ctx.save();
+        ctx.strokeStyle = "rgba(24, 32, 41, 0.1)";
+        ctx.lineWidth = 1;
+        for (let i = 0; i < 5; i += 1) {
+          const x = window.innerWidth * (0.18 + i * 0.16);
+          ctx.beginPath();
+          ctx.moveTo(x, window.innerHeight * 0.12);
+          ctx.lineTo(x, window.innerHeight * 0.92);
+          ctx.stroke();
+        }
+        for (let i = 0; i < 7; i += 1) {
+          const y = window.innerHeight * (0.14 + i * 0.11);
+          ctx.beginPath();
+          ctx.moveTo(window.innerWidth * 0.16, y);
+          ctx.quadraticCurveTo(window.innerWidth * 0.5, y - 12, window.innerWidth * 0.84, y);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      function paintValves() {
+        const px = pointer.x * window.innerWidth;
+        const py = pointer.y * window.innerHeight;
+        const focusBias = pointer.x;
+
+        valves.forEach((valve, index) => {
+          const x = valve.x * window.innerWidth;
+          const y = valve.y * window.innerHeight;
+          const dist = Math.hypot(x - px, y - py);
+          const wake = Math.max(0, 1 - dist / 220) * pointer.active;
+          const phase = state.time * 0.0011 + valve.phase;
+          const open = 0.42 + Math.sin(phase) * 0.08 + wake * 0.34;
+          const near = Math.max(0, 1 - Math.abs(valve.x - focusBias) * 1.8);
+          const blur = (1 - near) * 8;
+
+          ctx.save();
+          ctx.filter = `blur(${blur.toFixed(2)}px)`;
+          ctx.translate(x, y);
+          ctx.rotate(Math.sin(phase * 0.7) * 0.16);
+
+          const stemGradient = ctx.createLinearGradient(0, -90, 0, 120);
+          stemGradient.addColorStop(0, "rgba(24, 32, 41, 0.06)");
+          stemGradient.addColorStop(1, "rgba(24, 32, 41, 0.18)");
+          ctx.strokeStyle = stemGradient;
+          ctx.lineWidth = 1.4;
+          ctx.beginPath();
+          ctx.moveTo(0, -160 * valve.scale);
+          ctx.lineTo(0, -10);
+          ctx.stroke();
+
+          const membraneGradient = ctx.createLinearGradient(-80, -60, 80, 80);
+          membraneGradient.addColorStop(0, "rgba(255,255,255,0.48)");
+          membraneGradient.addColorStop(0.4, "rgba(123,203,223,0.18)");
+          membraneGradient.addColorStop(0.72, "rgba(171,222,195,0.22)");
+          membraneGradient.addColorStop(1, "rgba(214,145,116,0.16)");
+
+          ctx.fillStyle = membraneGradient;
+          ctx.beginPath();
+          ctx.moveTo(0, -6);
+          ctx.bezierCurveTo(
+            -40 * valve.scale,
+            -18 - open * 32,
+            -62 * valve.scale,
+            28 + open * 14,
+            -18 * valve.scale,
+            76 * valve.scale
+          );
+          ctx.quadraticCurveTo(0, 94 * valve.scale, 18 * valve.scale, 76 * valve.scale);
+          ctx.bezierCurveTo(
+            62 * valve.scale,
+            28 + open * 14,
+            40 * valve.scale,
+            -18 - open * 32,
+            0,
+            -6
+          );
+          ctx.fill();
+
+          ctx.strokeStyle = index % 2 ? "rgba(123,203,223,0.34)" : "rgba(214,145,116,0.26)";
+          ctx.lineWidth = 1.2;
+          ctx.beginPath();
+          ctx.moveTo(0, 2);
+          ctx.bezierCurveTo(
+            -18 * valve.scale,
+            22,
+            -22 * valve.scale,
+            50,
+            0,
+            84 * valve.scale
+          );
+          ctx.bezierCurveTo(
+            22 * valve.scale,
+            50,
+            18 * valve.scale,
+            22,
+            0,
+            2
+          );
+          ctx.stroke();
+
+          const glow = ctx.createRadialGradient(0, 40 * valve.scale, 0, 0, 40 * valve.scale, 72 * valve.scale);
+          glow.addColorStop(0, near > 0.6 ? "rgba(255,255,255,0.22)" : "rgba(171,222,195,0.16)");
+          glow.addColorStop(1, "rgba(255,255,255,0)");
+          ctx.fillStyle = glow;
+          ctx.beginPath();
+          ctx.ellipse(0, 40 * valve.scale, 52 * valve.scale, 36 * valve.scale, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        });
+      }
+
+      function paintReflections() {
+        const focusBias = pointer.x;
+        for (let i = 0; i < 4; i += 1) {
+          const x = window.innerWidth * (0.22 + i * 0.17);
+          const width = 120 + i * 24;
+          const near = Math.max(0, 1 - Math.abs((0.22 + i * 0.17) - focusBias) * 2.2);
+          const alpha = 0.08 + near * 0.14;
+          ctx.save();
+          ctx.globalAlpha = alpha;
+          ctx.fillStyle = i % 2 ? "rgba(255,255,255,0.7)" : "rgba(123,203,223,0.4)";
+          ctx.translate(x + Math.sin(state.time * 0.0008 + i) * 18, 0);
+          ctx.rotate(-0.12 + i * 0.03);
+          ctx.fillRect(-width * 0.5, window.innerHeight * 0.08, width, window.innerHeight * 0.84);
+          ctx.restore();
+        }
+      }
+
+      function paintPollen() {
+        const px = pointer.x * window.innerWidth;
+        const py = pointer.y * window.innerHeight;
+        pollen.forEach((particle, index) => {
+          particle.y -= 0.00022 * particle.speed;
+          if (particle.y < -0.05) particle.y = 1.05;
+          const x =
+            particle.x * window.innerWidth +
+            Math.sin(state.time * 0.0006 * particle.speed + particle.drift) * 24 * particle.z;
+          const y = particle.y * window.innerHeight;
+          const dist = Math.hypot(x - px, y - py);
+          const wake = Math.max(0, 1 - dist / 180) * pointer.active;
+          const r = 0.8 + particle.z * 2.4 + wake * 1.8;
+
+          ctx.beginPath();
+          ctx.fillStyle =
+            index % 3 === 0
+              ? `rgba(123, 203, 223, ${0.18 + particle.z * 0.26})`
+              : index % 3 === 1
+                ? `rgba(214, 145, 116, ${0.12 + particle.z * 0.2})`
+                : `rgba(255, 255, 255, ${0.14 + particle.z * 0.24})`;
+          ctx.arc(x + wake * 14, y - wake * 10, r, 0, Math.PI * 2);
+          ctx.fill();
+        });
+      }
+
+      function updateMeters() {
+        const focus = 0.42 + pointer.x * 0.46 + Math.sin(state.time * 0.001) * 0.04;
+        const lift = 0.34 + pointer.active * 0.28 + Math.sin(state.time * 0.0014) * 0.08;
+        const calm = 0.8 - pointer.active * 0.16 + Math.cos(state.time * 0.0012) * 0.04;
+        const mapped = { focus, lift, calm };
+        Object.entries(mapped).forEach(([key, val]) => {
+          const clamped = Math.max(0.08, Math.min(0.98, val));
+          meters[key].style.transform = `scaleX(${clamped.toFixed(3)})`;
+          values[key].textContent = `${Math.round(clamped * 100)}%`;
+        });
+      }
+
+      function frame(now) {
+        state.time = now;
+        pointer.x = lerp(pointer.x, pointer.tx, 0.08);
+        pointer.y = lerp(pointer.y, pointer.ty, 0.08);
+        pointer.active = lerp(pointer.active, 0.18, 0.03);
+        paintBackdrop();
+        paintArchitecture();
+        paintValves();
+        paintReflections();
+        paintPollen();
+        updateMeters();
+        requestAnimationFrame(frame);
+      }
+
+      window.addEventListener("pointermove", (event) => {
+        pointer.tx = event.clientX / window.innerWidth;
+        pointer.ty = event.clientY / window.innerHeight;
+        pointer.active = 0.92;
+      });
+
+      window.addEventListener("pointerleave", () => {
+        pointer.active = 0.2;
+      });
+
+      window.addEventListener("resize", resize);
+      window.addEventListener("load", () => {
+        createScene();
+        resize();
+        requestAnimationFrame(frame);
+      });
+    </script>
+  </body>
+</html>

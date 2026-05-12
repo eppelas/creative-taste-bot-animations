@@ -1,0 +1,1321 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>#057 Sag &amp; Nest Routing Bulletin</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --paper: #efe5d5;
+        --paper-bright: #faf4ea;
+        --paper-deep: #dcc9b3;
+        --ink: #2e3b45;
+        --muted: rgba(46, 59, 69, 0.6);
+        --line: rgba(46, 59, 69, 0.15);
+        --line-strong: rgba(46, 59, 69, 0.28);
+        --navy: #213547;
+        --blue: #7ca8be;
+        --green: #95af88;
+        --rose: #d49186;
+        --amber: #d3a066;
+        --cream: rgba(255, 250, 243, 0.78);
+        --shadow: 0 28px 90px rgba(111, 91, 62, 0.14);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        background:
+          radial-gradient(circle at 12% 10%, rgba(255, 255, 255, 0.94), transparent 18%),
+          radial-gradient(circle at 86% 14%, rgba(124, 168, 190, 0.14), transparent 24%),
+          radial-gradient(circle at 16% 84%, rgba(212, 145, 134, 0.14), transparent 24%),
+          radial-gradient(circle at 78% 86%, rgba(149, 175, 136, 0.14), transparent 24%),
+          linear-gradient(180deg, #f7f0e6 0%, var(--paper) 54%, var(--paper-deep) 100%);
+        color: var(--ink);
+        font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", serif;
+      }
+
+      body {
+        overflow-x: hidden;
+      }
+
+      body::before,
+      body::after {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+      }
+
+      body::before {
+        opacity: 0.08;
+        background-image:
+          linear-gradient(rgba(46, 59, 69, 0.12) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(46, 59, 69, 0.12) 1px, transparent 1px);
+        background-size: 92px 92px;
+        mask-image: radial-gradient(circle at 54% 46%, black 42%, transparent 92%);
+      }
+
+      body::after {
+        opacity: 0.16;
+        background-image:
+          linear-gradient(rgba(255, 255, 255, 0.88) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.88) 1px, transparent 1px);
+        background-size: 4px 4px;
+        mix-blend-mode: soft-light;
+      }
+
+      canvas {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        display: block;
+        pointer-events: none;
+      }
+
+      a {
+        color: inherit;
+      }
+
+      .shell {
+        position: relative;
+        min-height: 100vh;
+        padding: 16px;
+        display: grid;
+        grid-template-columns: 292px minmax(0, 1fr) 300px;
+        grid-template-rows: auto minmax(0, 1fr) auto;
+        gap: 14px;
+      }
+
+      .panel {
+        position: relative;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 30px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.48), transparent 18%),
+          var(--cream);
+        backdrop-filter: blur(14px);
+        box-shadow: var(--shadow);
+      }
+
+      .panel::after {
+        content: "";
+        position: absolute;
+        inset: 1px;
+        border: 1px solid rgba(255, 255, 255, 0.42);
+        border-radius: inherit;
+        pointer-events: none;
+      }
+
+      .header {
+        grid-column: 1 / -1;
+        display: grid;
+        grid-template-columns: minmax(0, 1.22fr) minmax(340px, 0.78fr);
+        gap: 14px;
+      }
+
+      .hero,
+      .overview,
+      .left-stack,
+      .map-wrap,
+      .right-stack,
+      .footer {
+        padding: 16px 18px 18px;
+      }
+
+      .left-stack,
+      .right-stack {
+        display: grid;
+        gap: 14px;
+        align-content: start;
+      }
+
+      .left-stack {
+        grid-column: 1;
+        grid-row: 2;
+      }
+
+      .map-wrap {
+        grid-column: 2;
+        grid-row: 2;
+        min-height: 790px;
+      }
+
+      .right-stack {
+        grid-column: 3;
+        grid-row: 2;
+      }
+
+      .footer {
+        grid-column: 1 / -1;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+
+      .eyebrow,
+      .tiny,
+      .label,
+      .chip,
+      .metric-label,
+      .note-tag,
+      .legend-line,
+      .back {
+        font-family: "Azeret Mono", "IBM Plex Mono", "SFMono-Regular", monospace;
+      }
+
+      .eyebrow,
+      .tiny,
+      .label,
+      .metric-label,
+      .note-tag,
+      .legend-line {
+        font-size: 11px;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      h1 {
+        margin-top: 0.5rem;
+        max-width: 10ch;
+        font-size: clamp(2.5rem, 5vw, 4.95rem);
+        line-height: 0.9;
+        letter-spacing: -0.06em;
+      }
+
+      .body,
+      .meta-copy {
+        margin-top: 0.88rem;
+        color: rgba(46, 59, 69, 0.78);
+        line-height: 1.55;
+      }
+
+      .readouts,
+      .legend-list,
+      .queue-list,
+      .status-list,
+      .footer-grid {
+        display: grid;
+        gap: 10px;
+      }
+
+      .readouts {
+        margin-top: 1rem;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .metric,
+      .card,
+      .footer-card,
+      .status-card {
+        border: 1px solid rgba(46, 59, 69, 0.1);
+        border-radius: 20px;
+        background: rgba(255, 255, 255, 0.36);
+        padding: 12px 13px;
+      }
+
+      .metric strong,
+      .status-value {
+        display: block;
+        margin-top: 0.34rem;
+        font-size: 1rem;
+        font-weight: 600;
+        letter-spacing: -0.05em;
+        color: var(--ink);
+      }
+
+      .map-shell {
+        position: relative;
+        min-height: 100%;
+        border-radius: 28px;
+        border: 1px solid rgba(46, 59, 69, 0.12);
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.26), transparent 16%),
+          linear-gradient(180deg, #efe6d6 0%, #eadfce 100%);
+        overflow: hidden;
+      }
+
+      .map-shell::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background:
+          linear-gradient(90deg, rgba(71, 57, 41, 0.08) 0, rgba(71, 57, 41, 0.08) 1px, transparent 1px) 20% 0 / 20% 100%,
+          linear-gradient(90deg, rgba(71, 57, 41, 0.08) 0, rgba(71, 57, 41, 0.08) 1px, transparent 1px) 40% 0 / 20% 100%,
+          linear-gradient(90deg, rgba(71, 57, 41, 0.08) 0, rgba(71, 57, 41, 0.08) 1px, transparent 1px) 60% 0 / 20% 100%,
+          linear-gradient(90deg, rgba(71, 57, 41, 0.08) 0, rgba(71, 57, 41, 0.08) 1px, transparent 1px) 80% 0 / 20% 100%;
+        mix-blend-mode: multiply;
+        pointer-events: none;
+      }
+
+      .map-shell::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background:
+          radial-gradient(circle at 16% 24%, rgba(124, 168, 190, 0.16), transparent 18%),
+          radial-gradient(circle at 80% 22%, rgba(212, 145, 134, 0.12), transparent 18%),
+          radial-gradient(circle at 68% 82%, rgba(149, 175, 136, 0.12), transparent 20%);
+        pointer-events: none;
+      }
+
+      .map-grid {
+        position: absolute;
+        inset: 18px;
+        display: grid;
+        grid-template-columns: 210px minmax(0, 1fr) 220px;
+        grid-template-rows: auto minmax(0, 1fr) auto;
+        gap: 12px;
+      }
+
+      .side-panel,
+      .route-notes,
+      .footer-slip,
+      .floating-sticker,
+      .mode-strip {
+        position: relative;
+        border: 1px solid rgba(46, 59, 69, 0.12);
+        border-radius: 24px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.58), transparent 18%),
+          rgba(255, 249, 242, 0.58);
+        backdrop-filter: blur(12px);
+      }
+
+      .side-panel,
+      .route-notes,
+      .footer-slip {
+        padding: 14px;
+      }
+
+      .left-board {
+        grid-column: 1;
+        grid-row: 1 / span 2;
+        display: grid;
+        gap: 12px;
+        align-content: start;
+      }
+
+      .route-field {
+        grid-column: 2;
+        grid-row: 1 / span 2;
+        position: relative;
+        min-height: 620px;
+        border: 1px solid rgba(46, 59, 69, 0.12);
+        border-radius: 28px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.42), transparent 14%),
+          linear-gradient(180deg, rgba(229, 220, 205, 0.64), rgba(233, 224, 208, 0.72));
+        overflow: hidden;
+      }
+
+      .right-board {
+        grid-column: 3;
+        grid-row: 1 / span 2;
+        display: grid;
+        gap: 12px;
+        align-content: start;
+      }
+
+      .lower-slips {
+        grid-column: 1 / -1;
+        grid-row: 3;
+        display: grid;
+        grid-template-columns: 1.2fr 0.92fr 0.88fr;
+        gap: 12px;
+      }
+
+      .map-title {
+        padding: 2px 0 8px;
+      }
+
+      .map-title h2 {
+        margin-top: 0.4rem;
+        font-size: clamp(2rem, 3.1vw, 3.35rem);
+        line-height: 0.9;
+        letter-spacing: -0.05em;
+      }
+
+      .legend-list {
+        margin-top: 12px;
+      }
+
+      .legend-line {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        padding-bottom: 6px;
+        border-bottom: 1px dashed rgba(46, 59, 69, 0.12);
+      }
+
+      .mode-strip {
+        display: flex;
+        gap: 8px;
+        padding: 10px;
+        flex-wrap: wrap;
+      }
+
+      .chip {
+        border: 1px solid rgba(46, 59, 69, 0.12);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.52);
+        color: var(--ink);
+        padding: 10px 12px;
+        cursor: pointer;
+        transition:
+          transform 180ms ease,
+          border-color 180ms ease,
+          background 180ms ease;
+        font-size: 0.73rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .chip:hover,
+      .chip:focus-visible {
+        transform: translateY(-1px);
+        border-color: rgba(46, 59, 69, 0.26);
+        outline: none;
+      }
+
+      .chip.active {
+        background:
+          linear-gradient(90deg, rgba(124, 168, 190, 0.18), rgba(149, 175, 136, 0.18)),
+          rgba(255, 255, 255, 0.74);
+        border-color: rgba(46, 59, 69, 0.28);
+      }
+
+      .route-overlay {
+        position: absolute;
+        inset: 0;
+      }
+
+      .route-svg {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+      }
+
+      .route-svg .route {
+        fill: none;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      .route-main {
+        stroke: rgba(36, 53, 71, 0.72);
+        stroke-width: 7;
+        stroke-dasharray: 18 12;
+      }
+
+      .route-side {
+        stroke: rgba(124, 168, 190, 0.64);
+        stroke-width: 4;
+        stroke-dasharray: 10 9;
+      }
+
+      .route-warm {
+        stroke: rgba(212, 145, 134, 0.7);
+        stroke-width: 3;
+        stroke-dasharray: 8 10;
+      }
+
+      .route-node {
+        fill: rgba(255, 250, 243, 0.94);
+        stroke: rgba(46, 59, 69, 0.34);
+        stroke-width: 2;
+      }
+
+      .route-ghost {
+        fill: none;
+        stroke: rgba(46, 59, 69, 0.08);
+        stroke-width: 1.5;
+        stroke-dasharray: 3 9;
+      }
+
+      .note-card {
+        position: absolute;
+        width: 176px;
+        padding: 12px;
+        border: 1px solid rgba(46, 59, 69, 0.12);
+        border-radius: 22px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.74), rgba(255, 249, 242, 0.88)),
+          rgba(255, 252, 246, 0.84);
+        box-shadow: 0 18px 40px rgba(111, 91, 62, 0.12);
+        cursor: grab;
+        user-select: none;
+        touch-action: none;
+        transition:
+          box-shadow 180ms ease,
+          border-color 180ms ease,
+          transform 180ms ease;
+      }
+
+      .note-card.dragging {
+        cursor: grabbing;
+        box-shadow: 0 26px 60px rgba(111, 91, 62, 0.18);
+        border-color: rgba(46, 59, 69, 0.24);
+      }
+
+      .note-card .note-tag {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+      }
+
+      .note-card strong {
+        display: block;
+        margin-top: 0.48rem;
+        font-size: 1.04rem;
+        letter-spacing: -0.04em;
+      }
+
+      .note-card p {
+        margin-top: 0.42rem;
+        color: rgba(46, 59, 69, 0.7);
+        font-size: 0.84rem;
+        line-height: 1.45;
+      }
+
+      .creature {
+        width: 100%;
+        height: 110px;
+        margin-top: 0.48rem;
+      }
+
+      .creature .body {
+        fill: rgba(241, 236, 226, 0.96);
+        stroke: rgba(59, 68, 74, 0.26);
+        stroke-width: 2;
+      }
+
+      .creature .alt {
+        fill: rgba(196, 216, 207, 0.9);
+      }
+
+      .creature .warm {
+        fill: rgba(234, 210, 198, 0.94);
+      }
+
+      .creature .face {
+        fill: #f5cd58;
+        stroke: rgba(59, 68, 74, 0.42);
+        stroke-width: 1.4;
+      }
+
+      .creature .blush {
+        fill: rgba(216, 145, 134, 0.24);
+      }
+
+      .stamp {
+        position: absolute;
+        width: 54px;
+        height: 54px;
+        border-radius: 50%;
+        border: 1px dashed rgba(46, 59, 69, 0.2);
+        display: grid;
+        place-items: center;
+        color: rgba(46, 59, 69, 0.54);
+        font-size: 0.74rem;
+        background: rgba(255, 255, 255, 0.22);
+        mix-blend-mode: multiply;
+      }
+
+      .floating-sticker {
+        padding: 12px;
+      }
+
+      .sticker-figure {
+        width: 100%;
+        height: 150px;
+      }
+
+      .queue-list,
+      .status-list {
+        margin-top: 10px;
+      }
+
+      .queue-item,
+      .status-card {
+        font-size: 0.84rem;
+        color: rgba(46, 59, 69, 0.74);
+        line-height: 1.42;
+      }
+
+      .status-card strong {
+        display: block;
+        margin-bottom: 0.34rem;
+      }
+
+      .footer-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .footer-card p {
+        margin-top: 0.52rem;
+        color: rgba(46, 59, 69, 0.75);
+        line-height: 1.48;
+        font-size: 0.92rem;
+      }
+
+      .back {
+        position: fixed;
+        right: 16px;
+        bottom: 16px;
+        border: 1px solid rgba(46, 59, 69, 0.14);
+        border-radius: 999px;
+        background: rgba(255, 252, 246, 0.88);
+        padding: 12px 14px;
+        text-decoration: none;
+        font-size: 0.72rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        box-shadow: 0 18px 40px rgba(111, 91, 62, 0.12);
+      }
+
+      @media (max-width: 1180px) {
+        .shell {
+          grid-template-columns: 1fr;
+          grid-template-rows: auto;
+        }
+
+        .header,
+        .left-stack,
+        .map-wrap,
+        .right-stack,
+        .footer {
+          grid-column: 1;
+          grid-row: auto;
+        }
+
+        .header {
+          grid-template-columns: 1fr;
+        }
+
+        .map-wrap {
+          min-height: 930px;
+        }
+
+        .map-grid {
+          grid-template-columns: 1fr;
+          grid-template-rows: auto auto auto auto;
+        }
+
+        .left-board,
+        .route-field,
+        .right-board,
+        .lower-slips {
+          grid-column: 1;
+          grid-row: auto;
+        }
+
+        .lower-slips {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 720px) {
+        .shell {
+          padding: 12px;
+          gap: 12px;
+        }
+
+        .map-wrap {
+          min-height: 1100px;
+        }
+
+        .readouts,
+        .footer-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .note-card {
+          width: 152px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <section class="header">
+        <article class="panel hero">
+          <div class="eyebrow">Creative Taste Bot / Code Animation / #057</div>
+          <h1>Sag &amp; Nest Routing Bulletin</h1>
+          <p class="body">
+            A foldout neighborhood map where soft route slips, creature errands,
+            and wayfinding marks keep reorganizing themselves. The page stays
+            design-usable and tactile: not another dark console, not another
+            figure chamber, but a browser-native paper object with live filing
+            behavior.
+          </p>
+          <div class="readouts">
+            <div class="metric">
+              <span class="metric-label">Mood</span>
+              <strong id="moodReadout">soft drift</strong>
+            </div>
+            <div class="metric">
+              <span class="metric-label">Open slips</span>
+              <strong id="slipReadout">05 notes</strong>
+            </div>
+            <div class="metric">
+              <span class="metric-label">Field wind</span>
+              <strong id="windReadout">0.28 south</strong>
+            </div>
+          </div>
+        </article>
+        <article class="panel overview">
+          <div class="eyebrow">Interaction</div>
+          <p class="meta-copy">
+            Drag any note into a new part of the map and the routing field will
+            slowly pull it into a nearby family. Move the pointer across the
+            foldout to create soft gusts and route wakes. Use the day chips to
+            rebalance the same map toward quiet morning, warm twilight, or light
+            rain without breaking the paper-object feeling.
+          </p>
+        </article>
+      </section>
+
+      <aside class="panel left-stack">
+        <section class="card">
+          <div class="label">Legend</div>
+          <div class="legend-list">
+            <div class="legend-line"><span>Main path</span><span>navy dash</span></div>
+            <div class="legend-line"><span>Side path</span><span>blue weave</span></div>
+            <div class="legend-line"><span>Warm errand</span><span>rose stitch</span></div>
+            <div class="legend-line"><span>Quiet pocket</span><span>blank cream</span></div>
+            <div class="legend-line"><span>Creature pause</span><span>yellow eyes</span></div>
+          </div>
+        </section>
+        <section class="card">
+          <div class="label">Current queue</div>
+          <div class="queue-list" id="queueList"></div>
+        </section>
+        <section class="card">
+          <div class="label">Care customs</div>
+          <div class="queue-list">
+            <div class="queue-item">Leave room for something good.</div>
+            <div class="queue-item">Big words move slower than tiny passages.</div>
+            <div class="queue-item">Routes listen before they turn.</div>
+            <div class="queue-item">If a slip feels heavy, set it near the bench.</div>
+          </div>
+        </section>
+      </aside>
+
+      <section class="panel map-wrap">
+        <div class="map-shell">
+          <div class="map-grid">
+            <div class="left-board">
+              <div class="side-panel map-title">
+                <div class="tiny">Welcome to</div>
+                <h2>Sag &amp; Nest</h2>
+                <p class="meta-copy">
+                  Steady views, soft wind, clustered errands.
+                </p>
+              </div>
+              <div class="side-panel">
+                <div class="label">Route family</div>
+                <div class="mode-strip" id="modeStrip">
+                  <button class="chip active" data-mode="morning">Morning</button>
+                  <button class="chip" data-mode="twilight">Twilight</button>
+                  <button class="chip" data-mode="rain">Rain</button>
+                </div>
+              </div>
+              <div class="side-panel">
+                <div class="label">Collected stamps</div>
+                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px;">
+                  <div class="stamp" style="position:relative;inset:auto;">N</div>
+                  <div class="stamp" style="position:relative;inset:auto;">W</div>
+                  <div class="stamp" style="position:relative;inset:auto;">H</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="route-field" id="routeField">
+              <canvas id="routeCanvas"></canvas>
+              <div class="route-overlay">
+                <svg class="route-svg" viewBox="0 0 1000 680" preserveAspectRatio="none" aria-hidden="true">
+                  <path class="route route-main" d="M120 58 C 250 110, 290 198, 422 214 S 676 194, 820 266 S 918 442, 882 598" />
+                  <path class="route route-main" d="M112 548 C 244 468, 314 386, 440 390 S 648 474, 796 448 S 932 314, 942 164" />
+                  <path class="route route-side" d="M248 102 C 242 220, 250 328, 286 430 S 332 584, 304 638" />
+                  <path class="route route-side" d="M620 52 C 644 138, 664 242, 658 326 S 612 490, 546 624" />
+                  <path class="route route-warm" d="M186 244 C 348 236, 402 288, 488 330 S 650 390, 742 374 S 844 286, 900 198" />
+                  <path class="route route-warm" d="M224 612 C 316 548, 368 514, 442 504 S 602 484, 684 532 S 784 608, 872 616" />
+                  <path class="route route-ghost" d="M152 148 C 280 82, 388 80, 498 116 S 724 170, 876 126" />
+                  <path class="route route-ghost" d="M94 408 C 204 332, 382 306, 520 280 S 790 248, 942 332" />
+                  <circle class="route-node" cx="226" cy="138" r="8" />
+                  <circle class="route-node" cx="456" cy="224" r="10" />
+                  <circle class="route-node" cx="718" cy="256" r="9" />
+                  <circle class="route-node" cx="300" cy="412" r="8" />
+                  <circle class="route-node" cx="544" cy="506" r="10" />
+                  <circle class="route-node" cx="826" cy="456" r="8" />
+                </svg>
+              </div>
+
+              <div class="note-card" data-group="rest" data-title="Sag hill" data-body="steady views / soft wind" style="left: 116px; top: 82px; transform: rotate(-4deg);">
+                <div class="note-tag"><span>stop 01</span><span>rest</span></div>
+                <strong>Sag Hill</strong>
+                <p>Quiet standing spot with slow wind and no urgent traffic.</p>
+                <svg class="creature" viewBox="0 0 120 110" aria-hidden="true">
+                  <ellipse class="blush" cx="60" cy="78" rx="32" ry="16"></ellipse>
+                  <path class="body" d="M28 84 C 28 42, 40 18, 60 18 C 80 18, 94 42, 92 82 C 90 94, 76 98, 60 98 C 42 98, 28 94, 28 84Z"></path>
+                  <circle class="face" cx="48" cy="48" r="10"></circle>
+                  <circle class="face" cx="74" cy="48" r="10"></circle>
+                  <circle cx="48" cy="48" r="3.2" fill="#1d2529"></circle>
+                  <circle cx="74" cy="48" r="3.2" fill="#1d2529"></circle>
+                  <path d="M52 66 C 56 70, 65 70, 70 65" fill="none" stroke="#1d2529" stroke-width="2" stroke-linecap="round"></path>
+                  <path d="M38 88 C 40 102, 34 105, 30 106" fill="none" stroke="rgba(59,68,74,0.28)" stroke-width="2.2" stroke-linecap="round"></path>
+                  <path d="M82 88 C 84 102, 90 105, 94 106" fill="none" stroke="rgba(59,68,74,0.28)" stroke-width="2.2" stroke-linecap="round"></path>
+                </svg>
+              </div>
+
+              <div class="note-card" data-group="gather" data-title="The slope" data-body="shared bench / passing tea" style="left: 386px; top: 140px; transform: rotate(3deg);">
+                <div class="note-tag"><span>stop 02</span><span>gather</span></div>
+                <strong>The Slope</strong>
+                <p>A shared bench where routes cross and stories trade quietly.</p>
+                <svg class="creature" viewBox="0 0 120 110" aria-hidden="true">
+                  <ellipse class="blush" cx="54" cy="76" rx="32" ry="15"></ellipse>
+                  <path class="body alt" d="M24 86 C 26 44, 42 22, 60 20 C 78 18, 96 42, 94 84 C 90 94, 78 98, 60 98 C 40 98, 26 94, 24 86Z"></path>
+                  <path class="body warm" d="M52 82 C 54 54, 68 34, 84 34 C 98 34, 110 52, 108 82 C 104 92, 96 96, 84 96 C 70 96, 56 92, 52 82Z"></path>
+                  <circle class="face" cx="48" cy="50" r="10"></circle>
+                  <circle class="face" cx="74" cy="48" r="10"></circle>
+                  <circle cx="48" cy="50" r="3.2" fill="#1d2529"></circle>
+                  <circle cx="74" cy="48" r="3.2" fill="#1d2529"></circle>
+                  <circle class="face" cx="82" cy="54" r="9"></circle>
+                  <circle cx="82" cy="54" r="2.8" fill="#1d2529"></circle>
+                  <path d="M52 66 C 58 71, 66 71, 72 66" fill="none" stroke="#1d2529" stroke-width="2" stroke-linecap="round"></path>
+                </svg>
+              </div>
+
+              <div class="note-card" data-group="errand" data-title="Hollow lane" data-body="listen before entering" style="left: 710px; top: 110px; transform: rotate(-2deg);">
+                <div class="note-tag"><span>stop 03</span><span>errand</span></div>
+                <strong>Hollow Lane</strong>
+                <p>Narrow route with tiny signs, kind loops, and one hidden drop.</p>
+                <svg class="creature" viewBox="0 0 120 110" aria-hidden="true">
+                  <ellipse class="blush" cx="58" cy="76" rx="30" ry="15"></ellipse>
+                  <path class="body" d="M30 84 C 30 52, 40 28, 58 26 C 80 24, 92 42, 90 82 C 88 94, 74 98, 60 98 C 42 98, 30 94, 30 84Z"></path>
+                  <circle class="face" cx="46" cy="48" r="10"></circle>
+                  <circle class="face" cx="72" cy="48" r="10"></circle>
+                  <circle cx="46" cy="48" r="3.2" fill="#1d2529"></circle>
+                  <circle cx="72" cy="48" r="3.2" fill="#1d2529"></circle>
+                  <path d="M50 66 C 54 70, 64 71, 70 66" fill="none" stroke="#1d2529" stroke-width="2" stroke-linecap="round"></path>
+                  <path d="M84 76 C 95 78, 98 84, 100 88" fill="none" stroke="rgba(59,68,74,0.28)" stroke-width="2.2" stroke-linecap="round"></path>
+                </svg>
+              </div>
+
+              <div class="note-card" data-group="rest" data-title="Moss courtyard" data-body="share a thing / sit a while" style="left: 226px; top: 434px; transform: rotate(2deg);">
+                <div class="note-tag"><span>stop 04</span><span>rest</span></div>
+                <strong>Moss Courtyard</strong>
+                <p>Low place for recovery, slow arrivals, and folded route maps.</p>
+                <svg class="creature" viewBox="0 0 120 110" aria-hidden="true">
+                  <ellipse class="blush" cx="60" cy="80" rx="34" ry="16"></ellipse>
+                  <path class="body" d="M24 84 C 24 44, 40 22, 60 20 C 82 18, 96 44, 94 84 C 92 94, 76 98, 60 98 C 42 98, 26 94, 24 84Z"></path>
+                  <circle class="face" cx="48" cy="46" r="10"></circle>
+                  <circle class="face" cx="74" cy="46" r="10"></circle>
+                  <circle cx="48" cy="46" r="3.2" fill="#1d2529"></circle>
+                  <circle cx="74" cy="46" r="3.2" fill="#1d2529"></circle>
+                  <path d="M50 63 C 55 69, 65 69, 70 63" fill="none" stroke="#1d2529" stroke-width="2" stroke-linecap="round"></path>
+                </svg>
+              </div>
+
+              <div class="note-card" data-group="errand" data-title="Low pipes" data-body="cold water / good echo" style="left: 642px; top: 476px; transform: rotate(-3deg);">
+                <div class="note-tag"><span>stop 05</span><span>errand</span></div>
+                <strong>Low Pipes</strong>
+                <p>Cool underpass for delivery loops, damp notes, and echo tests.</p>
+                <svg class="creature" viewBox="0 0 120 110" aria-hidden="true">
+                  <ellipse class="blush" cx="60" cy="78" rx="34" ry="16"></ellipse>
+                  <path class="body alt" d="M24 86 C 26 50, 42 26, 60 24 C 84 22, 96 44, 94 86 C 90 96, 76 98, 60 98 C 40 98, 28 94, 24 86Z"></path>
+                  <circle class="face" cx="48" cy="48" r="10"></circle>
+                  <circle class="face" cx="74" cy="48" r="10"></circle>
+                  <circle cx="48" cy="48" r="3.2" fill="#1d2529"></circle>
+                  <circle cx="74" cy="48" r="3.2" fill="#1d2529"></circle>
+                  <path d="M50 66 C 55 72, 65 72, 70 66" fill="none" stroke="#1d2529" stroke-width="2" stroke-linecap="round"></path>
+                  <path d="M34 84 C 22 86, 18 92, 14 98" fill="none" stroke="rgba(59,68,74,0.28)" stroke-width="2.2" stroke-linecap="round"></path>
+                </svg>
+              </div>
+
+              <div class="stamp" style="left: 58px; top: 502px;">N</div>
+              <div class="stamp" style="left: 812px; top: 548px;">DAY</div>
+              <div class="stamp" style="left: 560px; top: 90px;">S</div>
+            </div>
+
+            <div class="right-board">
+              <div class="route-notes">
+                <div class="label">Route notes</div>
+                <div class="status-list">
+                  <div class="status-card">
+                    <strong id="focusTitle">Sag Hill</strong>
+                    <span id="focusBody">Quiet standing spot with slow wind and no urgent traffic.</span>
+                  </div>
+                  <div class="status-card">
+                    <strong>Current weather</strong>
+                    <span id="weatherBody">Morning drift keeps routes wide and forgiving.</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="floating-sticker">
+                <div class="label">Pocket resident</div>
+                <svg class="sticker-figure" viewBox="0 0 180 150" aria-hidden="true">
+                  <ellipse cx="88" cy="110" rx="44" ry="18" fill="rgba(212,145,134,0.18)"></ellipse>
+                  <path d="M54 110 C 54 62, 70 36, 92 34 C 116 32, 132 60, 128 108 C 124 124, 112 130, 92 130 C 68 130, 56 124, 54 110Z" fill="rgba(239,234,225,0.96)" stroke="rgba(46,59,69,0.24)" stroke-width="2.2"></path>
+                  <circle cx="76" cy="70" r="12" fill="#f5cd58" stroke="rgba(46,59,69,0.34)" stroke-width="1.8"></circle>
+                  <circle cx="104" cy="70" r="12" fill="#f5cd58" stroke="rgba(46,59,69,0.34)" stroke-width="1.8"></circle>
+                  <circle cx="76" cy="70" r="3.6" fill="#1d2529"></circle>
+                  <circle cx="104" cy="70" r="3.6" fill="#1d2529"></circle>
+                  <path d="M80 92 C 86 98, 96 98, 102 92" fill="none" stroke="#1d2529" stroke-width="2.4" stroke-linecap="round"></path>
+                  <path d="M62 40 C 58 24, 46 20, 34 26" fill="none" stroke="rgba(46,59,69,0.2)" stroke-width="3" stroke-linecap="round"></path>
+                  <path d="M118 38 C 122 24, 136 18, 146 26" fill="none" stroke="rgba(46,59,69,0.2)" stroke-width="3" stroke-linecap="round"></path>
+                  <path d="M58 118 C 44 126, 34 124, 24 118" fill="none" stroke="rgba(124,168,190,0.38)" stroke-width="3" stroke-linecap="round"></path>
+                </svg>
+              </div>
+
+              <div class="route-notes">
+                <div class="label">Small reminders</div>
+                <div class="queue-list">
+                  <div class="queue-item">Drag slips to alter the board's soft logic.</div>
+                  <div class="queue-item">Routes settle slowly, not instantly.</div>
+                  <div class="queue-item">Rain mode narrows paths and deepens blue flow.</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="lower-slips">
+              <div class="footer-slip">
+                <div class="label">Between places</div>
+                <p class="meta-copy">Some paths are not for today. Others open when two notes rest close enough to hear each other.</p>
+              </div>
+              <div class="footer-slip">
+                <div class="label">Passages</div>
+                <p class="meta-copy">The board clusters slips around hidden route families: rest, gather, and errand. Dragging can interrupt that gravity for a while.</p>
+              </div>
+              <div class="footer-slip">
+                <div class="label">Weather mood</div>
+                <p class="meta-copy">Morning keeps things airy. Twilight makes pauses warmer. Rain adds tighter channels and denser wakes.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <aside class="panel right-stack">
+        <section class="card">
+          <div class="label">Branch fit</div>
+          <div class="queue-list">
+            <div class="queue-item">Design-usable HTML object instead of another dark console.</div>
+            <div class="queue-item">Keeps creature warmth without collapsing into mascot focus.</div>
+            <div class="queue-item">Paper map grammar extends the foldout civic image lane.</div>
+          </div>
+        </section>
+        <section class="card">
+          <div class="label">Signals</div>
+          <div class="status-list">
+            <div class="status-card"><strong>Route density</strong><span class="status-value" id="densityReadout">shared</span></div>
+            <div class="status-card"><strong>Slip gravity</strong><span class="status-value" id="gravityReadout">gentle clustering</span></div>
+            <div class="status-card"><strong>Pointer wake</strong><span class="status-value" id="wakeReadout">local breeze</span></div>
+          </div>
+        </section>
+      </aside>
+
+      <section class="panel footer">
+        <div class="footer-grid">
+          <article class="footer-card">
+            <div class="label">Idea</div>
+            <p>
+              Turn the recent Sag &amp; Nest foldout image lane into a living
+              browser object: a neighborhood map with route slips, bench stops,
+              and soft residents that feels printable and navigable at the same
+              time.
+            </p>
+          </article>
+          <article class="footer-card">
+            <div class="label">Interaction</div>
+            <p>
+              Drag cards, stir the field with the pointer, and switch the shared
+              weather mode. The response stays embedded in the map through route
+              particles, slow clustering, and paper shifts rather than fake app
+              chrome.
+            </p>
+          </article>
+          <article class="footer-card">
+            <div class="label">Next</div>
+            <p>
+              A later variant could accept real Telegram fragments or typed text
+              as incoming slips, then grow new districts and resident families
+              instead of only reshuffling the starting five notes.
+            </p>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <a class="back" href="../../index.html">Back to index</a>
+
+    <script>
+      const routeField = document.getElementById("routeField");
+      const canvas = document.getElementById("routeCanvas");
+      const ctx = canvas.getContext("2d");
+      const cards = [...document.querySelectorAll(".note-card")];
+      const queueList = document.getElementById("queueList");
+      const modeButtons = [...document.querySelectorAll("[data-mode]")];
+
+      const readouts = {
+        mood: document.getElementById("moodReadout"),
+        slips: document.getElementById("slipReadout"),
+        wind: document.getElementById("windReadout"),
+        focusTitle: document.getElementById("focusTitle"),
+        focusBody: document.getElementById("focusBody"),
+        weatherBody: document.getElementById("weatherBody"),
+        density: document.getElementById("densityReadout"),
+        gravity: document.getElementById("gravityReadout"),
+        wake: document.getElementById("wakeReadout"),
+      };
+
+      const pointer = { x: 0.5, y: 0.5, inside: false, strength: 0 };
+      let currentMode = "morning";
+      let lastTime = performance.now();
+      let activeCard = cards[0];
+
+      const modeConfig = {
+        morning: {
+          bg: [239, 230, 214],
+          lines: "rgba(33, 53, 71, 0.24)",
+          accent: "rgba(124, 168, 190, 0.36)",
+          mood: "soft drift",
+          weather: "Morning drift keeps routes wide and forgiving.",
+          density: "shared",
+          gravity: "gentle clustering",
+          wake: "local breeze",
+          wind: "0.28 south",
+        },
+        twilight: {
+          bg: [236, 224, 207],
+          lines: "rgba(76, 58, 67, 0.24)",
+          accent: "rgba(212, 145, 134, 0.34)",
+          mood: "warm crossing",
+          weather: "Twilight pulls stops into warmer pockets near the center.",
+          density: "bench-biased",
+          gravity: "warmer pull",
+          wake: "amber drag",
+          wind: "0.42 west",
+        },
+        rain: {
+          bg: [229, 223, 212],
+          lines: "rgba(45, 61, 76, 0.28)",
+          accent: "rgba(124, 168, 190, 0.42)",
+          mood: "narrow rain",
+          weather: "Rain tightens the blue lanes and speeds the pipe passages.",
+          density: "channelled",
+          gravity: "pipe-leaning",
+          wake: "cool wake",
+          wind: "0.56 east",
+        },
+      };
+
+      const anchors = {
+        rest: { x: 0.28, y: 0.65 },
+        gather: { x: 0.48, y: 0.32 },
+        errand: { x: 0.74, y: 0.58 },
+      };
+
+      const particles = Array.from({ length: 210 }, (_, index) => ({
+        path: index % 6,
+        t: Math.random(),
+        speed: 0.04 + Math.random() * 0.08,
+        size: 1 + Math.random() * 2.4,
+        alpha: 0.16 + Math.random() * 0.34,
+      }));
+
+      const routePaths = [
+        [0.12, 0.08, 0.24, 0.14, 0.39, 0.18, 0.56, 0.22, 0.78, 0.3, 0.9, 0.54],
+        [0.1, 0.8, 0.26, 0.66, 0.44, 0.58, 0.64, 0.64, 0.82, 0.56, 0.94, 0.18],
+        [0.24, 0.12, 0.24, 0.34, 0.3, 0.56, 0.34, 0.82],
+        [0.62, 0.08, 0.66, 0.24, 0.64, 0.46, 0.56, 0.82],
+        [0.18, 0.36, 0.34, 0.34, 0.48, 0.48, 0.66, 0.58, 0.9, 0.28],
+        [0.22, 0.86, 0.36, 0.74, 0.48, 0.72, 0.66, 0.82, 0.88, 0.88],
+      ];
+
+      const cardState = cards.map((card) => {
+        const left = parseFloat(card.style.left);
+        const top = parseFloat(card.style.top);
+        const rotation = Number(card.style.transform.match(/-?[\d.]+/)?.[0] || 0);
+        return {
+          el: card,
+          title: card.dataset.title,
+          body: card.dataset.body,
+          group: card.dataset.group,
+          x: left,
+          y: top,
+          vx: 0,
+          vy: 0,
+          homeX: left,
+          homeY: top,
+          rotation,
+          bob: Math.random() * Math.PI * 2,
+          dragging: false,
+          offsetX: 0,
+          offsetY: 0,
+        };
+      });
+
+      function refreshQueue() {
+        queueList.innerHTML = "";
+        cardState
+          .slice()
+          .sort((a, b) => a.y - b.y)
+          .forEach((entry, index) => {
+            const row = document.createElement("div");
+            row.className = "queue-item";
+            row.textContent = `${String(index + 1).padStart(2, "0")} ${entry.title} / ${entry.group}`;
+            queueList.appendChild(row);
+          });
+        readouts.slips.textContent = `${String(cardState.length).padStart(2, "0")} notes`;
+      }
+
+      function setActiveCard(state) {
+        activeCard = state.el;
+        readouts.focusTitle.textContent = state.title;
+        readouts.focusBody.textContent = state.body;
+      }
+
+      function setMode(mode) {
+        currentMode = mode;
+        modeButtons.forEach((button) => {
+          button.classList.toggle("active", button.dataset.mode === mode);
+        });
+        const config = modeConfig[mode];
+        readouts.mood.textContent = config.mood;
+        readouts.weatherBody.textContent = config.weather;
+        readouts.density.textContent = config.density;
+        readouts.gravity.textContent = config.gravity;
+        readouts.wake.textContent = config.wake;
+        readouts.wind.textContent = config.wind;
+      }
+
+      function fitCanvas() {
+        const rect = routeField.getBoundingClientRect();
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = rect.width * dpr;
+        canvas.height = rect.height * dpr;
+        canvas.style.width = `${rect.width}px`;
+        canvas.style.height = `${rect.height}px`;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+
+      function pathPoint(path, t) {
+        const points = [];
+        for (let i = 0; i < path.length; i += 2) {
+          points.push({ x: path[i], y: path[i + 1] });
+        }
+        const scaledT = t * (points.length - 1);
+        const index = Math.min(points.length - 2, Math.floor(scaledT));
+        const localT = scaledT - index;
+        const a = points[index];
+        const b = points[index + 1];
+        return {
+          x: a.x + (b.x - a.x) * localT,
+          y: a.y + (b.y - a.y) * localT,
+        };
+      }
+
+      function drawParticles(dt) {
+        const rect = routeField.getBoundingClientRect();
+        ctx.clearRect(0, 0, rect.width, rect.height);
+        const config = modeConfig[currentMode];
+
+        const gradient = ctx.createLinearGradient(0, 0, rect.width, rect.height);
+        gradient.addColorStop(0, `rgba(${config.bg[0]}, ${config.bg[1]}, ${config.bg[2]}, 0.12)`);
+        gradient.addColorStop(1, "rgba(255,255,255,0)");
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, rect.width, rect.height);
+
+        particles.forEach((particle, index) => {
+          particle.t = (particle.t + particle.speed * dt * (currentMode === "rain" ? 1.24 : currentMode === "twilight" ? 0.96 : 0.84)) % 1;
+          const point = pathPoint(routePaths[particle.path], particle.t);
+          const x = point.x * rect.width;
+          const y = point.y * rect.height;
+          const dx = pointer.inside ? x - pointer.x * rect.width : 9999;
+          const dy = pointer.inside ? y - pointer.y * rect.height : 9999;
+          const dist = Math.hypot(dx, dy);
+          const push = pointer.inside ? Math.max(0, 1 - dist / 180) : 0;
+          const wakeX = push * dx * 0.02;
+          const wakeY = push * dy * 0.02;
+
+          ctx.beginPath();
+          ctx.fillStyle = particle.path < 2
+            ? `rgba(33, 53, 71, ${particle.alpha + push * 0.12})`
+            : particle.path < 4
+              ? `rgba(124, 168, 190, ${particle.alpha + push * 0.16})`
+              : `rgba(212, 145, 134, ${particle.alpha + push * 0.14})`;
+          ctx.arc(
+            x + wakeX + Math.sin(index + performance.now() * 0.0004) * 0.6,
+            y + wakeY,
+            particle.size + push * 0.7,
+            0,
+            Math.PI * 2
+          );
+          ctx.fill();
+        });
+
+        ctx.strokeStyle = config.lines;
+        ctx.lineWidth = 1;
+        ctx.setLineDash([3, 9]);
+        for (let i = 0; i < 6; i += 1) {
+          ctx.beginPath();
+          ctx.moveTo((0.08 + i * 0.16) * rect.width, 0);
+          ctx.lineTo((0.08 + i * 0.16) * rect.width, rect.height);
+          ctx.stroke();
+        }
+
+        ctx.setLineDash([]);
+        ctx.strokeStyle = config.accent;
+        ctx.lineWidth = 1.4;
+        ctx.beginPath();
+        ctx.moveTo(0, rect.height * (0.32 + pointer.y * 0.08));
+        ctx.lineTo(rect.width, rect.height * (0.28 + pointer.y * 0.12));
+        ctx.stroke();
+      }
+
+      function updateCards(dt) {
+        const rect = routeField.getBoundingClientRect();
+        const modeBias =
+          currentMode === "twilight"
+            ? { x: 0.02, y: -0.03 }
+            : currentMode === "rain"
+              ? { x: 0.04, y: 0.02 }
+              : { x: 0, y: 0 };
+
+        cardState.forEach((state) => {
+          if (!state.dragging) {
+            const anchor = anchors[state.group];
+            const targetX = anchor.x * rect.width + modeBias.x * rect.width + Math.sin(state.bob) * 12;
+            const targetY = anchor.y * rect.height + modeBias.y * rect.height + Math.cos(state.bob * 1.2) * 10;
+            const dx = targetX - state.x;
+            const dy = targetY - state.y;
+            state.vx += dx * 0.00045 * dt;
+            state.vy += dy * 0.00045 * dt;
+
+            if (pointer.inside) {
+              const px = pointer.x * rect.width;
+              const py = pointer.y * rect.height;
+              const ddx = state.x - px;
+              const ddy = state.y - py;
+              const dist = Math.max(24, Math.hypot(ddx, ddy));
+              const force = Math.max(0, 1 - dist / 220) * 0.05 * dt;
+              state.vx += (ddx / dist) * force * 8;
+              state.vy += (ddy / dist) * force * 8;
+            }
+
+            state.vx *= 0.9;
+            state.vy *= 0.9;
+            state.x += state.vx;
+            state.y += state.vy;
+          }
+
+          state.bob += dt * 0.0018;
+
+          state.x = Math.max(12, Math.min(rect.width - 188, state.x));
+          state.y = Math.max(12, Math.min(rect.height - 160, state.y));
+          state.el.style.left = `${state.x}px`;
+          state.el.style.top = `${state.y}px`;
+          const tilt = state.rotation + Math.sin(state.bob) * 1.4 + state.vx * 0.05;
+          const lift = state.dragging ? -6 : Math.cos(state.bob * 0.8) * 2;
+          state.el.style.transform = `translateY(${lift}px) rotate(${tilt}deg)`;
+        });
+      }
+
+      function animate(now) {
+        const dt = Math.min(32, now - lastTime);
+        lastTime = now;
+        drawParticles(dt * 0.04);
+        updateCards(dt);
+        requestAnimationFrame(animate);
+      }
+
+      function pointerPosition(event) {
+        const rect = routeField.getBoundingClientRect();
+        return {
+          x: event.clientX - rect.left,
+          y: event.clientY - rect.top,
+        };
+      }
+
+      cardState.forEach((state) => {
+        state.el.addEventListener("pointerdown", (event) => {
+          event.preventDefault();
+          state.dragging = true;
+          state.el.classList.add("dragging");
+          state.el.setPointerCapture(event.pointerId);
+          const pos = pointerPosition(event);
+          state.offsetX = pos.x - state.x;
+          state.offsetY = pos.y - state.y;
+          state.vx = 0;
+          state.vy = 0;
+          setActiveCard(state);
+        });
+
+        state.el.addEventListener("pointermove", (event) => {
+          if (!state.dragging) {
+            return;
+          }
+          const pos = pointerPosition(event);
+          state.x = pos.x - state.offsetX;
+          state.y = pos.y - state.offsetY;
+        });
+
+        state.el.addEventListener("pointerup", (event) => {
+          state.dragging = false;
+          state.el.classList.remove("dragging");
+          state.el.releasePointerCapture(event.pointerId);
+          refreshQueue();
+        });
+
+        state.el.addEventListener("mouseenter", () => {
+          setActiveCard(state);
+        });
+      });
+
+      routeField.addEventListener("pointermove", (event) => {
+        const rect = routeField.getBoundingClientRect();
+        pointer.x = (event.clientX - rect.left) / rect.width;
+        pointer.y = (event.clientY - rect.top) / rect.height;
+        pointer.inside = true;
+      });
+
+      routeField.addEventListener("pointerenter", () => {
+        pointer.inside = true;
+      });
+
+      routeField.addEventListener("pointerleave", () => {
+        pointer.inside = false;
+      });
+
+      modeButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+          setMode(button.dataset.mode);
+        });
+      });
+
+      window.addEventListener("resize", fitCanvas);
+
+      refreshQueue();
+      setMode("morning");
+      fitCanvas();
+      requestAnimationFrame(animate);
+    </script>
+  </body>
+</html>

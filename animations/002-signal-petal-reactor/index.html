@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>#002 Signal Petal Reactor</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --text: #f1efe8;
+        --muted: #8a867c;
+        --panel: rgba(4, 4, 4, 0.38);
+        --line: rgba(241, 239, 232, 0.16);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        background:
+          radial-gradient(circle at 50% 42%, rgba(44, 3, 8, 0.6), transparent 26%),
+          radial-gradient(circle at 50% 80%, rgba(10, 0, 2, 0.8), transparent 28%),
+          #020202;
+        color: var(--text);
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      canvas,
+      svg {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        display: block;
+      }
+
+      svg {
+        pointer-events: none;
+      }
+
+      .hud {
+        position: fixed;
+        inset: auto 18px 18px 18px;
+        display: flex;
+        justify-content: space-between;
+        align-items: end;
+        gap: 18px;
+        pointer-events: none;
+      }
+
+      .title {
+        display: grid;
+        gap: 4px;
+      }
+
+      h1,
+      p {
+        margin: 0;
+      }
+
+      h1 {
+        font-size: 13px;
+        font-weight: 560;
+      }
+
+      p {
+        max-width: 480px;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.4;
+      }
+
+      .back {
+        pointer-events: auto;
+        color: var(--text);
+        text-decoration: none;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 8px 11px;
+        font-size: 12px;
+        background: var(--panel);
+        backdrop-filter: blur(14px);
+      }
+
+      @media (max-width: 720px) {
+        .hud {
+          top: 14px;
+          bottom: auto;
+          flex-direction: column;
+          align-items: start;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="field"></canvas>
+    <svg id="overlay" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+      <g id="rails"></g>
+    </svg>
+    <div class="hud">
+      <div class="title">
+        <h1>#002 Signal Petal Reactor</h1>
+        <p>
+          A suspended field of impossible-red particles flows through sagging
+          petal lanes while sparse white marks read like a living calibration
+          layer instead of a central object.
+        </p>
+      </div>
+      <a class="back" href="../../index.html">Index</a>
+    </div>
+    <script src="../../shared/study-notes.js"></script>
+
+    <script>
+      const canvas = document.getElementById("field");
+      const ctx = canvas.getContext("2d", { alpha: false });
+      const railsRoot = document.getElementById("rails");
+
+      const TAU = Math.PI * 2;
+      const lanes = [];
+      const motes = [];
+      const anchors = [];
+
+      let width = 0;
+      let height = 0;
+      let dpr = 1;
+      let start = performance.now();
+
+      const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+      const mix = (a, b, t) => a + (b - a) * t;
+      const rand = (min, max) => min + Math.random() * (max - min);
+
+      function lanePoint(lane, u, t) {
+        const sway = Math.sin(t * 0.42 + lane.phase) * width * 0.02;
+        const bend = Math.sin(u * Math.PI + t * 0.68 + lane.phase) * lane.drop;
+        const x = width * 0.5 + lane.offset * width + sway + Math.sin(t * 0.3 + lane.phase * 1.6) * u * width * 0.03;
+        const y = height * 0.14 + u * height * 0.72 + bend + Math.cos(t * 0.52 + u * 6 + lane.phase) * lane.wobble;
+        return { x, y };
+      }
+
+      function seed() {
+        lanes.length = 0;
+        motes.length = 0;
+        anchors.length = 0;
+
+        const laneOffsets = [-0.34, -0.18, -0.04, 0.11, 0.27];
+        laneOffsets.forEach((offset, index) => {
+          lanes.push({
+            offset,
+            drop: height * rand(0.035, 0.09),
+            wobble: height * rand(0.004, 0.014),
+            phase: index * 0.8 + rand(-0.24, 0.24),
+          });
+        });
+
+        const moteCount = clamp(Math.floor((width * height) / 950), 800, 1900);
+        for (let i = 0; i < moteCount; i++) {
+          const lane = i % lanes.length;
+          motes.push({
+            lane,
+            u: Math.random(),
+            v: rand(-1, 1),
+            speed: rand(0.035, 0.12),
+            radius: rand(0.55, 2.3) * (Math.random() > 0.92 ? 1.7 : 1),
+            heat: Math.random(),
+            flicker: rand(0.7, 2.5),
+          });
+        }
+
+        for (let i = 0; i < 18; i++) {
+          anchors.push({
+            lane: i % lanes.length,
+            u: 0.1 + (i / 18) * 0.78,
+            size: rand(2.8, 7.2),
+            phase: rand(0, TAU),
+          });
+        }
+
+        rebuildRails(0);
+      }
+
+      function rebuildRails(t) {
+        const paths = [];
+        const rings = [];
+
+        lanes.forEach((lane, index) => {
+          const steps = 20;
+          let d = "";
+          for (let i = 0; i <= steps; i++) {
+            const p = lanePoint(lane, i / steps, t);
+            const x = ((p.x / width) * 100).toFixed(3);
+            const y = ((p.y / height) * 100).toFixed(3);
+            d += i === 0 ? `M ${x} ${y}` : ` L ${x} ${y}`;
+          }
+          const alpha = 0.09 + ((index + 1) / lanes.length) * 0.08;
+          paths.push(
+            `<path d="${d}" fill="none" stroke="rgba(255,245,232,${alpha.toFixed(3)})" stroke-width="${(0.09 + index * 0.025).toFixed(3)}" stroke-linecap="round" stroke-dasharray="${(0.45 + index * 0.1).toFixed(3)} ${(1.3 + index * 0.12).toFixed(3)}" />`,
+          );
+        });
+
+        anchors.forEach((anchor) => {
+          const lane = lanes[anchor.lane];
+          const p = lanePoint(lane, anchor.u, t);
+          const x = ((p.x / width) * 100).toFixed(3);
+          const y = ((p.y / height) * 100).toFixed(3);
+          const r = ((anchor.size / Math.min(width, height)) * 100).toFixed(3);
+          const pulse = 0.34 + Math.sin(t * 0.9 + anchor.phase) * 0.16;
+          rings.push(
+            `<g transform="translate(${x} ${y}) rotate(${((anchor.phase + t * 0.15) * 180) / Math.PI})">
+              <rect x="${(-r).toFixed(3)}" y="${(-r).toFixed(3)}" width="${(r * 2).toFixed(3)}" height="${(r * 2).toFixed(3)}" fill="rgba(245,240,220,${(0.16 + pulse).toFixed(3)})" />
+              <rect x="${(-r * 1.9).toFixed(3)}" y="${(-r * 1.9).toFixed(3)}" width="${(r * 3.8).toFixed(3)}" height="${(r * 3.8).toFixed(3)}" fill="none" stroke="rgba(245,240,220,${(0.08 + pulse * 0.4).toFixed(3)})" stroke-width="0.09" />
+            </g>`,
+          );
+        });
+
+        railsRoot.innerHTML = paths.join("") + rings.join("");
+      }
+
+      function resize() {
+        dpr = Math.min(window.devicePixelRatio || 1, 2);
+        width = Math.floor(window.innerWidth);
+        height = Math.floor(window.innerHeight);
+        canvas.width = Math.floor(width * dpr);
+        canvas.height = Math.floor(height * dpr);
+        canvas.style.width = width + "px";
+        canvas.style.height = height + "px";
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        seed();
+      }
+
+      function draw(now) {
+        const t = (now - start) * 0.001;
+
+        ctx.fillStyle = "rgba(2, 2, 2, 0.23)";
+        ctx.fillRect(0, 0, width, height);
+
+        const field = ctx.createRadialGradient(width * 0.5, height * 0.44, 0, width * 0.5, height * 0.46, Math.min(width, height) * 0.56);
+        field.addColorStop(0, "rgba(78, 6, 17, 0.18)");
+        field.addColorStop(0.55, "rgba(12, 0, 3, 0.08)");
+        field.addColorStop(1, "rgba(0, 0, 0, 0)");
+        ctx.fillStyle = field;
+        ctx.fillRect(0, 0, width, height);
+
+        ctx.globalCompositeOperation = "lighter";
+        for (const mote of motes) {
+          const lane = lanes[mote.lane];
+          const flow = (mote.u + t * mote.speed) % 1;
+          const p = lanePoint(lane, flow, t);
+          const normal = Math.sin(flow * Math.PI) * mote.v * width * 0.028;
+          const x = p.x + normal;
+          const y = p.y + Math.cos(flow * 8 + t * 0.7 + lane.phase) * height * 0.006;
+          const pulse = 0.35 + 0.65 * Math.sin(t * mote.flicker + mote.u * TAU) ** 2;
+          const alpha = 0.08 + mote.heat * 0.24 + pulse * 0.26;
+          const red = Math.floor(mix(108, 255, mote.heat));
+          const green = Math.floor(mix(4, 38, mote.heat * 0.8));
+          const blue = Math.floor(mix(8, 36, mote.heat * 0.65));
+
+          ctx.fillStyle = `rgba(${red}, ${green}, ${blue}, ${alpha})`;
+          ctx.beginPath();
+          ctx.arc(x, y, mote.radius * (0.8 + pulse * 0.5), 0, TAU);
+          ctx.fill();
+
+          if (mote.heat > 0.82) {
+            ctx.fillStyle = `rgba(255, 230, 216, ${0.04 + pulse * 0.06})`;
+            ctx.fillRect(x - mote.radius * 0.3, y - mote.radius * 0.3, mote.radius * 0.6, mote.radius * 0.6);
+          }
+        }
+        ctx.globalCompositeOperation = "source-over";
+
+        ctx.strokeStyle = "rgba(255, 47, 66, 0.08)";
+        ctx.lineWidth = 1;
+        for (let i = 0; i < 4; i++) {
+          const y = (height * (0.18 + i * 0.22) + Math.sin(t * 0.9 + i) * 18) | 0;
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(width, y + Math.sin(t * 1.4 + i) * 6);
+          ctx.stroke();
+        }
+
+        rebuildRails(t);
+        requestAnimationFrame(draw);
+      }
+
+      window.addEventListener("resize", resize);
+      resize();
+      requestAnimationFrame(draw);
+    </script>
+  </body>
+</html>

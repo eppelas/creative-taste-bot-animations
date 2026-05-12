@@ -1,0 +1,765 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>#012 Gradient Valve Garden</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #050507;
+        --panel: rgba(11, 11, 16, 0.72);
+        --line: rgba(241, 231, 220, 0.14);
+        --text: #f1e7dc;
+        --muted: rgba(241, 231, 220, 0.68);
+        --pearl: #f6dcc6;
+        --amber: #f0b06e;
+        --rose: #f579b9;
+        --violet: #8c7cff;
+        --cyan: #73dde1;
+        --lime: #b8f099;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        background:
+          radial-gradient(circle at 50% 18%, rgba(140, 124, 255, 0.12), transparent 26%),
+          radial-gradient(circle at 76% 60%, rgba(115, 221, 225, 0.08), transparent 22%),
+          radial-gradient(circle at 34% 72%, rgba(245, 121, 185, 0.07), transparent 24%),
+          var(--bg);
+        color: var(--text);
+        font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+      }
+
+      canvas {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        display: block;
+      }
+
+      .hud {
+        position: fixed;
+        inset: 18px;
+        display: grid;
+        grid-template-columns: minmax(280px, 370px) minmax(180px, 240px);
+        justify-content: space-between;
+        align-items: start;
+        gap: 18px;
+        pointer-events: none;
+      }
+
+      .panel,
+      .rail {
+        border: 1px solid var(--line);
+        background: var(--panel);
+        backdrop-filter: blur(18px);
+        box-shadow: 0 24px 80px rgba(0, 0, 0, 0.34);
+        border-radius: 22px;
+        pointer-events: auto;
+      }
+
+      .panel {
+        display: grid;
+        gap: 10px;
+        padding: 16px;
+      }
+
+      .rail {
+        display: grid;
+        gap: 10px;
+        padding: 14px;
+      }
+
+      .eyebrow,
+      .hint,
+      .meta,
+      .small,
+      .label,
+      .value {
+        margin: 0;
+      }
+
+      .eyebrow {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.18em;
+        color: rgba(241, 231, 220, 0.5);
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 600;
+      }
+
+      .hint,
+      .meta,
+      .small,
+      .label {
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.45;
+      }
+
+      .back {
+        width: fit-content;
+        padding: 8px 12px;
+        border: 1px solid rgba(241, 231, 220, 0.16);
+        border-radius: 999px;
+        text-decoration: none;
+        color: var(--text);
+        background: rgba(255, 255, 255, 0.03);
+      }
+
+      .channels {
+        display: grid;
+        gap: 10px;
+      }
+
+      .channel {
+        display: grid;
+        gap: 8px;
+        padding: 11px 12px;
+        border-radius: 16px;
+        border: 1px solid rgba(241, 231, 220, 0.08);
+        background: rgba(255, 255, 255, 0.025);
+        cursor: pointer;
+        transition:
+          border-color 140ms ease,
+          background 140ms ease,
+          transform 140ms ease;
+      }
+
+      .channel.active {
+        border-color: rgba(241, 231, 220, 0.24);
+        background: rgba(255, 255, 255, 0.06);
+        transform: translateX(-2px);
+      }
+
+      .channel-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: baseline;
+      }
+
+      .channel strong {
+        font-size: 13px;
+        font-weight: 600;
+      }
+
+      .meter {
+        height: 8px;
+        border-radius: 999px;
+        overflow: hidden;
+        background: rgba(255, 255, 255, 0.06);
+      }
+
+      .fill {
+        height: 100%;
+        width: 50%;
+        border-radius: inherit;
+        transform-origin: left center;
+      }
+
+      .fill.bloom {
+        background: linear-gradient(90deg, var(--rose), var(--pearl));
+      }
+
+      .fill.curl {
+        background: linear-gradient(90deg, var(--violet), var(--cyan));
+      }
+
+      .fill.pressure {
+        background: linear-gradient(90deg, var(--amber), var(--lime));
+      }
+
+      .status {
+        display: grid;
+        gap: 8px;
+        padding-top: 2px;
+        border-top: 1px solid rgba(241, 231, 220, 0.08);
+      }
+
+      .status-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .status-card {
+        padding: 9px 10px;
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(241, 231, 220, 0.07);
+      }
+
+      .value {
+        margin-top: 3px;
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+      }
+
+      @media (max-width: 920px) {
+        .hud {
+          inset: 14px;
+          grid-template-columns: 1fr;
+          align-content: end;
+        }
+
+        .rail {
+          order: 3;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="scene"></canvas>
+    <div class="hud">
+      <section class="panel">
+        <p class="eyebrow">Code Animation Study #012</p>
+        <h1>Gradient Valve Garden</h1>
+        <p class="hint">
+          A more literal HTML answer to the translucent technical-plate request:
+          a vertical specimen grows as stacked soft valves, while the right rail
+          exposes exactly which membrane law you are nudging.
+        </p>
+        <p class="meta">
+          Hover the control rail to push bloom, curl, or pressure through the
+          body. Move across the field to create local dents, lumen swells, and
+          drifting diagnostic shards.
+        </p>
+        <a class="back" href="../../index.html">Index</a>
+      </section>
+
+      <section class="rail" aria-label="Specimen channels">
+        <div class="channels" id="channels"></div>
+        <div class="status">
+          <div class="status-grid">
+            <div class="status-card">
+              <p class="label">Focus lens</p>
+              <p class="value" id="focusValue">nominal</p>
+            </div>
+            <div class="status-card">
+              <p class="label">Valve chorus</p>
+              <p class="value" id="chorusValue">0.48</p>
+            </div>
+            <div class="status-card">
+              <p class="label">Signal grain</p>
+              <p class="value" id="grainValue">soft</p>
+            </div>
+            <div class="status-card">
+              <p class="label">Stem tension</p>
+              <p class="value" id="stemValue">even</p>
+            </div>
+          </div>
+          <p class="small" id="statusText">
+            The rail is not a generic UI. It is exposed anatomy for the plate.
+          </p>
+        </div>
+      </section>
+    </div>
+    <script src="../../shared/study-notes.js"></script>
+
+    <script>
+      const canvas = document.getElementById("scene");
+      const ctx = canvas.getContext("2d");
+      const channelsRoot = document.getElementById("channels");
+      const focusValue = document.getElementById("focusValue");
+      const chorusValue = document.getElementById("chorusValue");
+      const grainValue = document.getElementById("grainValue");
+      const stemValue = document.getElementById("stemValue");
+      const statusText = document.getElementById("statusText");
+
+      const TAU = Math.PI * 2;
+      const valves = [];
+      const shards = [];
+      const motes = [];
+      const gridMarks = [];
+
+      let width = 0;
+      let height = 0;
+      let dpr = 1;
+
+      const pointer = {
+        x: 0.5,
+        y: 0.52,
+        tx: 0.5,
+        ty: 0.52,
+        active: false,
+        energy: 0,
+      };
+
+      const channels = [
+        {
+          key: "bloom",
+          title: "Bloom",
+          note: "opens petal volume and blush",
+          color: "#f579b9",
+          value: 0.52,
+          target: 0.52,
+          autoPhase: 0.2,
+        },
+        {
+          key: "curl",
+          title: "Curl",
+          note: "twists side tissue and arcs",
+          color: "#73dde1",
+          value: 0.38,
+          target: 0.38,
+          autoPhase: 1.4,
+        },
+        {
+          key: "pressure",
+          title: "Pressure",
+          note: "compresses stem and lumen waves",
+          color: "#f0b06e",
+          value: 0.44,
+          target: 0.44,
+          autoPhase: 2.3,
+        },
+      ];
+
+      let hoveredChannel = 0;
+      let channelLevel = 0.52;
+
+      function rand(min, max) {
+        return min + Math.random() * (max - min);
+      }
+
+      function clamp(value, min, max) {
+        return Math.max(min, Math.min(max, value));
+      }
+
+      function ease(a, b, t) {
+        return a + (b - a) * t;
+      }
+
+      function resize() {
+        dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+        width = window.innerWidth;
+        height = window.innerHeight;
+        canvas.width = Math.round(width * dpr);
+        canvas.height = Math.round(height * dpr);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        buildScene();
+      }
+
+      function buildScene() {
+        valves.length = 0;
+        shards.length = 0;
+        motes.length = 0;
+        gridMarks.length = 0;
+
+        const steps = 9;
+        for (let i = 0; i < steps; i += 1) {
+          const t = i / (steps - 1);
+          valves.push({
+            t,
+            y: ease(height * 0.18, height * 0.83, t),
+            radius: ease(width * 0.07, width * 0.14, Math.sin(t * Math.PI)),
+            length: ease(height * 0.09, height * 0.14, Math.sin(t * Math.PI)),
+            skew: rand(-0.16, 0.16),
+            phase: rand(0, TAU),
+            hue: rand(0, 1),
+          });
+        }
+
+        for (let i = 0; i < 28; i += 1) {
+          shards.push({
+            side: i % 2 === 0 ? -1 : 1,
+            y: rand(height * 0.12, height * 0.88),
+            xBand: rand(0.14, 0.34),
+            len: rand(22, 88),
+            drift: rand(0.2, 1),
+            phase: rand(0, TAU),
+            alpha: rand(0.08, 0.24),
+          });
+        }
+
+        for (let i = 0; i < 110; i += 1) {
+          motes.push({
+            x: rand(0, width),
+            y: rand(0, height),
+            r: rand(0.8, 2.4),
+            dx: rand(-0.12, 0.12),
+            dy: rand(-0.2, 0.2),
+            alpha: rand(0.05, 0.16),
+          });
+        }
+
+        for (let i = 0; i < 36; i += 1) {
+          gridMarks.push({
+            y: ease(height * 0.13, height * 0.87, i / 35),
+            len: rand(12, 30),
+            alpha: rand(0.05, 0.14),
+          });
+        }
+      }
+
+      function buildControls() {
+        channelsRoot.innerHTML = "";
+        channels.forEach((channel, index) => {
+          const button = document.createElement("button");
+          button.className = "channel";
+          button.type = "button";
+          button.dataset.index = String(index);
+          button.innerHTML = `
+            <div class="channel-head">
+              <strong>${channel.title}</strong>
+              <span class="small" id="${channel.key}-value">${channel.value.toFixed(2)}</span>
+            </div>
+            <div class="meter">
+              <div class="fill ${channel.key}" id="${channel.key}-fill"></div>
+            </div>
+            <p class="small">${channel.note}</p>
+          `;
+
+          const updateFromEvent = (event) => {
+            const rect = button.getBoundingClientRect();
+            const ratio = clamp((event.clientY - rect.top) / rect.height, 0, 1);
+            hoveredChannel = index;
+            channelLevel = 1 - ratio;
+            statusText.textContent =
+              index === 0
+                ? "Bloom lifts petal walls and releases warmer translucent blush."
+                : index === 1
+                  ? "Curl twists the side valves into a more diagrammatic braid."
+                  : "Pressure compresses the core and sends denser light through the stem.";
+          };
+
+          button.addEventListener("pointerenter", updateFromEvent);
+          button.addEventListener("pointermove", updateFromEvent);
+          button.addEventListener("pointerleave", () => {
+            channelLevel = 0.52;
+          });
+          button.addEventListener("click", (event) => {
+            updateFromEvent(event);
+          });
+
+          channelsRoot.appendChild(button);
+        });
+      }
+
+      function updateControls() {
+        channels.forEach((channel, index) => {
+          const active = index === hoveredChannel;
+          const card = channelsRoot.children[index];
+          card.classList.toggle("active", active);
+
+          const auto = 0.46 + Math.sin(performance.now() * 0.00045 + channel.autoPhase) * 0.08;
+          channel.target = active ? channelLevel : auto;
+          channel.value = ease(channel.value, channel.target, active ? 0.14 : 0.05);
+
+          const valueNode = document.getElementById(`${channel.key}-value`);
+          const fillNode = document.getElementById(`${channel.key}-fill`);
+          valueNode.textContent = channel.value.toFixed(2);
+          fillNode.style.transform = `scaleX(${channel.value})`;
+        });
+      }
+
+      function drawBackground(time) {
+        ctx.clearRect(0, 0, width, height);
+
+        const field = ctx.createLinearGradient(0, 0, 0, height);
+        field.addColorStop(0, "#07080b");
+        field.addColorStop(0.45, "#06070a");
+        field.addColorStop(1, "#040405");
+        ctx.fillStyle = field;
+        ctx.fillRect(0, 0, width, height);
+
+        const glow = ctx.createRadialGradient(
+          width * 0.5,
+          height * 0.4,
+          0,
+          width * 0.5,
+          height * 0.4,
+          width * 0.38
+        );
+        glow.addColorStop(0, "rgba(176, 122, 255, 0.10)");
+        glow.addColorStop(0.45, "rgba(245, 121, 185, 0.05)");
+        glow.addColorStop(1, "rgba(0, 0, 0, 0)");
+        ctx.fillStyle = glow;
+        ctx.fillRect(0, 0, width, height);
+
+        ctx.save();
+        ctx.strokeStyle = "rgba(240, 230, 220, 0.05)";
+        ctx.lineWidth = 1;
+        gridMarks.forEach((mark, index) => {
+          const wave = Math.sin(time * 0.0004 + index * 0.7) * 10;
+          ctx.globalAlpha = mark.alpha;
+          ctx.beginPath();
+          ctx.moveTo(width * 0.16, mark.y + wave);
+          ctx.lineTo(width * 0.16 + mark.len, mark.y + wave);
+          ctx.moveTo(width * 0.84 - mark.len, mark.y - wave);
+          ctx.lineTo(width * 0.84, mark.y - wave);
+          ctx.stroke();
+        });
+        ctx.restore();
+
+        ctx.save();
+        motes.forEach((mote) => {
+          mote.x = (mote.x + mote.dx + width) % width;
+          mote.y = (mote.y + mote.dy + height) % height;
+          ctx.globalAlpha = mote.alpha;
+          ctx.fillStyle = "rgba(240, 234, 230, 0.9)";
+          ctx.beginPath();
+          ctx.arc(mote.x, mote.y, mote.r, 0, TAU);
+          ctx.fill();
+        });
+        ctx.restore();
+      }
+
+      function specimenCenterAt(yNorm) {
+        const sway =
+          Math.sin(yNorm * 7 + channels[1].value * 3.2) * width * 0.024 +
+          Math.sin(yNorm * 13 + channels[2].value * 4.8) * width * 0.012;
+        const pointerBias = (pointer.x - 0.5) * width * 0.06 * pointer.energy * (1 - yNorm);
+        return width * 0.5 + sway + pointerBias;
+      }
+
+      function drawStem(time) {
+        ctx.save();
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+
+        const bloom = channels[0].value;
+        const curl = channels[1].value;
+        const pressure = channels[2].value;
+
+        const stemGradient = ctx.createLinearGradient(width * 0.5, height * 0.14, width * 0.5, height * 0.86);
+        stemGradient.addColorStop(0, "rgba(246, 220, 198, 0.24)");
+        stemGradient.addColorStop(0.35, "rgba(245, 121, 185, 0.18)");
+        stemGradient.addColorStop(0.68, "rgba(115, 221, 225, 0.16)");
+        stemGradient.addColorStop(1, "rgba(184, 240, 153, 0.12)");
+
+        ctx.strokeStyle = stemGradient;
+        ctx.lineWidth = 11 + bloom * 10 - pressure * 3;
+        ctx.beginPath();
+        for (let i = 0; i <= 60; i += 1) {
+          const t = i / 60;
+          const y = ease(height * 0.13, height * 0.87, t);
+          const x =
+            specimenCenterAt(t) +
+            Math.sin(time * 0.0008 + t * 8 + curl * 3) * width * 0.018 * (0.4 + pressure);
+          if (i === 0) {
+            ctx.moveTo(x, y);
+          } else {
+            ctx.lineTo(x, y);
+          }
+        }
+        ctx.stroke();
+
+        ctx.strokeStyle = "rgba(241, 231, 220, 0.16)";
+        ctx.lineWidth = 1.4;
+        ctx.beginPath();
+        for (let i = 0; i <= 50; i += 1) {
+          const t = i / 50;
+          const y = ease(height * 0.13, height * 0.87, t);
+          const x = specimenCenterAt(t) + Math.sin(time * 0.001 + t * 9) * width * 0.006;
+          if (i === 0) {
+            ctx.moveTo(x, y);
+          } else {
+            ctx.lineTo(x, y);
+          }
+        }
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      function drawValve(valve, index, time) {
+        const bloom = channels[0].value;
+        const curl = channels[1].value;
+        const pressure = channels[2].value;
+        const cx = specimenCenterAt(valve.t);
+        const py = valve.y;
+        const dx = pointer.x * width - cx;
+        const dy = pointer.y * height - py;
+        const dist = Math.hypot(dx, dy);
+        const local = Math.max(0, 1 - dist / (width * 0.28)) * pointer.energy;
+        const spread = valve.radius * (0.88 + bloom * 0.9 + local * 0.42);
+        const lift = valve.length * (0.82 + bloom * 0.34);
+        const twist = valve.skew * width * 0.18 + (curl - 0.5) * width * 0.1 + dx * -0.02 * local;
+        const pinch = 1 + (pressure - 0.5) * 0.55 - local * 0.08;
+        const pulse = Math.sin(time * 0.0016 + valve.phase + index * 0.45) * (10 + bloom * 7);
+
+        const grad = ctx.createRadialGradient(cx, py, spread * 0.08, cx, py, spread * 1.4);
+        grad.addColorStop(0, `rgba(246, 220, 198, ${0.18 + bloom * 0.24 + local * 0.12})`);
+        grad.addColorStop(0.28, `rgba(245, 121, 185, ${0.12 + local * 0.1})`);
+        grad.addColorStop(0.6, `rgba(115, 221, 225, ${0.1 + curl * 0.1})`);
+        grad.addColorStop(1, "rgba(0, 0, 0, 0)");
+
+        ctx.save();
+        ctx.globalCompositeOperation = "lighter";
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.ellipse(cx, py, spread * 1.2, lift * 1.1, twist * 0.0015, 0, TAU);
+        ctx.fill();
+        ctx.restore();
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(cx, py - lift);
+        ctx.bezierCurveTo(
+          cx + spread * 0.72 + twist,
+          py - lift * 0.46 + pulse * 0.3,
+          cx + spread * 0.64 + twist,
+          py + lift * 0.54,
+          cx,
+          py + lift * pinch
+        );
+        ctx.bezierCurveTo(
+          cx - spread * 0.68 + twist * 0.22,
+          py + lift * 0.48,
+          cx - spread * 0.7 + twist * 0.18,
+          py - lift * 0.42 + pulse * -0.22,
+          cx,
+          py - lift
+        );
+        ctx.closePath();
+
+        const bodyGrad = ctx.createLinearGradient(cx - spread, py - lift, cx + spread, py + lift);
+        bodyGrad.addColorStop(0, `rgba(140, 124, 255, ${0.1 + curl * 0.12})`);
+        bodyGrad.addColorStop(0.42, `rgba(245, 121, 185, ${0.12 + bloom * 0.18})`);
+        bodyGrad.addColorStop(0.7, `rgba(246, 220, 198, ${0.18 + local * 0.16})`);
+        bodyGrad.addColorStop(1, `rgba(115, 221, 225, ${0.1 + pressure * 0.12})`);
+        ctx.fillStyle = bodyGrad;
+        ctx.strokeStyle = `rgba(241, 231, 220, ${0.09 + local * 0.12})`;
+        ctx.lineWidth = 1.2;
+        ctx.shadowColor = "rgba(245, 121, 185, 0.18)";
+        ctx.shadowBlur = 22;
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+
+        ctx.save();
+        ctx.strokeStyle = `rgba(246, 220, 198, ${0.14 + local * 0.16})`;
+        ctx.lineWidth = 1;
+        for (let vein = 0; vein < 3; vein += 1) {
+          const offset = (-0.18 + vein * 0.18) * spread;
+          ctx.beginPath();
+          ctx.moveTo(cx + offset * 0.3, py - lift * 0.7);
+          ctx.quadraticCurveTo(
+            cx + offset + twist * 0.14,
+            py + pulse * 0.06,
+            cx + offset * 0.16,
+            py + lift * 0.72
+          );
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      function drawShards(time) {
+        ctx.save();
+        ctx.lineCap = "round";
+        shards.forEach((shard, index) => {
+          const xBase = width * 0.5 + shard.side * width * shard.xBand;
+          const y = shard.y + Math.sin(time * 0.00065 * shard.drift + shard.phase) * 18;
+          const lean = Math.sin(time * 0.00085 + index) * 16 * channels[1].value;
+          ctx.strokeStyle =
+            shard.side < 0
+              ? `rgba(245, 121, 185, ${shard.alpha + channels[0].value * 0.08})`
+              : `rgba(115, 221, 225, ${shard.alpha + channels[1].value * 0.08})`;
+          ctx.lineWidth = 1.1;
+          ctx.beginPath();
+          ctx.moveTo(xBase - lean, y - shard.len * 0.5);
+          ctx.lineTo(xBase + lean, y + shard.len * 0.5);
+          ctx.stroke();
+        });
+        ctx.restore();
+      }
+
+      function drawLens(time) {
+        const x = pointer.x * width;
+        const y = pointer.y * height;
+        const radius = 78 + pointer.energy * 52 + Math.sin(time * 0.003) * 4;
+
+        ctx.save();
+        ctx.globalCompositeOperation = "screen";
+        const glow = ctx.createRadialGradient(x, y, 0, x, y, radius * 1.5);
+        glow.addColorStop(0, "rgba(246, 220, 198, 0.18)");
+        glow.addColorStop(0.3, "rgba(115, 221, 225, 0.08)");
+        glow.addColorStop(1, "rgba(0, 0, 0, 0)");
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.arc(x, y, radius * 1.5, 0, TAU);
+        ctx.fill();
+
+        ctx.strokeStyle = `rgba(241, 231, 220, ${0.08 + pointer.energy * 0.18})`;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, TAU);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(x, y, radius * 0.62, -0.8, 1.2);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      function updateReadouts() {
+        const bloom = channels[0].value;
+        const curl = channels[1].value;
+        const pressure = channels[2].value;
+        const focus =
+          pointer.energy > 0.5 ? "engaged" : pointer.energy > 0.18 ? "tracking" : "nominal";
+        const grain =
+          bloom + curl > 1.18 ? "sparked" : pressure > 0.56 ? "dense" : "soft";
+        const stem =
+          pressure > 0.58 ? "compressed" : curl > 0.58 ? "spiraled" : "even";
+
+        focusValue.textContent = focus;
+        chorusValue.textContent = ((bloom + curl + pressure) / 3).toFixed(2);
+        grainValue.textContent = grain;
+        stemValue.textContent = stem;
+      }
+
+      function frame(time) {
+        pointer.x = ease(pointer.x, pointer.tx, 0.08);
+        pointer.y = ease(pointer.y, pointer.ty, 0.08);
+        pointer.energy = ease(pointer.energy, pointer.active ? 1 : 0.14, 0.08);
+
+        updateControls();
+        updateReadouts();
+        drawBackground(time);
+        drawShards(time);
+        drawStem(time);
+        valves.forEach((valve, index) => drawValve(valve, index, time));
+        drawLens(time);
+        requestAnimationFrame(frame);
+      }
+
+      function handlePointerMove(event) {
+        pointer.tx = clamp(event.clientX / width, 0, 1);
+        pointer.ty = clamp(event.clientY / height, 0, 1);
+        pointer.active = true;
+      }
+
+      window.addEventListener("pointermove", handlePointerMove);
+      window.addEventListener("pointerdown", handlePointerMove);
+      window.addEventListener("pointerleave", () => {
+        pointer.active = false;
+      });
+      window.addEventListener("pointerup", () => {
+        pointer.active = false;
+      });
+      window.addEventListener("resize", resize);
+
+      buildControls();
+      resize();
+      requestAnimationFrame(frame);
+    </script>
+  </body>
+</html>
