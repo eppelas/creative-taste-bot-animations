@@ -1,6 +1,22 @@
 {
   "animations": [
     {
+      "id": "080-perception-map",
+      "title": "Perception Map",
+      "date": "2026-05-12",
+      "branch": "contour grid / glitch aesthetics / technical perception study",
+      "path": "animations/080-perception-map/index.html",
+      "notes": "A technical sci-fi interface featuring a distorted 3D grid, scanning artifacts, and data overlays. Explores the visual language of machine perception and glitch art."
+    },
+    {
+      "id": "079-ink-field-flow",
+      "title": "Ink Field Flow",
+      "date": "2026-05-12",
+      "branch": "generative calligraphy / interactive flow field / technical capture study",
+      "path": "animations/079-ink-field-flow/index.html",
+      "notes": "An interactive ink-on-paper simulation with SVG tracking boxes and a live data log. Inspired by traditional calligraphy and modern generative systems."
+    },
+    {
       "id": "078-technical-galaxy",
       "title": "Technical Galaxy",
       "date": "2026-05-12",

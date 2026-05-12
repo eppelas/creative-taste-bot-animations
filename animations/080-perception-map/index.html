@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Perception Map — Study 080</title>
+    <style>
+        body, html {
+            margin: 0; padding: 0;
+            width: 100%; height: 100%;
+            overflow: hidden;
+            background: #050505;
+            font-family: 'JetBrains Mono', monospace;
+            color: rgba(255, 255, 255, 0.4);
+        }
+        canvas { display: block; }
+        .ui {
+            position: absolute; inset: 0;
+            pointer-events: none;
+            padding: 30px;
+            display: flex; flex-direction: column; justify-content: space-between;
+            font-size: 10px; letter-spacing: 0.1em;
+        }
+        .top { display: flex; justify-content: space-between; }
+        .mid { flex-grow: 1; display: flex; align-items: center; justify-content: center; position: relative; }
+        .bot { display: flex; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px; }
+        .glitch-text { color: #fff; opacity: 0.8; }
+        .scanline {
+            position: absolute; width: 100%; height: 1px;
+            background: rgba(255, 255, 255, 0.1);
+            top: 0; animation: scan 4s linear infinite;
+        }
+        @keyframes scan { from { top: 0; } to { top: 100%; } }
+        .label-group { display: flex; flex-direction: column; gap: 4px; }
+        .val { color: #fff; }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    <div class="scanline"></div>
+    <div class="ui">
+        <div class="top">
+            <div class="label-group">
+                <span>SYSTEM_STATUS</span>
+                <span class="val">ACTIVE // NOMINAL</span>
+            </div>
+            <div class="label-group" style="text-align: right;">
+                <span>STUDY_REF</span>
+                <span class="val">080_PERCEPTION_MAP</span>
+            </div>
+        </div>
+        <div class="mid">
+            <div style="position: absolute; left: 10%; top: 20%;">
+                <div class="glitch-text">CONTOUR_SCAN</div>
+                <div style="font-size: 8px;">DEPTH_OFFSET: 14.2mm</div>
+            </div>
+            <div style="position: absolute; right: 10%; bottom: 20%;">
+                <div class="glitch-text">ANOMALY_DETECTION</div>
+                <div style="font-size: 8px;">SIGNAL_STRENGTH: 98.4%</div>
+            </div>
+        </div>
+        <div class="bot">
+            <div class="label-group">
+                <span>X_COORDINATE</span>
+                <span id="mx" class="val">0.00</span>
+            </div>
+            <div class="label-group">
+                <span>Y_COORDINATE</span>
+                <span id="my" class="val">0.00</span>
+            </div>
+            <div class="label-group">
+                <span>FRAME_HASH</span>
+                <span id="hash" class="val">--</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const mxEl = document.getElementById('mx');
+        const myEl = document.getElementById('my');
+        const hashEl = document.getElementById('hash');
+
+        let width, height;
+        let mouse = { x: 0, y: 0, tx: 0, ty: 0 };
+        let frame = 0;
+
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        window.addEventListener('mousemove', e => {
+            mouse.tx = e.clientX;
+            mouse.ty = e.clientY;
+        });
+        resize();
+
+        function drawGrid() {
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+            ctx.lineWidth = 0.5;
+            const size = 50;
+            
+            for (let x = 0; x < width; x += size) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, height);
+                ctx.stroke();
+            }
+            for (let y = 0; y < height; y += size) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(width, y);
+                ctx.stroke();
+            }
+        }
+
+        function drawContourSphere() {
+            const cx = width / 2;
+            const cy = height / 2;
+            const radius = Math.min(width, height) * 0.3;
+            
+            mouse.x += (mouse.tx - mouse.x) * 0.1;
+            mouse.y += (mouse.ty - mouse.y) * 0.1;
+
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.lineWidth = 1;
+
+            for (let i = -10; i <= 10; i++) {
+                // Horizontal lines
+                ctx.beginPath();
+                const yOffset = (i / 10) * radius;
+                const rAtY = Math.sqrt(Math.max(0, radius * radius - yOffset * yOffset));
+                
+                for (let x = -rAtY; x <= rAtY; x += 5) {
+                    const z = Math.sqrt(Math.max(0, rAtY * rAtY - x * x));
+                    
+                    // Distortion based on mouse
+                    const distToMouse = Math.hypot(cx + x - mouse.x, cy + yOffset - mouse.y);
+                    const distortion = Math.max(0, 1 - distToMouse / 200) * 30 * Math.sin(frame * 0.1 + i);
+                    
+                    const drawX = cx + x;
+                    const drawY = cy + yOffset - (z * 0.3) - distortion;
+
+                    if (x === -rAtY) ctx.moveTo(drawX, drawY);
+                    else ctx.lineTo(drawX, drawY);
+                }
+                ctx.stroke();
+
+                // Vertical lines (simplified)
+                ctx.beginPath();
+                const xOffset = (i / 10) * radius;
+                const rAtX = Math.sqrt(Math.max(0, radius * radius - xOffset * xOffset));
+                for (let y = -rAtX; y <= rAtX; y += 5) {
+                    const z = Math.sqrt(Math.max(0, rAtX * rAtX - y * y));
+                    const drawX = cx + xOffset + (z * 0.2);
+                    const drawY = cy + y;
+                    if (y === -rAtX) ctx.moveTo(drawX, drawY);
+                    else ctx.lineTo(drawX, drawY);
+                }
+                ctx.stroke();
+            }
+
+            // Central core points
+            if (Math.random() > 0.9) {
+                ctx.fillStyle = '#fff';
+                ctx.beginPath();
+                ctx.arc(cx + (Math.random() - 0.5) * radius, cy + (Math.random() - 0.5) * radius, 1, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function animate() {
+            frame++;
+            ctx.fillStyle = '#050505';
+            ctx.fillRect(0, 0, width, height);
+
+            drawGrid();
+            drawContourSphere();
+
+            // Glitch overlay
+            if (Math.random() > 0.98) {
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+                ctx.fillRect(0, Math.random() * height, width, Math.random() * 20);
+            }
+
+            mxEl.textContent = mouse.x.toFixed(2);
+            myEl.textContent = mouse.y.toFixed(2);
+            if (frame % 10 === 0) {
+                hashEl.textContent = Math.random().toString(16).slice(2, 10).toUpperCase();
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        animate();
+    </script>
+</body>
+</html>
