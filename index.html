@@ -195,7 +195,7 @@
         const idTag = node.querySelector('.id-tag');
         const dateTag = node.querySelector('.date');
 
-        node.href = item.path;
+        node.href = `viewer.html?src=${encodeURIComponent(item.path)}`;
         title.textContent = item.title;
         summary.textContent = item.branch || 'Motion study';
         idTag.textContent = formatId(item.id);

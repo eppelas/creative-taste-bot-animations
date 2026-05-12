@@ -1,6 +1,14 @@
 {
   "animations": [
     {
+      "id": "078-technical-galaxy",
+      "title": "Technical Galaxy",
+      "date": "2026-05-12",
+      "branch": "dense particle field / technical sci-fi aesthetic / data-viz motion study",
+      "path": "animations/078-technical-galaxy/index.html",
+      "notes": "A high-density particle simulation inspired by technical sci-fi displays, featuring a curved 3D field, depth-sorted white and red points, and vertical scanner lines."
+    },
+    {
       "id": "076-translucent-estuary-sanctum",
       "title": "Translucent Estuary Sanctum",
       "date": "2026-05-12",

@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Technical Galaxy — Study 078</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #000;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        canvas {
+            display: block;
+        }
+        .ui-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 10px;
+            letter-spacing: 2px;
+        }
+        .label {
+            position: absolute;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .label::before {
+            content: '';
+            width: 30px;
+            height: 1px;
+            background: rgba(255, 255, 255, 0.2);
+        }
+        .top-right { top: 20px; right: 20px; }
+        .context { top: 30%; right: 5%; }
+        .system { top: 50%; right: 3%; }
+        .refs { top: 70%; right: 7%; }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    <div class="ui-overlay">
+        <div class="label top-right">CLICK / ARROW</div>
+        <div class="label context">КОНТЕКСТ</div>
+        <div class="label system">СИСТЕМА</div>
+        <div class="label refs">РЕФЕРЕНСЫ</div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        let width, height;
+        let particles = [];
+        let mouse = { x: 0, y: 0, tx: 0, ty: 0 };
+
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        window.addEventListener('mousemove', e => {
+            mouse.tx = (e.clientX - width / 2) / 50;
+            mouse.ty = (e.clientY - height / 2) / 50;
+        });
+        resize();
+
+        class Particle {
+            constructor() {
+                this.init();
+            }
+            init() {
+                this.x = (Math.random() - 0.5) * 3000;
+                this.y = (Math.random() - 0.5) * 1000;
+                this.z = Math.random() * 2000;
+                this.v = Math.random() * 1.5 + 0.5;
+            }
+            update() {
+                this.z -= this.v;
+                if (this.z < 1) {
+                    this.init();
+                    this.z = 2000;
+                }
+                mouse.x += (mouse.tx - mouse.x) * 0.05;
+                mouse.y += (mouse.ty - mouse.y) * 0.05;
+            }
+            draw() {
+                const sx = (this.x / this.z) * 800 + width / 2 + mouse.x * (1000 / this.z);
+                const sy = (this.y / this.z) * 800 + height / 2 + mouse.y * (1000 / this.z);
+                
+                const dist = Math.sqrt(this.x * this.x);
+                const bowl = (Math.cos(dist * 0.002) * 200) * (1000 / this.z);
+                const finalY = sy + bowl;
+
+                const r = (1 - this.z / 2000) * 1.2;
+                const alpha = (1 - this.z / 2000) * 0.7;
+
+                ctx.fillStyle = '#fff';
+                ctx.globalAlpha = alpha;
+                ctx.beginPath();
+                ctx.arc(sx, finalY, r, 0, Math.PI * 2);
+                ctx.fill();
+
+                if (Math.random() > 0.995) {
+                    ctx.strokeStyle = '#fff';
+                    ctx.globalAlpha = alpha * 0.3;
+                    ctx.lineWidth = 0.5;
+                    ctx.beginPath();
+                    ctx.moveTo(sx, finalY);
+                    ctx.lineTo(sx, finalY - 150 * (1000/this.z));
+                    ctx.stroke();
+                }
+            }
+        }
+
+        for (let i = 0; i < 2000; i++) particles.push(new Particle());
+
+        function animate() {
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, width, height);
+            
+            particles.sort((a, b) => b.z - a.z);
+            particles.forEach(p => {
+                p.update();
+                p.draw();
+            });
+            requestAnimationFrame(animate);
+        }
+        animate();
+    </script>
+</body>
+</html>
